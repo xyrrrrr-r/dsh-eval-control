@@ -1,0 +1,45 @@
+{
+  "name": "dsh-eval-control",
+  "version": "0.1.0",
+  "description": "Host-side Cordis control plugin for aeval: one-shot config injector (experiment variables, gateway-lease budgets, fork lineage, bundle descriptor).",
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "test": "npm run build && tsc -p tsconfig.test.json && node --test \".test-dist/test/*.test.js\""
+  },
+  "dependencies": {
+    "@agentclientprotocol/sdk": "1.4.0",
+    "@deepseek-ai/cordis": "4.0.3",
+    "@deepseek-ai/dsh": "0.1.7-alpha.1",
+    "@deepseek-ai/dsh-acp": "0.1.7-alpha.1",
+    "@deepseek-ai/dsh-agent": "0.1.7-alpha.1",
+    "@deepseek-ai/dsh-llm": "0.1.7-alpha.1",
+    "@deepseek-ai/dsh-scope": "0.1.7-alpha.1",
+    "@deepseek-ai/dsh-system-prompt": "0.1.7-alpha.1",
+    "@deepseek-ai/dsh-sdk-client": "0.1.7-alpha.1",
+    "@deepseek-ai/dsh-sdk-protocol": "0.1.7-alpha.1",
+    "@deepseek-ai/dsh-session": "0.1.7-alpha.1",
+    "@deepseek-ai/dsh-tools": "0.1.7-alpha.1",
+    "@deepseek-ai/schemastery": "3.18.3"
+  },
+  "devDependencies": {
+    "@deepseek-ai/dsh-ptc-runtime": "0.1.7-alpha.1",
+    "@deepseek-ai/dsh-session-persistence": "0.1.7-alpha.1",
+    "@deepseek-ai/dsh-session-persistence-jsonl": "0.1.7-alpha.1",
+    "@types/node": "24.13.6",
+    "typescript": "6.0.3"
+  }
+}

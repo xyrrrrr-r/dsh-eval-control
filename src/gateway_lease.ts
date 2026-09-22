@@ -1,0 +1,321 @@
+import { closeSync, constants, fstatSync, openSync, readFileSync } from 'node:fs';
+import { LlmAdapter, LlmError, attributionHeaders, resolveRetryPolicy } from '@deepseek-ai/dsh-llm';
+import type { GenerateOptions, LlmResolvedModelInfo, StreamChunk, TokenUsage } from '@deepseek-ai/dsh-llm';
+import type { EvalControlConfig } from './config.js';
+import { isStopReason, type StopReason } from './stop_reason.js';
+
+export const GATEWAY_PROTOCOL = 'aeval-model-broker/1';
+export const MAX_WIRE_BYTES = 8 * 1024 * 1024;
+
+export interface LeaseIdentity {
+  readonly provider: string;
+  readonly model: string;
+  readonly reasoningEffort?: string;
+}
+
+export interface LeaseLimits {
+  readonly maxSteps?: number;
+  readonly maxTokens?: number;
+}
+
+export interface BrokerInfo {
+  readonly protocol: typeof GATEWAY_PROTOCOL;
+  readonly trialId: string;
+  readonly sessionId: string;
+  readonly configDigest: string;
+  readonly identity: LeaseIdentity;
+  readonly limits: LeaseLimits;
+  readonly refuseAuxiliaryCalls: boolean;
+  readonly usedSteps: number;
+  readonly usedTokens: number;
+  readonly reservedTokens: number;
+  readonly stopReason?: StopReason;
+  readonly model: LlmResolvedModelInfo;
+}
+
+export class GatewayError extends LlmError {
+  constructor(code: string, readonly stopReason: StopReason = 'infra_error') {
+    super(code, code);
+  }
+}
+
+// Always observe late settlements, but never let an uncooperative operation own shutdown.
+export async function abortable<T>(operation: () => T | PromiseLike<T>, signal: AbortSignal): Promise<T> {
+  signal.throwIfAborted();
+  let abort!: () => void;
+  try {
+    const result = await new Promise<T>((resolve, reject) => {
+      abort = () => reject(signal.reason);
+      signal.addEventListener('abort', abort, { once: true });
+      try { Promise.resolve(operation()).then(resolve, reject); }
+      catch (error) { reject(error); }
+    });
+    signal.throwIfAborted();
+    return result;
+  } finally {
+    signal.removeEventListener('abort', abort);
+  }
+}
+
+export function detachedCleanup(operation: () => unknown): void {
+  try { void Promise.resolve(operation()).catch(() => {}); }
+  catch { /* Cleanup cannot replace the original failure. */ }
+}
+
+export function objectOf(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new GatewayError('AEVAL_INVALID_WIRE');
+  return value as Record<string, unknown>;
+}
+
+export function tokenCount(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) {
+    throw new GatewayError('AEVAL_INVALID_USAGE');
+  }
+  return value;
+}
+
+export function usageTotals(usage: TokenUsage): { input: number; total: number } {
+  const input = tokenCount(usage.inputTokens) + tokenCount(usage.cacheReadTokens ?? 0) + tokenCount(usage.cacheWriteTokens ?? 0);
+  const total = tokenCount(input + tokenCount(usage.outputTokens));
+  if (usage.totalTokens !== undefined && tokenCount(usage.totalTokens) !== total) throw new GatewayError('AEVAL_INVALID_USAGE');
+  if (usage.reasoningTokens !== undefined && tokenCount(usage.reasoningTokens) > usage.outputTokens) throw new GatewayError('AEVAL_INVALID_USAGE');
+  return { input, total };
+}
+
+function checkBlock(raw: unknown): void {
+  const block = objectOf(raw);
+  if ((block['type'] === 'text' || block['type'] === 'reasoning') && typeof block['text'] === 'string'
+    && Object.keys(block).every((key) => ['type', 'text'].includes(key))) return;
+  if (block['type'] === 'tool-call' && ['id', 'name', 'arguments'].every((k) => typeof block[k] === 'string')
+    && Object.keys(block).every((key) => ['type', 'id', 'name', 'arguments'].includes(key))) return;
+  // Attachment references belong to the sandbox and must never resolve against host files.
+  throw new GatewayError('AEVAL_UNSUPPORTED_CONTENT');
+}
+
+export function parseStreamChunk(raw: unknown): StreamChunk {
+  const chunk = objectOf(raw);
+  switch (chunk['type']) {
+    case 'usage':
+      usageTotals(objectOf(chunk['usage']) as unknown as TokenUsage);
+      break;
+    case 'finish': {
+      const reason = objectOf(chunk['reason']);
+      if (!['stop', 'tool-calls', 'max-tokens', 'error', 'aborted'].includes(String(reason['kind']))) throw new GatewayError('AEVAL_INVALID_WIRE');
+      if (reason['kind'] === 'error' || reason['kind'] === 'aborted') {
+        const failure = objectOf(reason['failure']);
+        if (typeof failure['code'] !== 'string' || typeof failure['message'] !== 'string') throw new GatewayError('AEVAL_INVALID_WIRE');
+      }
+      if (chunk['replayState'] !== undefined) {
+        const replay = objectOf(chunk['replayState']);
+        if (!Object.hasOwn(replay, 'response') || (replay['blocks'] !== undefined && !Array.isArray(replay['blocks']))) throw new GatewayError('AEVAL_INVALID_WIRE');
+      }
+      break;
+    }
+    case 'block-start':
+      tokenCount(chunk['index']);
+      if (!['text', 'reasoning', 'tool-call'].includes(String(chunk['blockType']))) throw new GatewayError('AEVAL_UNSUPPORTED_CONTENT');
+      break;
+    case 'text-delta':
+    case 'reasoning-delta':
+      tokenCount(chunk['index']);
+      if (typeof chunk['text'] !== 'string') throw new GatewayError('AEVAL_INVALID_WIRE');
+      break;
+    case 'tool-call-delta':
+      tokenCount(chunk['index']);
+      if (typeof chunk['id'] !== 'string' || typeof chunk['argumentsDelta'] !== 'string' || (chunk['name'] !== undefined && typeof chunk['name'] !== 'string')) throw new GatewayError('AEVAL_INVALID_WIRE');
+      break;
+    case 'block-end':
+      tokenCount(chunk['index']);
+      checkBlock(chunk['block']);
+      break;
+    default: throw new GatewayError('AEVAL_INVALID_WIRE');
+  }
+  return chunk as unknown as StreamChunk;
+}
+
+export function parseBrokerRequest(raw: unknown): GenerateOptions {
+  const request = objectOf(raw);
+  const keys = new Set(['provider', 'model', 'reasoningEffort', 'messages', 'system', 'tools', 'temperature', 'maxTokens', 'stop', 'sessionId', 'purpose']);
+  if (Object.keys(request).some((key) => !keys.has(key)) || !Array.isArray(request['messages'])) throw new GatewayError('AEVAL_INVALID_REQUEST');
+  for (const rawMessage of request['messages']) {
+    const message = objectOf(rawMessage);
+    if (!['user', 'assistant', 'system', 'tool'].includes(String(message['role'])) || !Array.isArray(message['content'])) throw new GatewayError('AEVAL_INVALID_REQUEST');
+    message['content'].forEach(checkBlock);
+    if (message['role'] === 'tool' && typeof message['toolCallId'] !== 'string') throw new GatewayError('AEVAL_INVALID_REQUEST');
+    if (message['source'] !== undefined) {
+      const source = objectOf(message['source']);
+      // This is structural validation only. The host lease must authorize native
+      // replay against its own emitted-message ledger before dispatch.
+      if (source['replayState'] !== undefined && (message['role'] !== 'assistant'
+        || source['kind'] !== 'model' || typeof source['provider'] !== 'string'
+        || typeof source['model'] !== 'string')) throw new GatewayError('AEVAL_UNSUPPORTED_REPLAY');
+    }
+  }
+  if (request['tools'] !== undefined) {
+    if (!Array.isArray(request['tools'])) throw new GatewayError('AEVAL_INVALID_REQUEST');
+    for (const rawTool of request['tools']) {
+      const tool = objectOf(rawTool);
+      if (typeof tool['name'] !== 'string' || typeof tool['description'] !== 'string') throw new GatewayError('AEVAL_INVALID_REQUEST');
+      objectOf(tool['parameters']);
+    }
+  }
+  for (const field of ['provider', 'model', 'reasoningEffort', 'system', 'sessionId']) {
+    if (request[field] !== undefined && typeof request[field] !== 'string') throw new GatewayError('AEVAL_INVALID_REQUEST');
+  }
+  if (request['maxTokens'] !== undefined && tokenCount(request['maxTokens']) === 0) throw new GatewayError('AEVAL_INVALID_REQUEST');
+  if (request['temperature'] !== undefined && (typeof request['temperature'] !== 'number' || !Number.isFinite(request['temperature']))) throw new GatewayError('AEVAL_INVALID_REQUEST');
+  if (request['purpose'] !== undefined && !['compaction', 'session-title'].includes(String(request['purpose']))) throw new GatewayError('AEVAL_INVALID_REQUEST');
+  if (request['stop'] !== undefined && (!Array.isArray(request['stop']) || request['stop'].some((s) => typeof s !== 'string'))) throw new GatewayError('AEVAL_INVALID_REQUEST');
+  return request as unknown as GenerateOptions;
+}
+
+export function readJobToken(path: string): string {
+  if (process.platform === 'win32') throw new Error('Job-token files require a POSIX 0600 runtime; Windows ACL equivalence is not implemented');
+  const fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+  try {
+    const stat = fstatSync(fd);
+    if (!stat.isFile() || stat.uid !== process.getuid?.() || (stat.mode & 0o777) !== 0o600 || stat.size > 256) throw new Error('Job-token file must be owned by the current user with mode 0600');
+    const token = readFileSync(fd, 'utf8').trim();
+    if (!/^[a-f0-9]{64}$/.test(token)) throw new Error('Invalid job-token file');
+    return token;
+  } finally {
+    closeSync(fd);
+  }
+}
+
+export class BrokerAdapter extends LlmAdapter {
+  readonly #token: string;
+  readonly #config: EvalControlConfig;
+  readonly #listeners = new Set<(reason: StopReason) => void>();
+  #model: LlmResolvedModelInfo | undefined;
+
+  constructor(config: EvalControlConfig, jobToken: string) {
+    super();
+    this.#config = config;
+    this.#token = jobToken;
+  }
+
+  observeTerminal(listener: (reason: StopReason) => void): () => void {
+    this.#listeners.add(listener);
+    return () => { this.#listeners.delete(listener); };
+  }
+
+  private async request(path: string, init: RequestInit = {}): Promise<Response> {
+    const response = await fetch(`${this.#config.gatewayUrl.replace(/\/$/, '')}${path}`, {
+      ...init,
+      redirect: 'error',
+      signal: init.signal ?? AbortSignal.timeout(30_000),
+      headers: { ...attributionHeaders(), authorization: `Bearer ${this.#token}`, 'content-type': 'application/json' },
+    });
+    if (!response.ok) {
+      await response.body?.cancel();
+      const reason = response.headers.get('aeval-stop-reason');
+      const code = response.headers.get('aeval-error-code') ?? 'AEVAL_GATEWAY_FAILED';
+      throw new GatewayError(/^AEVAL_[A-Z_]+$/.test(code) ? code : 'AEVAL_GATEWAY_FAILED', isStopReason(reason) ? reason : 'infra_error');
+    }
+    return response;
+  }
+
+  async info(signal?: AbortSignal): Promise<BrokerInfo> {
+    const response = await this.request('/info', signal ? { signal } : {});
+    const raw = objectOf(JSON.parse(await boundedText(response)));
+    const identity = objectOf(raw['identity']);
+    const limits = objectOf(raw['limits']);
+    const c = this.#config;
+    if (raw['protocol'] !== GATEWAY_PROTOCOL || raw['trialId'] !== c.trialId || raw['sessionId'] !== c.sessionId || raw['configDigest'] !== c.configDigest
+      || identity['provider'] !== c.provider || identity['model'] !== c.model || identity['reasoningEffort'] !== c.reasoningEffort
+      || limits['maxSteps'] !== c.maxSteps || limits['maxTokens'] !== c.maxTokens || raw['refuseAuxiliaryCalls'] !== c.refuseAuxiliaryCalls) throw new GatewayError('AEVAL_LEASE_MISMATCH');
+    tokenCount(raw['usedSteps']); tokenCount(raw['usedTokens']); tokenCount(raw['reservedTokens']);
+    if (raw['stopReason'] !== undefined && !isStopReason(raw['stopReason'])) throw new GatewayError('AEVAL_INVALID_WIRE');
+    const model = objectOf(raw['model']);
+    if (model['provider'] !== c.provider || model['id'] !== c.model || typeof model['name'] !== 'string') throw new GatewayError('AEVAL_LEASE_MISMATCH');
+    this.#model = structuredClone(model) as unknown as LlmResolvedModelInfo;
+    return raw as unknown as BrokerInfo;
+  }
+
+  override providerRetryPolicy() { return resolveRetryPolicy({ mode: 'normal', maxRetries: 0 }, 'gateway.retry'); }
+
+  override async resolveModel(provider: string, model: string, signal?: AbortSignal): Promise<LlmResolvedModelInfo> {
+    if (provider !== this.#config.provider || model !== this.#config.model) throw new GatewayError('AEVAL_IDENTITY_MISMATCH');
+    if (!this.#model) await this.info(signal);
+    return structuredClone(this.#model!);
+  }
+
+  override async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
+    const controller = new AbortController();
+    const signal = options.signal ? AbortSignal.any([options.signal, controller.signal]) : controller.signal;
+    const { signal: _signal, ...body } = options;
+    let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+    let finished = false;
+    let usageSeen = false;
+    let failure: StopReason | undefined;
+    try {
+      const response = await abortable(() => this.request('/stream', { method: 'POST', body: JSON.stringify(body), signal }), signal);
+      if (!response.body) throw new GatewayError('AEVAL_INVALID_WIRE');
+      reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8', { fatal: true });
+      let buffer = '';
+      let terminal: StreamChunk | undefined;
+      for (;;) {
+        const { done, value } = await abortable(() => reader!.read(), signal);
+        buffer += done ? decoder.decode() : decoder.decode(value, { stream: true });
+        let boundary: number;
+        while ((boundary = buffer.indexOf('\n')) !== -1) {
+          signal.throwIfAborted();
+          const line = buffer.slice(0, boundary);
+          buffer = buffer.slice(boundary + 1);
+          if (!line || terminal || Buffer.byteLength(line) + 1 > MAX_WIRE_BYTES) throw new GatewayError('AEVAL_INVALID_WIRE');
+          const raw = objectOf(JSON.parse(line));
+          if (raw['type'] === 'gateway-error') throw new GatewayError('AEVAL_GATEWAY_FAILED', isStopReason(raw['stopReason']) ? raw['stopReason'] : 'infra_error');
+          const chunk = parseStreamChunk(raw);
+          if (chunk.type === 'usage') {
+            if (usageSeen) throw new GatewayError('AEVAL_INVALID_USAGE');
+            usageSeen = true;
+          } else if (usageSeen && chunk.type !== 'finish') throw new GatewayError('AEVAL_INVALID_WIRE');
+          if (chunk.type === 'finish') {
+            if (chunk.reason.kind === 'error' || chunk.reason.kind === 'aborted') throw new GatewayError('AEVAL_UPSTREAM_FAILED');
+            terminal = chunk;
+          } else yield chunk;
+        }
+        // A transport read may contain many individually valid lines.
+        if (Buffer.byteLength(buffer) >= MAX_WIRE_BYTES) throw new GatewayError('AEVAL_INVALID_WIRE');
+        if (done) break;
+      }
+      signal.throwIfAborted();
+      if (buffer || !terminal || !usageSeen) throw new GatewayError('AEVAL_TRUNCATED_STREAM');
+      finished = true;
+      yield terminal;
+    } catch (error) {
+      const cause = signal.aborted && signal.reason instanceof GatewayError ? signal.reason : error;
+      failure = cause instanceof GatewayError ? cause.stopReason : 'infra_error';
+      throw cause instanceof GatewayError ? cause : new GatewayError('AEVAL_GATEWAY_FAILED', failure);
+    } finally {
+      const reason = failure ?? (signal.aborted && signal.reason instanceof GatewayError ? signal.reason.stopReason : 'infra_error');
+      controller.abort();
+      detachedCleanup(() => reader?.cancel());
+      detachedCleanup(() => reader?.releaseLock());
+      if (!finished) for (const listener of [...this.#listeners]) {
+        detachedCleanup(() => listener(reason));
+      }
+    }
+  }
+}
+
+async function boundedText(response: Response): Promise<string> {
+  if (!response.body) throw new GatewayError('AEVAL_INVALID_WIRE');
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) return new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks));
+      size += value.byteLength;
+      if (size > MAX_WIRE_BYTES) throw new GatewayError('AEVAL_INVALID_WIRE');
+      chunks.push(value);
+    }
+  } finally {
+    await reader.cancel().catch(() => {});
+    reader.releaseLock();
+  }
+}
