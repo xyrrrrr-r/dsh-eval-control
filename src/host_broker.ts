@@ -1,5 +1,7 @@
 import { randomBytes, createHash, timingSafeEqual } from 'node:crypto';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import { createServer as createTlsServer } from 'node:https';
+import { isIP, type Socket } from 'node:net';
 import { once } from 'node:events';
 import { writeFileSync } from 'node:fs';
 import { isDeepStrictEqual } from 'node:util';
@@ -23,7 +25,13 @@ export interface HostBrokerOptions {
   readonly refuseAuxiliaryCalls?: boolean;
   readonly signal: AbortSignal;
   readonly timeoutMs?: number;
+  readonly listen?: { readonly host: string; readonly port?: number; readonly tls?: { readonly key: string; readonly cert: string } };
   readonly onStop?: (reason: StopReason) => void;
+}
+
+// Only literal loopback addresses qualify: a DNS name must not authorize plaintext.
+export function isLoopbackHost(host: string): boolean {
+  return (isIP(host) === 4 && host.startsWith('127.')) || host === '::1';
 }
 
 function freeze<T>(value: T): T {
@@ -219,6 +227,11 @@ export interface HostBroker {
 }
 
 export async function startHostBroker(options: HostBrokerOptions): Promise<HostBroker> {
+  const { host, port = 0, tls } = options.listen ?? { host: '127.0.0.1' };
+  if (typeof host !== 'string' || !host || (!isIP(host) && !/^[a-zA-Z0-9.-]+$/.test(host))) throw new Error('Invalid broker listen host');
+  if (!Number.isSafeInteger(port) || port < 0 || port > 65535) throw new Error('Invalid broker listen port');
+  if (!isLoopbackHost(host) && !tls) throw new Error('Nonloopback broker listeners require TLS');
+  if (tls && (typeof tls.key !== 'string' || !tls.key || typeof tls.cert !== 'string' || !tls.cert)) throw new Error('Invalid broker TLS material');
   for (const value of [options.maxOutputTokens, options.limits.maxSteps, options.limits.maxTokens, options.timeoutMs]) {
     if (value !== undefined && tokenCount(value) === 0) throw new Error('Broker limits must be positive safe integers');
   }
@@ -235,9 +248,16 @@ export async function startHostBroker(options: HostBrokerOptions): Promise<HostB
   const token = randomBytes(32).toString('hex');
   const expectedAuth = createHash('sha256').update(`Bearer ${token}`).digest();
   const active = new Set<Promise<void>>();
-  const server = createServer({ maxHeaderSize: 16_384, requestTimeout: 30_000 }, (req, res) => {
+  const sockets = new Set<Socket>();
+  const handler = (req: IncomingMessage, res: ServerResponse) => {
     const work = handle(req, res).catch(() => { res.destroy(); }).finally(() => active.delete(work));
     active.add(work);
+  };
+  const serverOptions = { maxHeaderSize: 16_384, requestTimeout: 30_000 };
+  const server = tls ? createTlsServer({ ...serverOptions, ...tls }, handler) : createServer(serverOptions, handler);
+  server.on('connection', (socket: Socket) => {
+    sockets.add(socket);
+    socket.once('close', () => sockets.delete(socket));
   });
   async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const supplied = createHash('sha256').update(req.headers.authorization ?? '').digest();
@@ -296,20 +316,23 @@ export async function startHostBroker(options: HostBrokerOptions): Promise<HostB
   const timer = options.timeoutMs === undefined ? undefined : setTimeout(() => lease.stop('timeout_killed'), options.timeoutMs);
   timer?.unref();
   try {
-    server.listen(0, '127.0.0.1');
-    await once(server, 'listening');
+    server.listen(port, host);
+    await once(server, 'listening', { signal: options.signal });
     options.signal.throwIfAborted();
   } catch (error) {
     options.signal.removeEventListener('abort', stop);
     clearTimeout(timer);
-    server.close();
+    server.closeAllConnections();
+    // A listener cancelled before it finished binding has nothing to close;
+    // without this callback node reports that as an uncaught 'error' event.
+    server.close(() => { /* nothing left to release */ });
     throw error;
   }
   const address = server.address();
   if (!address || typeof address === 'string') throw new Error('Broker did not bind a TCP port');
   let closing: Promise<void> | undefined;
   return {
-    url: `http://127.0.0.1:${address.port}`,
+    url: `${tls ? 'https' : 'http'}://${address.family === 'IPv6' ? `[${address.address}]` : address.address}:${address.port}`,
     token,
     lease,
     close(reason = 'infra_error') {
@@ -320,6 +343,7 @@ export async function startHostBroker(options: HostBrokerOptions): Promise<HostB
       closing = (async () => {
         const closed = new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
         server.closeAllConnections();
+        for (const socket of sockets) socket.destroy();
         await Promise.all([...active]);
         await closed;
       })();

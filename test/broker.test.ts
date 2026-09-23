@@ -7,7 +7,7 @@ import test from 'node:test';
 import { BlockAssembler, LlmAdapter, ReasoningEffortId, ToolCallId } from '@deepseek-ai/dsh-llm';
 import type { GenerateOptions, LlmResolvedModelInfo, StreamChunk, TokenUsage } from '@deepseek-ai/dsh-llm';
 import { SessionId } from '@deepseek-ai/dsh-session';
-import { GatewayLease, startHostBroker } from '../src/host_broker.js';
+import { GatewayLease, isLoopbackHost, startHostBroker } from '../src/host_broker.js';
 import type { HostBroker, HostBrokerOptions } from '../src/host_broker.js';
 import { BrokerAdapter, GatewayError, MAX_WIRE_BYTES, parseBrokerRequest, usageTotals } from '../src/gateway_lease.js';
 
@@ -436,4 +436,54 @@ test('lease stop cancels a real paused-client HTTP drain and destroys its respon
     assert.equal(broker.lease.snapshot().usedTokens, 30);
     assert.equal(upstream.requests[0]!.signal!.aborted, true);
   } finally { socket.destroy(); await broker.close(); }
+});
+
+test('the default listener is loopback HTTP on an ephemeral port', { timeout: 5000 }, async () => {
+  const broker = await startHostBroker(policy(new OfflineAdapter(), { listen: { host: '127.0.0.1' } }));
+  try {
+    assert.match(broker.url, /^http:\/\/127\.0\.0\.1:[1-9]\d*$/);
+    const reply = await promptly(fetch(`${broker.url}/info`, { headers: { authorization: `Bearer ${broker.token}` } }));
+    assert.equal(reply.status, 200);
+  } finally { await promptly(broker.close()); }
+});
+
+test('only literal loopback addresses may serve plaintext', () => {
+  for (const host of ['127.0.0.1', '127.9.9.9', '::1']) assert.equal(isLoopbackHost(host), true, host);
+  // A name that usually resolves to loopback is not a literal: it cannot
+  // authorize plaintext on its own.
+  for (const host of ['localhost', '0.0.0.0', '::', '169.254.1.1', '127.0.0.1.attacker.test']) {
+    assert.equal(isLoopbackHost(host), false, host);
+  }
+});
+
+test('a nonloopback listener without TLS is refused before the socket opens', async () => {
+  for (const host of ['0.0.0.0', 'localhost', '::']) {
+    await assert.rejects(startHostBroker(policy(new OfflineAdapter(), { listen: { host } })),
+      /Nonloopback broker listeners require TLS/);
+  }
+});
+
+test('TLS listeners are validated by material, not by intent', async () => {
+  for (const tls of [{ key: '', cert: 'cert' }, { key: 'key', cert: '' }, { key: 7 as never, cert: 'cert' }]) {
+    await assert.rejects(startHostBroker(policy(new OfflineAdapter(), { listen: { host: '::1', tls } })),
+      /Invalid broker TLS material/);
+  }
+});
+
+test('malformed listen targets never reach the resolver', async () => {
+  for (const host of ['', ' ', 'local host', '127.0.0.1:9', '../x']) {
+    await assert.rejects(startHostBroker(policy(new OfflineAdapter(), { listen: { host } })),
+      /Invalid broker listen host/);
+  }
+  for (const port of [-1, 65_536, 1.5, Number.NaN]) {
+    await assert.rejects(startHostBroker(policy(new OfflineAdapter(), { listen: { host: '127.0.0.1', port } })),
+      /Invalid broker listen port/);
+  }
+});
+
+test('a signal aborted during bind cancels the listener without an uncaught error', async () => {
+  const controller = new AbortController();
+  controller.abort();
+  await assert.rejects(startHostBroker(policy(new OfflineAdapter(), { signal: controller.signal })),
+    (error: unknown) => (error as Error).name === 'AbortError');
 });

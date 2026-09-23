@@ -9,6 +9,9 @@
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "aeval-dsh-session-reader": "dist/session_reader.js"
+  },
   "files": [
     "dist",
     "src",
@@ -28,6 +31,8 @@
     "@deepseek-ai/dsh-agent": "0.1.7-alpha.1",
     "@deepseek-ai/dsh-llm": "0.1.7-alpha.1",
     "@deepseek-ai/dsh-scope": "0.1.7-alpha.1",
+    "@deepseek-ai/dsh-session-persistence": "0.1.7-alpha.1",
+    "@deepseek-ai/dsh-session-persistence-jsonl": "0.1.7-alpha.1",
     "@deepseek-ai/dsh-system-prompt": "0.1.7-alpha.1",
     "@deepseek-ai/dsh-sdk-client": "0.1.7-alpha.1",
     "@deepseek-ai/dsh-sdk-protocol": "0.1.7-alpha.1",
@@ -37,8 +42,6 @@
   },
   "devDependencies": {
     "@deepseek-ai/dsh-ptc-runtime": "0.1.7-alpha.1",
-    "@deepseek-ai/dsh-session-persistence": "0.1.7-alpha.1",
-    "@deepseek-ai/dsh-session-persistence-jsonl": "0.1.7-alpha.1",
     "@types/node": "24.13.6",
     "typescript": "6.0.3"
   }
