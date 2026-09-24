@@ -10,7 +10,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "aeval-dsh-session-reader": "dist/session_reader.js"
+    "aeval-dsh-session-reader": "dist/session_reader.js",
+    "aeval-dsh-session-stub": "dist/session_stub.js"
   },
   "files": [
     "dist",
