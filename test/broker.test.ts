@@ -9,8 +9,10 @@ import type { GenerateOptions, LlmResolvedModelInfo, StreamChunk, TokenUsage } f
 import { SessionId } from '@deepseek-ai/dsh-session';
 import { GatewayLease, isLoopbackHost, startHostBroker } from '../src/host_broker.js';
 import type { HostBroker, HostBrokerOptions } from '../src/host_broker.js';
-import { BrokerAdapter, GatewayError, MAX_WIRE_BYTES, parseBrokerRequest, usageTotals } from '../src/gateway_lease.js';
+import { BrokerAdapter, GATEWAY_PROTOCOL, GatewayError, MAX_WIRE_BYTES, parseBrokerRequest, usageTotals } from '../src/gateway_lease.js';
+import { EvalControlConfigError, type EvalControlConfig, type RunBinding } from '../src/config.js';
 
+const run: RunBinding = Object.freeze({ run_id: 'run', job_config_hash: 'b'.repeat(64), config_file_sha256: 'c'.repeat(64), runtime_lock_digest: 'd'.repeat(64) });
 const model: LlmResolvedModelInfo = { provider: 'test', id: 'model', name: 'Offline model', reasoning: { efforts: [{ id: ReasoningEffortId('high'), name: 'High' }] } };
 const usage: TokenUsage = { inputTokens: 5, cacheReadTokens: 3, cacheWriteTokens: 2, outputTokens: 4, reasoningTokens: 2, totalTokens: 14 };
 const request = (): GenerateOptions => ({ provider: 'test', model: 'model', sessionId: SessionId('session'), messages: [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }] });
@@ -45,10 +47,10 @@ class OfflineAdapter extends LlmAdapter {
   override stream(options: GenerateOptions) { this.requests.push(options); return this.produce(options); }
 }
 function policy(upstream: LlmAdapter, overrides: Partial<HostBrokerOptions> = {}): HostBrokerOptions {
-  return { trialId: 'trial', sessionId: 'session', configDigest: 'a'.repeat(64), identity: { provider: 'test', model: 'model' }, limits: { maxSteps: 10, maxTokens: 100 }, maxOutputTokens: 20, upstream, inputTokenUpperBound: () => 10, signal: new AbortController().signal, ...overrides };
+  return { run, trialId: 'trial', sessionId: 'session', configDigest: 'a'.repeat(64), identity: { provider: 'test', model: 'model' }, limits: { maxSteps: 10, maxTokens: 100 }, maxOutputTokens: 20, upstream, inputTokenUpperBound: () => 10, signal: new AbortController().signal, ...overrides };
 }
-function client(broker?: HostBroker) {
-  return new BrokerAdapter({ trialId: 'trial', sessionId: 'session', sessionRoot: '.', configDigest: 'a'.repeat(64), provider: 'test', model: 'model', maxSteps: 10, maxTokens: 100, bundlePath: 'unused', gatewayUrl: broker?.url ?? 'http://127.0.0.1:1', jobTokenFile: 'unused', refuseAuxiliaryCalls: true }, broker?.token ?? 'a'.repeat(64));
+function client(broker?: HostBroker, overrides: Partial<EvalControlConfig> = {}) {
+  return new BrokerAdapter({ run, trialId: 'trial', sessionId: 'session', sessionRoot: '.', configDigest: 'a'.repeat(64), provider: 'test', model: 'model', maxSteps: 10, maxTokens: 100, bundlePath: 'unused', gatewayUrl: broker?.url ?? 'http://127.0.0.1:1', jobTokenFile: 'unused', refuseAuxiliaryCalls: true, ...overrides }, broker?.token ?? 'a'.repeat(64));
 }
 const rejected = (code: string, reason?: string) => (error: unknown) => error instanceof GatewayError && error.code === code && (reason === undefined || error.stopReason === reason);
 const ndjson = (chunks: unknown[]) => chunks.map((chunk) => JSON.stringify(chunk)).join('\n') + '\n';
@@ -63,6 +65,125 @@ async function* replayStream(): AsyncIterable<StreamChunk> {
   yield { type: 'usage', usage };
   yield { type: 'finish', reason: { kind: 'max-tokens' }, replayState: { response: { nativeId: 'response-1' }, blocks: [{ signature: 'thought' }, { nativeCall: 'call' }, { nativeText: 'answer' }] } };
 }
+
+test('host startup and direct lease construction reject absent or invalid run bindings', async (t) => {
+  const upstream = new OfflineAdapter();
+  const resolved = t.mock.method(upstream, 'resolveModel');
+  const invalid: unknown[] = [undefined, null, [], 'run', Object.create(run), { ...run, extra: true }, { ...run, run_id: 'bad id' }];
+  for (const key of Object.keys(run)) {
+    const missing: Record<string, unknown> = { ...run };
+    delete missing[key];
+    invalid.push(missing, { ...run, [key]: undefined });
+    if (key !== 'run_id') invalid.push({ ...run, [key]: 'A'.repeat(64) }, { ...run, [key]: `${'a'.repeat(64)}\n` });
+  }
+  for (const value of invalid) {
+    const options = policy(upstream, { run: value as RunBinding });
+    assert.throws(() => new GatewayLease(options, model), EvalControlConfigError);
+    await assert.rejects(startHostBroker(options), EvalControlConfigError);
+  }
+  for (const change of [{ trialId: '' }, { trialId: 'bad id' }, { sessionId: 'bad\nvalue' }, { configDigest: 'A'.repeat(64) }]) {
+    const options = policy(upstream, change);
+    assert.throws(() => new GatewayLease(options, model), EvalControlConfigError);
+    await assert.rejects(startHostBroker(options), EvalControlConfigError);
+  }
+  assert.equal(resolved.mock.callCount(), 0);
+});
+
+test('host binding copies are frozen at construction and before asynchronous startup', async (t) => {
+  const mutable = { ...run };
+  const upstream = new OfflineAdapter();
+  const options = { ...policy(upstream), run: mutable };
+  const lease = new GatewayLease(options, model);
+  assert.notEqual(lease.snapshot().run, mutable);
+  assert.equal(Object.isFrozen(mutable), false);
+  assert.equal(Object.isFrozen(lease.snapshot().run), true);
+  assert.equal(Object.isFrozen(lease.snapshot()), true);
+  assert.throws(() => Object.assign(lease.snapshot().run, { run_id: 'other' }), TypeError);
+  const pending = deferred<LlmResolvedModelInfo>();
+  t.mock.method(upstream, 'resolveModel', () => pending.promise);
+  const starting = startHostBroker(options);
+  for (const key of Object.keys(mutable) as (keyof RunBinding)[]) mutable[key] = 'changed';
+  options.run = { ...run, run_id: 'replacement' };
+  options.trialId = 'changed-trial';
+  options.sessionId = 'changed-session';
+  options.configDigest = 'e'.repeat(64);
+  pending.resolve(model);
+  const broker = await starting;
+  try {
+    assert.deepEqual(lease.snapshot().run, run);
+    const info = await client(broker).info();
+    assert.equal(info.protocol, 'aeval-model-broker/2');
+    assert.deepEqual(info.run, run);
+    assert.equal(Object.isFrozen(info.run), true);
+    assert.equal(broker.lease.snapshot().trialId, 'trial');
+    assert.equal(broker.lease.snapshot().sessionId, 'session');
+    assert.equal(broker.lease.snapshot().configDigest, 'a'.repeat(64));
+  } finally { await broker.close(); }
+});
+
+test('info rejects old protocol, missing run and every independently mismatched binding field', async (t) => {
+  const info = new GatewayLease(policy(new OfflineAdapter()), model).snapshot();
+  assert.equal(GATEWAY_PROTOCOL, 'aeval-model-broker/2');
+  const variants: Record<string, unknown>[] = [
+    { ...info, protocol: 'aeval-model-broker/1' }, { ...info, run: undefined },
+    { ...info, run: null }, { ...info, run: { ...run, extra: true } },
+    { ...info, trialId: 'other-trial' }, { ...info, sessionId: 'other-session' },
+    { ...info, configDigest: 'e'.repeat(64) },
+  ];
+  for (const key of Object.keys(run)) {
+    const missing: Record<string, unknown> = { ...run };
+    delete missing[key];
+    variants.push({ ...info, run: missing });
+    variants.push({ ...info, run: { ...run, [key]: key === 'run_id' ? 'other-run' : 'e'.repeat(64) } });
+    if (key !== 'run_id') variants.push({ ...info, run: { ...run, [key]: 'A'.repeat(64) } });
+  }
+  const digests = ['job_config_hash', 'config_file_sha256', 'runtime_lock_digest'] as const;
+  for (const left of digests) {
+    // Config digest has a distinct meaning too; even a paired swap cannot authorize it.
+    variants.push({ ...info, configDigest: run[left], run: { ...run, [left]: info.configDigest } });
+    for (const right of digests) {
+      if (left < right) variants.push({ ...info, run: { ...run, [left]: run[right], [right]: run[left] } });
+    }
+  }
+  for (const variant of variants) {
+    const mocked = t.mock.method(globalThis, 'fetch', async () => Response.json(variant));
+    await assert.rejects(client().info(), rejected('AEVAL_LEASE_MISMATCH'));
+    mocked.mock.restore();
+  }
+  t.mock.method(globalThis, 'fetch', async () => Response.json(info));
+  const mutable = { ...run };
+  const adapter = client(undefined, { run: mutable });
+  mutable.run_id = 'changed';
+  // Matching fields succeed despite every digest representing different bytes.
+  assert.deepEqual((await adapter.info()).run, run);
+});
+
+test('two trials sharing a run retain distinct lease identities and counters', { timeout: 5000 }, async () => {
+  const upstreamA = new OfflineAdapter();
+  const upstreamB = new OfflineAdapter();
+  const first = await startHostBroker(policy(upstreamA));
+  let second: HostBroker | undefined;
+  try {
+    const identityB = { trialId: 'trial-b', sessionId: 'session-b', configDigest: 'e'.repeat(64) };
+    second = await startHostBroker(policy(upstreamB, identityB));
+    const infoA = await client(first).info();
+    const infoB = await client(second, identityB).info();
+    assert.deepEqual(infoA.run, infoB.run);
+    assert.notEqual(infoA.trialId, infoB.trialId);
+    assert.notEqual(infoA.sessionId, infoB.sessionId);
+    assert.notEqual(infoA.configDigest, infoB.configDigest);
+    await assert.rejects(client(second).info(), rejected('AEVAL_LEASE_MISMATCH'));
+    await assert.rejects(client(first, identityB).info(), rejected('AEVAL_LEASE_MISMATCH'));
+    await collect(client(first).stream(request()));
+    assert.equal(first.lease.snapshot().usedSteps, 1);
+    assert.equal(second.lease.snapshot().usedSteps, 0);
+    await assert.rejects(collect(second.lease.stream(request(), new AbortController().signal)), rejected('AEVAL_SESSION_MISMATCH'));
+    assert.equal(upstreamB.requests.length, 0);
+    await collect(client(second, identityB).stream({ ...request(), sessionId: SessionId(identityB.sessionId) }));
+    assert.equal(second.lease.snapshot().usedSteps, 1);
+    assert.equal(first.lease.snapshot().usedSteps, 1);
+  } finally { await first.close(); await second?.close(); }
+});
 
 test('two-turn HTTP replay roundtrips through the real canonical DSH assembler', { timeout: 5000 }, async () => {
   const upstream = new OfflineAdapter(replayStream);

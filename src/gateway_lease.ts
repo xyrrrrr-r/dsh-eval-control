@@ -1,10 +1,10 @@
 import { closeSync, constants, fstatSync, openSync, readFileSync } from 'node:fs';
 import { LlmAdapter, LlmError, attributionHeaders, resolveRetryPolicy } from '@deepseek-ai/dsh-llm';
 import type { GenerateOptions, LlmResolvedModelInfo, StreamChunk, TokenUsage } from '@deepseek-ai/dsh-llm';
-import type { EvalControlConfig } from './config.js';
+import { validateRunBinding, type EvalControlConfig, type RunBinding } from './config.js';
 import { isStopReason, type StopReason } from './stop_reason.js';
 
-export const GATEWAY_PROTOCOL = 'aeval-model-broker/1';
+export const GATEWAY_PROTOCOL = 'aeval-model-broker/2';
 export const MAX_WIRE_BYTES = 8 * 1024 * 1024;
 
 export interface LeaseIdentity {
@@ -20,6 +20,7 @@ export interface LeaseLimits {
 
 export interface BrokerInfo {
   readonly protocol: typeof GATEWAY_PROTOCOL;
+  readonly run: RunBinding;
   readonly trialId: string;
   readonly sessionId: string;
   readonly configDigest: string;
@@ -191,7 +192,7 @@ export class BrokerAdapter extends LlmAdapter {
 
   constructor(config: EvalControlConfig, jobToken: string) {
     super();
-    this.#config = config;
+    this.#config = Object.freeze({ ...config, run: validateRunBinding(config.run) });
     this.#token = jobToken;
   }
 
@@ -222,7 +223,12 @@ export class BrokerAdapter extends LlmAdapter {
     const identity = objectOf(raw['identity']);
     const limits = objectOf(raw['limits']);
     const c = this.#config;
+    let run: RunBinding;
+    try { run = validateRunBinding(raw['run']); }
+    catch { throw new GatewayError('AEVAL_LEASE_MISMATCH'); }
     if (raw['protocol'] !== GATEWAY_PROTOCOL || raw['trialId'] !== c.trialId || raw['sessionId'] !== c.sessionId || raw['configDigest'] !== c.configDigest
+      || run.run_id !== c.run.run_id || run.job_config_hash !== c.run.job_config_hash
+      || run.config_file_sha256 !== c.run.config_file_sha256 || run.runtime_lock_digest !== c.run.runtime_lock_digest
       || identity['provider'] !== c.provider || identity['model'] !== c.model || identity['reasoningEffort'] !== c.reasoningEffort
       || limits['maxSteps'] !== c.maxSteps || limits['maxTokens'] !== c.maxTokens || raw['refuseAuxiliaryCalls'] !== c.refuseAuxiliaryCalls) throw new GatewayError('AEVAL_LEASE_MISMATCH');
     tokenCount(raw['usedSteps']); tokenCount(raw['usedTokens']); tokenCount(raw['reservedTokens']);
@@ -230,7 +236,7 @@ export class BrokerAdapter extends LlmAdapter {
     const model = objectOf(raw['model']);
     if (model['provider'] !== c.provider || model['id'] !== c.model || typeof model['name'] !== 'string') throw new GatewayError('AEVAL_LEASE_MISMATCH');
     this.#model = structuredClone(model) as unknown as LlmResolvedModelInfo;
-    return raw as unknown as BrokerInfo;
+    return { ...raw, run } as unknown as BrokerInfo;
   }
 
   override providerRetryPolicy() { return resolveRetryPolicy({ mode: 'normal', maxRetries: 0 }, 'gateway.retry'); }

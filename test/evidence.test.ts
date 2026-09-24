@@ -18,6 +18,7 @@ import { STOP_REASONS, deriveStopReason, isStopReason, type StopReason } from '.
 
 function config(overrides: Partial<EvalControlConfig> = {}): EvalControlConfig {
   return {
+    run: { run_id: 'run', job_config_hash: 'b'.repeat(64), config_file_sha256: 'c'.repeat(64), runtime_lock_digest: 'd'.repeat(64) },
     trialId: 'trial', sessionId: 'selected', sessionRoot: 'sessions/selected',
     configDigest: 'a'.repeat(64), provider: 'provider', model: 'model',
     gatewayUrl: 'http://localhost:9000', jobTokenFile: '/job-token',
@@ -226,19 +227,87 @@ test('refusals dominate nominal success and identity loss outranks budget exhaus
   }
 });
 
-test('bundle descriptors keep schema 1, allowlisted fields, and fork step zero', () => {
+test('bundle descriptors keep schema 2, run binding, allowlisted fields, and fork step zero', () => {
   const descriptor = buildBundleDescriptor(config({
     lineage: { parentSessionId: 'parent', parentTrialId: 'parent-trial', forkStep: 0 },
   }), 'infra_error');
   assert.deepEqual(descriptor, {
-    schema_version: 1, trial_id: 'trial', session_id: 'selected', session_root: 'sessions/selected',
+    schema_version: 2, run: config().run, trial_id: 'trial', session_id: 'selected', session_root: 'sessions/selected',
     stop_reason: 'infra_error', config_digest: 'a'.repeat(64),
     lineage: { parent_session_id: 'parent', parent_trial_id: 'parent-trial', fork_step: 0 },
   });
   assert.equal(Object.isFrozen(descriptor), true);
+  assert.equal(Object.isFrozen(descriptor.run), true);
   assert.equal(Object.isFrozen(descriptor.lineage), true);
   assert.equal(Object.hasOwn(buildBundleDescriptor(config(), 'infra_error'), 'lineage'), false);
   assert.throws(() => buildBundleDescriptor(config(), 'done' as StopReason), TypeError);
+});
+
+test('descriptor build and write reject missing bindings and invalid identity before filesystem effects', (t) => {
+  const root = directory(t);
+  const target = join(root, 'uncreated', BUNDLE_DESCRIPTOR_FILENAME);
+  const source = config();
+  const descriptor = buildBundleDescriptor(source, 'infra_error');
+  for (const [configKey, descriptorKey] of [['run', 'run'], ['trialId', 'trial_id'], ['sessionId', 'session_id'], ['configDigest', 'config_digest']]) {
+    const missingConfig: Record<string, unknown> = { ...source };
+    const missingDescriptor: Record<string, unknown> = { ...descriptor };
+    delete missingConfig[configKey!];
+    delete missingDescriptor[descriptorKey!];
+    assert.throws(() => buildBundleDescriptor(missingConfig as unknown as EvalControlConfig, 'infra_error'));
+    assert.throws(() => writeBundleDescriptor(target, missingDescriptor as unknown as BundleDescriptor));
+  }
+  const invalidRuns: unknown[] = [undefined, null, [], 'run', Object.create(source.run), { ...source.run, extra: true }, { ...source.run, run_id: 'bad id' }];
+  for (const key of Object.keys(source.run)) {
+    const missing: Record<string, unknown> = { ...source.run };
+    delete missing[key];
+    invalidRuns.push(missing);
+    if (key !== 'run_id') {
+      for (const value of ['a'.repeat(63), 'A'.repeat(64), 'g'.repeat(64), `${'a'.repeat(64)}\n`]) invalidRuns.push({ ...source.run, [key]: value });
+    }
+  }
+  for (const run of invalidRuns) {
+    assert.throws(() => buildBundleDescriptor({ ...source, run } as EvalControlConfig, 'infra_error'));
+    assert.throws(() => writeBundleDescriptor(target, { ...descriptor, run } as BundleDescriptor));
+  }
+  for (const value of [undefined, null, '', 'bad id', 'bad\nvalue', 1]) {
+    for (const [configKey, descriptorKey] of [['trialId', 'trial_id'], ['sessionId', 'session_id']]) {
+      assert.throws(() => buildBundleDescriptor({ ...source, [configKey!]: value }, 'infra_error'));
+      assert.throws(() => writeBundleDescriptor(target, { ...descriptor, [descriptorKey!]: value }));
+    }
+  }
+  for (const value of [undefined, null, '', 'a'.repeat(63), 'A'.repeat(64), `${'a'.repeat(64)}\n`]) {
+    assert.throws(() => buildBundleDescriptor({ ...source, configDigest: value } as EvalControlConfig, 'infra_error'));
+    assert.throws(() => writeBundleDescriptor(target, { ...descriptor, config_digest: value } as BundleDescriptor));
+  }
+  assert.deepEqual(fs.readdirSync(root), []);
+});
+
+test('descriptor run is detached and frozen while two trials preserve their own identity', (t) => {
+  const root = directory(t);
+  const source = config();
+  const mutableRun = { ...source.run };
+  const first = buildBundleDescriptor({ ...source, run: mutableRun }, 'infra_error');
+  const second = buildBundleDescriptor(config({
+    trialId: 'trial-b', sessionId: 'session-b', sessionRoot: 'sessions/session-b', configDigest: 'e'.repeat(64),
+  }), 'infra_error');
+  assert.equal(Object.isFrozen(mutableRun), false);
+  assert.notEqual(first.run, mutableRun);
+  mutableRun.run_id = 'changed';
+  mutableRun.config_file_sha256 = 'f'.repeat(64);
+  assert.throws(() => Object.assign(first.run, { run_id: 'changed' }), TypeError);
+  assert.deepEqual(first.run, source.run);
+  assert.deepEqual(first.run, second.run);
+  for (const value of [first, second]) {
+    const target = join(root, value.trial_id, BUNDLE_DESCRIPTOR_FILENAME);
+    writeBundleDescriptor(target, value);
+    const stored = JSON.parse(fs.readFileSync(target, 'utf8')) as BundleDescriptor;
+    assert.deepEqual(stored, value);
+    assert.equal(stored.schema_version, 2);
+    assert.deepEqual(stored.run, source.run);
+  }
+  assert.notEqual(first.trial_id, second.trial_id);
+  assert.notEqual(first.session_id, second.session_id);
+  assert.notEqual(first.config_digest, second.config_digest);
 });
 
 for (const reason of STOP_REASONS) {
@@ -293,7 +362,9 @@ test('descriptor schema and sessionRoot protections apply to failures too', (t) 
   const root = directory(t);
   const target = join(root, BUNDLE_DESCRIPTOR_FILENAME);
   const descriptor = buildBundleDescriptor(config(), 'infra_error');
-  assert.throws(() => writeBundleDescriptor(target, { ...descriptor, schema_version: 2 } as unknown as BundleDescriptor), TypeError);
+  for (const schema_version of [undefined, 1, 3, '2']) {
+    assert.throws(() => writeBundleDescriptor(target, { ...descriptor, schema_version } as unknown as BundleDescriptor), TypeError);
+  }
   assert.throws(() => writeBundleDescriptor(target, { ...descriptor, stop_reason: 'done' } as unknown as BundleDescriptor), TypeError);
   for (const session_root of [
     '../escape', '..\\escape', '/absolute', 'C:\\absolute', 'C:relative', '\\\\server\\share',
@@ -469,4 +540,198 @@ test('an awaited host persistence rejection overrides prior completed-turn obser
   state.recordTerminal('infra_error');
   state.recordTerminal('agent_claimed_done');
   assert.equal(state.stopReason(), 'infra_error');
+});
+
+test('observation control claims are exclusive, revocable, and generation-specific', () => {
+  const state = new RunObservationState('selected');
+  const first = state.claimControl();
+  assert.equal(state.ownsControl(first), true);
+  assert.throws(() => state.claimControl(), /active control owner/);
+  state.releaseControl(Symbol('unrelated'));
+  assert.equal(state.ownsControl(first), true);
+  state.releaseControl(first);
+  assert.equal(state.ownsControl(first), false);
+  const second = state.claimControl();
+  assert.notEqual(second, first);
+  state.releaseControl(first);
+  assert.equal(state.ownsControl(second), true);
+  state.releaseControl(second);
+});
+
+test('finalization failure survives ownership changes and cannot be upgraded to success', () => {
+  const state = completed();
+  const owner = state.claimControl();
+  assert.equal(state.hasFailedFinalization(), false);
+  state.recordFinalizationFailure();
+  state.releaseControl(owner);
+  const successor = state.claimControl();
+  state.recordTerminal('agent_claimed_done');
+  state.recordTerminal('agent_exit_0');
+  state.recordTurnStart(2);
+  state.recordTurnEnd('completed', 2);
+  assert.equal(state.hasFailedFinalization(), true);
+  assert.equal(state.stopReason(), 'infra_error');
+  state.releaseControl(successor);
+});
+
+test('writer checks observation session identity before creating or replacing a descriptor', (t) => {
+  const target = join(directory(t), BUNDLE_DESCRIPTOR_FILENAME);
+  const writer = new BundleWriter(target, config());
+  t.after(() => writer.release());
+  const foreign = new RunObservationState('other-session');
+  foreign.recordTerminal('timeout_killed');
+  assert.throws(() => writer.flush(foreign), /Observation session/);
+  assert.equal(fs.existsSync(target), false);
+  assert.equal(writer.lastWrittenStopReason, undefined);
+  writer.flush(new RunObservationState('selected'));
+  const original = fs.readFileSync(target, 'utf8');
+  assert.throws(() => writer.flush(foreign), /Observation session/);
+  assert.equal(fs.readFileSync(target, 'utf8'), original);
+});
+
+test('writer path ownership is exclusive until release and stale release cannot evict a successor', (t) => {
+  const root = directory(t);
+  const target = join(root, BUNDLE_DESCRIPTOR_FILENAME);
+  const value = config();
+  const state = new RunObservationState(value.sessionId);
+  state.recordTerminal('timeout_killed');
+  const first = new BundleWriter(target, value);
+  t.after(() => first.release());
+  first.flush(state);
+  assert.throws(() => new BundleWriter(target, value), /active writer owner/);
+  assert.throws(() => new BundleWriter(join(root, 'unused', '..', BUNDLE_DESCRIPTOR_FILENAME), value), /active writer owner/);
+  if (process.platform === 'win32') {
+    assert.throws(() => new BundleWriter(target.toUpperCase(), value), /active writer owner/);
+  }
+  first.release();
+  assert.throws(() => first.flush(state), /released/);
+  const successor = new BundleWriter(target, value);
+  t.after(() => successor.release());
+  first.release();
+  assert.throws(() => new BundleWriter(target, value), /active writer owner/);
+  state.recordTerminal('timeout_killed');
+  successor.flush(state);
+  assert.equal(JSON.parse(fs.readFileSync(target, 'utf8')).stop_reason, 'timeout_killed');
+});
+
+for (const binding of ['trial', 'session', 'config', 'run', 'job-config', 'config-file', 'runtime-lock'] as const) {
+  test(`a different ${binding} binding cannot overwrite an active or released writer's path`, (t) => {
+    const target = join(directory(t), BUNDLE_DESCRIPTOR_FILENAME);
+    const value = config();
+    const foreign = config({
+      ...(binding === 'trial' ? { trialId: 'other-trial' } : {}),
+      ...(binding === 'session' ? { sessionId: 'other-session' } : {}),
+      ...(binding === 'config' ? { configDigest: 'b'.repeat(64) } : {}),
+      run: {
+        ...value.run,
+        ...(binding === 'run' ? { run_id: 'other-run' } : {}),
+        ...(binding === 'job-config' ? { job_config_hash: 'e'.repeat(64) } : {}),
+        ...(binding === 'config-file' ? { config_file_sha256: 'e'.repeat(64) } : {}),
+        ...(binding === 'runtime-lock' ? { runtime_lock_digest: 'e'.repeat(64) } : {}),
+      },
+    });
+    const first = new BundleWriter(target, value);
+    t.after(() => first.release());
+    first.flush(new RunObservationState(value.sessionId));
+    const original = fs.readFileSync(target, 'utf8');
+    assert.throws(() => new BundleWriter(target, foreign), /active writer owner/);
+    first.release();
+    const second = new BundleWriter(target, foreign);
+    t.after(() => second.release());
+    assert.throws(() => second.flush(new RunObservationState(foreign.sessionId)), /bound to a different/);
+    assert.equal(second.lastWrittenStopReason, undefined);
+    assert.equal(fs.readFileSync(target, 'utf8'), original);
+    second.release();
+    const third = new BundleWriter(target, value);
+    t.after(() => third.release());
+    third.flush(new RunObservationState(value.sessionId));
+    assert.equal(fs.readFileSync(target, 'utf8'), original);
+  });
+}
+
+test('different trials can own independent descriptor paths without sharing outcomes', (t) => {
+  const root = directory(t);
+  const firstPath = join(root, 'first', BUNDLE_DESCRIPTOR_FILENAME);
+  const secondPath = join(root, 'second', BUNDLE_DESCRIPTOR_FILENAME);
+  const first = new BundleWriter(firstPath, config());
+  const second = new BundleWriter(secondPath, config({ trialId: 'other-trial', sessionId: 'other-session' }));
+  t.after(() => { first.release(); second.release(); });
+  const firstState = new RunObservationState('selected');
+  const secondState = new RunObservationState('other-session');
+  firstState.recordTerminal('timeout_killed');
+  secondState.recordTerminal('crashed');
+  first.flush(firstState);
+  second.flush(secondState);
+  assert.throws(() => first.flush(secondState), /Observation session/);
+  assert.throws(() => second.flush(firstState), /Observation session/);
+  assert.equal(JSON.parse(fs.readFileSync(firstPath, 'utf8')).stop_reason, 'timeout_killed');
+  assert.equal(JSON.parse(fs.readFileSync(secondPath, 'utf8')).stop_reason, 'crashed');
+});
+
+test('writer snapshots its binding and rechecks the existing descriptor on every flush', (t) => {
+  const root = directory(t);
+  const target = join(root, BUNDLE_DESCRIPTOR_FILENAME);
+  const value = { ...config() };
+  const writer = new BundleWriter(target, value);
+  t.after(() => writer.release());
+  value.trialId = 'mutated-trial';
+  const state = new RunObservationState('selected');
+  writer.flush(state);
+  assert.equal(JSON.parse(fs.readFileSync(target, 'utf8')).trial_id, 'trial');
+  writeBundleDescriptor(target, buildBundleDescriptor(config({ trialId: 'external-trial' }), 'crashed'));
+  const original = fs.readFileSync(target, 'utf8');
+  assert.throws(() => writer.flush(state), /bound to a different/);
+  assert.equal(fs.readFileSync(target, 'utf8'), original);
+});
+
+for (const failure of failures) {
+  for (const success of successes) {
+    test(`replacement writer cannot promote ${failure} to ${success}`, (t) => {
+      const root = directory(t);
+      fs.mkdirSync(join(root, 'sessions', 'selected'), { recursive: true });
+      const path = join(root, BUNDLE_DESCRIPTOR_FILENAME);
+      const first = new BundleWriter(path, config());
+      const failed = new RunObservationState('selected');
+      failed.recordTerminal(failure);
+      first.flush(failed);
+      first.release();
+      const original = fs.readFileSync(path, 'utf8');
+      const second = new BundleWriter(path, config());
+      t.after(() => second.release());
+      const late = completed();
+      late.recordTerminal(success);
+      assert.throws(() => second.flush(late), /prior terminal/);
+      assert.equal(fs.readFileSync(path, 'utf8'), original);
+    });
+  }
+}
+
+test('placeholder cannot be claimed by another observation or replacement writer', (t) => {
+  const root = directory(t);
+  fs.mkdirSync(join(root, 'sessions', 'selected'), { recursive: true });
+  const path = join(root, BUNDLE_DESCRIPTOR_FILENAME);
+  const first = new BundleWriter(path, config());
+  first.flush(new RunObservationState('selected'));
+  const late = completed();
+  late.recordTerminal('agent_exit_0');
+  assert.throws(() => first.flush(late), /observation cannot be replaced/);
+  first.release();
+  const second = new BundleWriter(path, config());
+  t.after(() => second.release());
+  assert.throws(() => second.flush(late), /prior terminal/);
+  assert.equal(JSON.parse(fs.readFileSync(path, 'utf8')).stop_reason, 'infra_error');
+});
+
+test('a new observation cannot launder an existing failure through an identical placeholder', (t) => {
+  const root = directory(t);
+  fs.mkdirSync(join(root, 'sessions', 'selected'), { recursive: true });
+  const path = join(root, BUNDLE_DESCRIPTOR_FILENAME);
+  writeBundleDescriptor(path, buildBundleDescriptor(config(), 'infra_error'));
+  const writer = new BundleWriter(path, config());
+  t.after(() => writer.release());
+  const state = new RunObservationState('selected');
+  writer.flush(state);
+  state.recordTerminal('agent_exit_0');
+  assert.throws(() => writer.flush(state), /prior terminal/);
+  assert.equal(JSON.parse(fs.readFileSync(path, 'utf8')).stop_reason, 'infra_error');
 });

@@ -13,6 +13,7 @@ import type { EvalControlConfig } from '../src/config.js';
 
 function config(overrides: Partial<EvalControlConfig> = {}): EvalControlConfig {
   return {
+    run: { run_id: 'run', job_config_hash: 'b'.repeat(64), config_file_sha256: 'c'.repeat(64), runtime_lock_digest: 'd'.repeat(64) },
     trialId: 'trial', sessionId: 'selected', sessionRoot: 'sessions/selected',
     configDigest: 'a'.repeat(64), provider: 'experiment-provider', model: 'experiment-model',
     gatewayUrl: 'http://localhost:9000', jobTokenFile: '/job-token',

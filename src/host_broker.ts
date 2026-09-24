@@ -11,8 +11,10 @@ import { SessionId } from '@deepseek-ai/dsh-session';
 import { GATEWAY_PROTOCOL, MAX_WIRE_BYTES, GatewayError, abortable, detachedCleanup, parseBrokerRequest, parseStreamChunk, tokenCount, usageTotals } from './gateway_lease.js';
 import type { BrokerInfo, LeaseIdentity, LeaseLimits } from './gateway_lease.js';
 import { isStopReason, type StopReason } from './stop_reason.js';
+import { validateIdentifier, validateRunBinding, validateSha256Digest, type RunBinding } from './config.js';
 
 export interface HostBrokerOptions {
+  readonly run: RunBinding;
   readonly trialId: string;
   readonly sessionId: string;
   readonly configDigest: string;
@@ -72,7 +74,15 @@ export class GatewayLease {
   #stopReason: StopReason | undefined;
 
   constructor(options: HostBrokerOptions, model: LlmResolvedModelInfo) {
-    this.#policy = Object.freeze({ ...options, identity: freeze(structuredClone(options.identity)), limits: freeze(structuredClone(options.limits)) });
+    this.#policy = Object.freeze({
+      ...options,
+      run: validateRunBinding(options.run),
+      trialId: validateIdentifier(options.trialId, 'trialId'),
+      sessionId: validateIdentifier(options.sessionId, 'sessionId'),
+      configDigest: validateSha256Digest(options.configDigest, 'configDigest'),
+      identity: freeze(structuredClone(options.identity)),
+      limits: freeze(structuredClone(options.limits)),
+    });
     this.#model = freeze(structuredClone(model));
   }
 
@@ -87,6 +97,7 @@ export class GatewayLease {
   snapshot(): BrokerInfo {
     return freeze({
       protocol: GATEWAY_PROTOCOL,
+      run: this.#policy.run,
       trialId: this.#policy.trialId,
       sessionId: this.#policy.sessionId,
       configDigest: this.#policy.configDigest,
@@ -227,6 +238,14 @@ export interface HostBroker {
 }
 
 export async function startHostBroker(options: HostBrokerOptions): Promise<HostBroker> {
+  // Pin owner-selected binding before asynchronous model resolution can yield.
+  options = Object.freeze({
+    ...options,
+    run: validateRunBinding(options.run),
+    trialId: validateIdentifier(options.trialId, 'trialId'),
+    sessionId: validateIdentifier(options.sessionId, 'sessionId'),
+    configDigest: validateSha256Digest(options.configDigest, 'configDigest'),
+  });
   const { host, port = 0, tls } = options.listen ?? { host: '127.0.0.1' };
   if (typeof host !== 'string' || !host || (!isIP(host) && !/^[a-zA-Z0-9.-]+$/.test(host))) throw new Error('Invalid broker listen host');
   if (!Number.isSafeInteger(port) || port < 0 || port > 65535) throw new Error('Invalid broker listen port');
@@ -237,7 +256,6 @@ export async function startHostBroker(options: HostBrokerOptions): Promise<HostB
   }
   if (options.timeoutMs !== undefined && options.timeoutMs > 2_147_483_647) throw new Error('Broker timeout exceeds timer range');
   if (options.limits.maxTokens !== undefined && !options.inputTokenUpperBound) throw new Error('Hard token budgets require a trusted provider input-token upper bound');
-  if (!options.trialId || !options.sessionId || !/^[a-f0-9]{64}$/.test(options.configDigest)) throw new Error('Invalid broker trial identity');
   options.signal.throwIfAborted();
   const model = await abortable(() => options.upstream.resolveModel(options.identity.provider, options.identity.model, options.signal), options.signal);
   options.signal.throwIfAborted();

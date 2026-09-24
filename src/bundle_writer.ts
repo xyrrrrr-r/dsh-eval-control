@@ -1,19 +1,21 @@
 import { randomUUID } from 'node:crypto';
 import {
   closeSync, constants, fsyncSync, lstatSync, mkdirSync, openSync,
-  realpathSync, renameSync, rmSync, writeFileSync,
+  readFileSync, realpathSync, renameSync, rmSync, writeFileSync,
 } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
-import type { EvalControlConfig } from './config.js';
-import { validateSessionRoot } from './config.js';
+import { isDeepStrictEqual } from 'node:util';
+import type { EvalControlConfig, RunBinding } from './config.js';
+import { validateIdentifier, validateRunBinding, validateSessionRoot, validateSha256Digest } from './config.js';
 import { forkLineageOf, type ForkLineage } from './fork.js';
 import { deriveStopReason, isStopReason, type RefusalKind, type StopReason } from './stop_reason.js';
 
-export const BUNDLE_DESCRIPTOR_SCHEMA_VERSION = 1 as const;
+export const BUNDLE_DESCRIPTOR_SCHEMA_VERSION = 2 as const;
 export const BUNDLE_DESCRIPTOR_FILENAME = 'bundle_descriptor.json';
 
 export interface BundleDescriptor {
   readonly schema_version: typeof BUNDLE_DESCRIPTOR_SCHEMA_VERSION;
+  readonly run: RunBinding;
   readonly trial_id: string;
   readonly session_id: string;
   readonly session_root: string;
@@ -28,11 +30,12 @@ export function buildBundleDescriptor(config: EvalControlConfig, stopReason: Sto
   const lineage = forkLineageOf(config);
   return Object.freeze({
     schema_version: BUNDLE_DESCRIPTOR_SCHEMA_VERSION,
-    trial_id: config.trialId,
-    session_id: config.sessionId,
+    run: validateRunBinding(config.run),
+    trial_id: validateIdentifier(config.trialId, 'trialId'),
+    session_id: validateIdentifier(config.sessionId, 'sessionId'),
     session_root: sessionRoot,
     stop_reason: stopReason,
-    config_digest: config.configDigest,
+    config_digest: validateSha256Digest(config.configDigest, 'configDigest'),
     ...(lineage !== undefined ? { lineage: Object.freeze(lineage) } : {}),
   });
 }
@@ -92,6 +95,10 @@ export function writeBundleDescriptor(path: string, descriptor: BundleDescriptor
   if (descriptor.schema_version !== BUNDLE_DESCRIPTOR_SCHEMA_VERSION || !isStopReason(descriptor.stop_reason)) {
     throw new TypeError('Invalid bundle descriptor schema or stop reason');
   }
+  const run = validateRunBinding(descriptor.run);
+  const trialId = validateIdentifier(descriptor.trial_id, 'trial_id');
+  const sessionId = validateIdentifier(descriptor.session_id, 'session_id');
+  const configDigest = validateSha256Digest(descriptor.config_digest, 'config_digest');
   const target = resolve(path);
   const parent = dirname(target);
   rejectSymlinkAncestors(parent);
@@ -103,11 +110,12 @@ export function writeBundleDescriptor(path: string, descriptor: BundleDescriptor
   checkSessionRoot(root, sessionRoot, requireExisting);
   const payload = `${JSON.stringify({
     schema_version: descriptor.schema_version,
-    trial_id: descriptor.trial_id,
-    session_id: descriptor.session_id,
+    run,
+    trial_id: trialId,
+    session_id: sessionId,
     session_root: sessionRoot,
     stop_reason: descriptor.stop_reason,
-    config_digest: descriptor.config_digest,
+    config_digest: configDigest,
     ...(descriptor.lineage !== undefined ? { lineage: {
       ...(descriptor.lineage.parent_session_id !== undefined ? { parent_session_id: descriptor.lineage.parent_session_id } : {}),
       ...(descriptor.lineage.parent_trial_id !== undefined ? { parent_trial_id: descriptor.lineage.parent_trial_id } : {}),
@@ -150,9 +158,39 @@ export class RunObservationState {
   private sessionDisposed = false;
   private controlLost = false;
   private terminalReason: StopReason | undefined;
+  private controlOwner: symbol | undefined;
+  private finalizationFailed = false;
 
   constructor(trialSessionId: string) {
     this.trialSessionId = trialSessionId;
+  }
+
+  claimControl(): symbol {
+    if (this.controlOwner !== undefined) throw new Error('The transport already has an active control owner');
+    const owner = Symbol('control owner');
+    this.controlOwner = owner;
+    return owner;
+  }
+
+  ownsControl(owner: symbol): boolean {
+    return this.controlOwner === owner;
+  }
+
+  releaseControl(owner: symbol): void {
+    if (this.ownsControl(owner)) this.controlOwner = undefined;
+  }
+
+  recordFinalizationFailure(): void {
+    this.finalizationFailed = true;
+    this.recordTerminal('infra_error');
+  }
+
+  hasFailedFinalization(): boolean {
+    return this.finalizationFailed;
+  }
+
+  hasTerminalObservation(): boolean {
+    return this.terminalReason !== undefined || this.controlLost || this.refusal !== undefined;
   }
 
   matchesSession(sessionId: unknown): boolean {
@@ -234,18 +272,65 @@ export class RunObservationState {
 }
 
 export class BundleWriter {
+  // Process-local ownership only; callers must release writers when their control is disposed.
+  private static readonly owners = new Map<string, symbol>();
   private readonly path: string;
+  private readonly pathKey: string;
+  private readonly owner = Symbol('descriptor writer');
   private readonly config: EvalControlConfig;
   private written: StopReason | undefined;
+  private released = false;
+  private observation: RunObservationState | undefined;
+  private ownsPlaceholder = false;
 
   constructor(path: string, config: EvalControlConfig) {
-    this.path = path;
-    this.config = config;
+    this.path = resolve(path);
+    this.pathKey = process.platform === 'win32' ? this.path.toLowerCase() : this.path;
+    this.config = structuredClone(config);
+    if (BundleWriter.owners.has(this.pathKey)) throw new Error('Descriptor path already has an active writer owner');
+    BundleWriter.owners.set(this.pathKey, this.owner);
+  }
+
+  release(): void {
+    if (this.released) return;
+    this.released = true;
+    if (BundleWriter.owners.get(this.pathKey) === this.owner) BundleWriter.owners.delete(this.pathKey);
   }
 
   flush(state: RunObservationState): string {
+    if (this.released || BundleWriter.owners.get(this.pathKey) !== this.owner) {
+      throw new Error('Descriptor writer is released or no longer owns its path');
+    }
+    if (!state.matchesSession(this.config.sessionId)) throw new Error('Observation session does not match writer configuration');
+    if (this.observation !== undefined && this.observation !== state) throw new Error('Writer observation cannot be replaced');
     const stopReason = state.stopReason();
-    const target = writeBundleDescriptor(this.path, buildBundleDescriptor(this.config, stopReason));
+    const descriptor = buildBundleDescriptor(this.config, stopReason);
+    rejectSymlinkAncestors(dirname(this.path));
+    checkTarget(this.path);
+    let previous: BundleDescriptor | undefined;
+    try {
+      previous = JSON.parse(readFileSync(this.path, 'utf8')) as BundleDescriptor;
+    } catch (error) {
+      if (!missing(error)) throw error;
+    }
+    if (previous !== undefined) {
+      const { stop_reason: previousReason, ...previousBinding } = previous;
+      const { stop_reason: _reason, ...binding } = descriptor;
+      if (!isDeepStrictEqual(previousBinding, binding)) {
+        throw new Error('Descriptor path is bound to a different trial, session, run, or configuration');
+      }
+      const previousSuccess = previousReason === 'agent_exit_0' || previousReason === 'agent_claimed_done';
+      const nextSuccess = stopReason === 'agent_exit_0' || stopReason === 'agent_claimed_done';
+      const ownsPlaceholder = this.ownsPlaceholder && previousReason === this.written;
+      if (!isStopReason(previousReason) || (previousReason !== stopReason && !ownsPlaceholder
+        && stopReason !== 'infra_error' && !(previousSuccess && !nextSuccess))) {
+        throw new Error('A prior terminal descriptor cannot be overwritten by a new owner');
+      }
+    }
+    const target = writeBundleDescriptor(this.path, descriptor);
+    if (previous === undefined && !state.hasTerminalObservation()) this.ownsPlaceholder = true;
+    if (state.hasTerminalObservation()) this.ownsPlaceholder = false;
+    this.observation = state;
     this.written = stopReason;
     return target;
   }

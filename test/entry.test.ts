@@ -31,6 +31,7 @@ async function fixture(t: TestContext, overrides: Partial<EvalControlConfig> = {
   const upstream = new Upstream();
   const broker = await startHostBroker({
     trialId: 'trial', sessionId: 'selected', configDigest: 'a'.repeat(64),
+    run: { run_id: 'run', job_config_hash: 'b'.repeat(64), config_file_sha256: 'c'.repeat(64), runtime_lock_digest: 'd'.repeat(64) },
     identity: { provider: 'fixture', model: 'model' }, limits: {},
     maxOutputTokens: 8, upstream, signal: new AbortController().signal,
   });
@@ -41,6 +42,7 @@ async function fixture(t: TestContext, overrides: Partial<EvalControlConfig> = {
   });
   const config: EvalControlConfig = {
     trialId: 'trial', sessionId: 'selected', configDigest: 'a'.repeat(64),
+    run: { run_id: 'run', job_config_hash: 'b'.repeat(64), config_file_sha256: 'c'.repeat(64), runtime_lock_digest: 'd'.repeat(64) },
     provider: 'fixture', model: 'model', sessionRoot: 'session',
     bundlePath: join(root, 'bundle_descriptor.json'), gatewayUrl: broker.url,
     jobTokenFile: join(root, 'job-token'), refuseAuxiliaryCalls: true, ...overrides,
@@ -191,4 +193,208 @@ test('missing completion evidence rejects the descriptor write', async (t) => {
 
 test('control installation fails when claimed parent metadata is absent', async (t) => {
   await assert.rejects(fixture(t, { lineage: { parentSessionId: 'parent' } }), /parentSession/);
+});
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((yes, no) => { resolve = yes; reject = no; });
+  return { promise, resolve, reject };
+}
+
+for (const phase of ['persist', 'info'] as const) {
+  for (const cancellation of ['caller', 'dispose'] as const) {
+    for (const settlement of ['resolve', 'reject'] as const) {
+      test(`${cancellation} promptly rejects pending ${phase}; late ${settlement} has no control effects`, { timeout: 5000 }, async (t) => {
+        const f = await fixture(t);
+        f.completeTurn();
+        const adapter = f.ctx.evalBroker.adapter;
+        const info = await adapter.info();
+        const persistence = deferred<void>();
+        const lookup = deferred<typeof info>();
+        const infoStarted = deferred<void>();
+        let persistSignal: AbortSignal | undefined;
+        let infoSignal: AbortSignal | undefined;
+        const infoMock = t.mock.method(adapter, 'info', (signal?: AbortSignal) => {
+          infoSignal = signal;
+          infoStarted.resolve();
+          return phase === 'info' ? lookup.promise : Promise.resolve(info);
+        });
+        const persist = t.mock.fn((signal: AbortSignal) => {
+          persistSignal = signal;
+          return phase === 'persist' ? persistence.promise : Promise.resolve();
+        });
+        const { BundleWriter } = await import('../src/bundle_writer.js');
+        const writes = t.mock.method(BundleWriter.prototype, 'flush');
+        const cancel = new AbortController();
+        const result = f.control.finalize('agent_claimed_done', persist, cancel.signal);
+        const rejection = assert.rejects(result, /caller canceled|changed during finalization/);
+        if (phase === 'info') await infoStarted.promise;
+        if (cancellation === 'caller') cancel.abort(new Error('caller canceled'));
+        else await f.controlPlugin.dispose();
+        // Await rejection BEFORE settling the uncooperative operation: shutdown cannot depend on it.
+        await rejection;
+        assert.equal(f.descriptor().stop_reason, 'infra_error');
+        assert.equal(persistSignal?.aborted, true);
+        assert.equal(persist.mock.callCount(), 1);
+        assert.equal(infoMock.mock.callCount(), phase === 'info' ? 1 : 0);
+        if (phase === 'info') {
+          assert.equal(infoSignal?.aborted, true);
+          assert.equal(infoSignal?.reason, persistSignal?.reason);
+        }
+        if (cancellation === 'dispose') {
+          await f.ctx.plugin(plugin, f.config).await();
+          writeBundleDescriptor(f.config.bundlePath, buildBundleDescriptor(f.config, 'timeout_killed'));
+        } else {
+          await assert.rejects(f.control.finalize('agent_exit_0', persist), /previously failed/);
+        }
+        const snapshot = readFileSync(f.config.bundlePath, 'utf8');
+        const writeCount = writes.mock.callCount();
+        if (phase === 'persist') {
+          if (settlement === 'resolve') persistence.resolve();
+          else persistence.reject(new Error('late persistence rejection'));
+        } else {
+          if (settlement === 'resolve') lookup.resolve(info);
+          else lookup.reject(new Error('late info rejection'));
+        }
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        assert.equal(writes.mock.callCount(), writeCount);
+        assert.equal(infoMock.mock.callCount(), phase === 'info' ? 1 : 0);
+        assert.equal(persist.mock.callCount(), 1);
+        assert.equal(readFileSync(f.config.bundlePath, 'utf8'), snapshot);
+      });
+    }
+  }
+}
+
+test('info retains its request deadline even when persistence uses lifecycle cancellation', { timeout: 5000 }, async (t) => {
+  const f = await fixture(t);
+  const deadline = new AbortController();
+  const started = deferred<void>();
+  const lookup = deferred<Awaited<ReturnType<typeof f.ctx.evalBroker.adapter.info>>>();
+  const timeout = t.mock.method(AbortSignal, 'timeout', () => deadline.signal);
+  let infoSignal: AbortSignal | undefined;
+  const info = t.mock.method(f.ctx.evalBroker.adapter, 'info', (signal?: AbortSignal) => {
+    infoSignal = signal;
+    started.resolve();
+    return lookup.promise;
+  });
+  const failure = new Error('info deadline exceeded');
+  const finalization = f.control.finalize('agent_exit_0', async () => {});
+  const rejected = assert.rejects(finalization, (error) => error === failure);
+  await started.promise;
+  assert.deepEqual(timeout.mock.calls.map((call) => call.arguments), [[30_000]]);
+  deadline.abort(failure);
+  await rejected;
+  assert.equal(infoSignal?.aborted, true);
+  assert.equal(f.descriptor().stop_reason, 'infra_error');
+  const retry = t.mock.fn(async () => {});
+  await assert.rejects(f.control.finalize('agent_exit_0', retry), /previously failed/);
+  assert.equal(retry.mock.callCount(), 0);
+  lookup.reject(new Error('late deadline rejection'));
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(info.mock.callCount(), 1);
+});
+
+test('pre-aborted finalization skips persistence and info and permanently latches failure', async (t) => {
+  const f = await fixture(t);
+  const cancel = new AbortController();
+  const failure = new Error('already canceled');
+  cancel.abort(failure);
+  const persist = t.mock.fn(async () => {});
+  const info = t.mock.method(f.ctx.evalBroker.adapter, 'info');
+  await assert.rejects(f.control.finalize('agent_exit_0', persist, cancel.signal), (error) => error === failure);
+  await assert.rejects(f.control.finalize('agent_exit_0', persist), /previously failed/);
+  assert.equal(persist.mock.callCount(), 0);
+  assert.equal(info.mock.callCount(), 0);
+  assert.equal(f.descriptor().stop_reason, 'infra_error');
+});
+
+test('concurrent and repeated finalization reject without rerunning persistence or downgrading success', async (t) => {
+  const f = await fixture(t);
+  f.completeTurn();
+  const persistence = deferred<void>();
+  const persist = t.mock.fn(() => persistence.promise);
+  const info = t.mock.method(f.ctx.evalBroker.adapter, 'info');
+  const first = f.control.finalize('agent_claimed_done', persist);
+  await assert.rejects(f.control.finalize('agent_exit_0', persist), /already finalizing/);
+  assert.equal(persist.mock.callCount(), 1);
+  assert.equal(info.mock.callCount(), 0);
+  persistence.resolve();
+  await first;
+  await assert.rejects(f.control.finalize('agent_exit_0', persist), /already finalizing/);
+  assert.equal(persist.mock.callCount(), 1);
+  assert.equal(info.mock.callCount(), 1);
+  assert.equal(f.descriptor().stop_reason, 'agent_claimed_done');
+});
+
+test('failed finalization cannot be retried even after control reload', async (t) => {
+  const f = await fixture(t);
+  const persist = t.mock.fn(async () => { throw new Error('durability failed'); });
+  const retry = t.mock.fn(async () => {});
+  const info = t.mock.method(f.ctx.evalBroker.adapter, 'info');
+  await assert.rejects(f.control.finalize('agent_exit_0', persist), /durability failed/);
+  await assert.rejects(f.control.finalize('agent_exit_0', retry), /previously failed/);
+  await f.controlPlugin.dispose();
+  await f.ctx.plugin(plugin, f.config).await();
+  await assert.rejects(f.ctx.evalControl.finalize('agent_exit_0', retry), /previously failed/);
+  assert.equal(persist.mock.callCount(), 1);
+  assert.equal(retry.mock.callCount(), 0);
+  assert.equal(info.mock.callCount(), 0);
+  assert.equal(f.descriptor().stop_reason, 'infra_error');
+});
+
+test('session changes skip info instead of discovering invalidation after an unnecessary lookup', async (t) => {
+  const f = await fixture(t);
+  f.completeTurn();
+  const info = t.mock.method(f.ctx.evalBroker.adapter, 'info');
+  await assert.rejects(f.control.finalize('agent_claimed_done', async () => {
+    f.session.append('turn/start', { turn: 2 });
+  }), /changed during finalization/);
+  assert.equal(info.mock.callCount(), 0);
+  await assert.rejects(f.control.finalize('agent_exit_0', async () => {}), /previously failed/);
+});
+
+test('success ignores ordinary session events but trusted adapter failure downgrades it permanently', async (t) => {
+  const f = await fixture(t);
+  f.completeTurn();
+  await f.control.finalize('agent_claimed_done', async () => {});
+  const { BundleWriter } = await import('../src/bundle_writer.js');
+  const writes = t.mock.method(BundleWriter.prototype, 'flush');
+  f.completeTurn(2);
+  f.detach();
+  f.ctx.sessions.create(SessionId('selected'));
+  assert.equal(writes.mock.callCount(), 0);
+  assert.equal(f.descriptor().stop_reason, 'agent_claimed_done');
+  f.broker.lease.stop('timeout_killed');
+  await assert.rejects(async () => {
+    for await (const _chunk of f.ctx.evalBroker.adapter.stream({
+      provider: 'fixture', model: 'model', sessionId: SessionId('selected'), messages: [],
+    })) { /* The stopped broker must reject without model output. */ }
+  });
+  assert.equal(f.descriptor().stop_reason, 'timeout_killed');
+  const retry = t.mock.fn(async () => {});
+  await assert.rejects(f.control.finalize('agent_exit_0', retry), /already finalizing/);
+  assert.equal(retry.mock.callCount(), 0);
+  await f.controlPlugin.dispose();
+  assert.equal(f.descriptor().stop_reason, 'timeout_killed');
+});
+
+test('one transport rejects a second active control without disturbing its owner', async (t) => {
+  const f = await fixture(t);
+  await assert.rejects(f.ctx.plugin({ ...plugin, name: 'competing-control' }, f.config).await(), /active control owner/);
+  f.completeTurn();
+  await f.control.finalize('agent_claimed_done', async () => {});
+  assert.equal(f.descriptor().stop_reason, 'agent_claimed_done');
+});
+
+test('failed installation releases control and writer claims for a later owner', async (t) => {
+  const f = await fixture(t);
+  await f.controlPlugin.dispose();
+  const guard = t.mock.method(f.ctx.tools, 'guard', () => { throw new Error('guard installation failed'); });
+  await assert.rejects(f.ctx.plugin({ ...plugin, name: 'failed-control' }, f.config).await(), /guard installation failed/);
+  guard.mock.restore();
+  await f.ctx.plugin(plugin, f.config).await();
+  await f.ctx.evalControl.finalize('agent_exit_0', async () => {});
+  assert.equal(f.descriptor().stop_reason, 'infra_error');
 });

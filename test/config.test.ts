@@ -1,14 +1,15 @@
 import assert from 'node:assert/strict';
 import { chmodSync, mkdtempSync, readFileSync, rmSync, symlinkSync } from 'node:fs';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
-import { resolveEvalControlConfig, EvalControlConfigSchema } from '../src/config.js';
+import { digestEvalControlConfig, resolveEvalControlConfig, validateRunBinding, EvalControlConfigError, EvalControlConfigSchema } from '../src/config.js';
 import { readJobToken } from '../src/gateway_lease.js';
 import { writeJobToken } from '../src/host_broker.js';
 
 const base = {
+  run: { run_id: 'run', job_config_hash: 'b'.repeat(64), config_file_sha256: 'c'.repeat(64), runtime_lock_digest: 'd'.repeat(64) },
   trialId: 'trial', sessionId: 'session', sessionRoot: 'sessions/session',
   configDigest: 'a'.repeat(64), provider: 'fixture', model: 'model',
   gatewayUrl: 'http://127.0.0.1:9000', jobTokenFile: '/tmp/token',
@@ -22,9 +23,99 @@ test('resolver and Cordis schema share defaults and preserve empty masks and for
   assert.equal(config.refuseAuxiliaryCalls, true);
   assert.deepEqual(config.tools?.allow, []);
   assert.equal(config.lineage?.forkStep, 0);
-  for (const value of [config, config.tools, config.tools?.allow, config.lineage]) {
+  for (const value of [config, config.run, config.tools, config.tools?.allow, config.lineage]) {
     assert.equal(Object.isFrozen(value), true);
   }
+});
+
+test('run binding requires exactly four own fields and a plain object', () => {
+  const invalid: unknown[] = [undefined, null, [], 'run', 1, new Date(), new Map(),
+    Object.create(base.run), new (class Binding { readonly run_id = 'run'; })(),
+    { ...base.run, runId: 'run' }, { ...base.run, extra: true }, { ...base.run, [Symbol('extra')]: 1 },
+    Object.defineProperty({ ...base.run }, 'hidden', { value: 1 }),
+  ];
+  for (const key of Object.keys(base.run)) {
+    const missing: Record<string, unknown> = { ...base.run };
+    delete missing[key];
+    invalid.push(missing, { ...base.run, [key]: undefined });
+  }
+  for (const run_id of ['', ' run', 'run ', 'run id', 'run\tname', 'run\nname', 'run\u0000name', 'run\u0085name', 'run\u2028name', 1]) {
+    invalid.push({ ...base.run, run_id });
+  }
+  for (const key of ['job_config_hash', 'config_file_sha256', 'runtime_lock_digest']) {
+    for (const value of ['', 'a'.repeat(63), 'a'.repeat(65), 'A'.repeat(64), 'g'.repeat(64), `${'a'.repeat(64)}\n`, 1, null]) {
+      invalid.push({ ...base.run, [key]: value });
+    }
+  }
+  for (const run of invalid) {
+    assert.throws(() => validateRunBinding(run), EvalControlConfigError);
+    assert.throws(() => resolveEvalControlConfig({ ...base, run }), EvalControlConfigError);
+    assert.ok(EvalControlConfigSchema['~standard'].validate({ ...base, run }).issues);
+  }
+  const { run: _run, ...legacy } = base;
+  assert.throws(() => resolveEvalControlConfig(legacy), /run/);
+  assert.deepEqual(validateRunBinding(Object.assign(Object.create(null), base.run)), base.run);
+});
+
+test('run validation and resolution return detached frozen copies without freezing inputs', () => {
+  const raw = { ...base.run };
+  const binding = validateRunBinding(raw);
+  const config = resolveEvalControlConfig({ ...base, run: raw });
+  assert.notEqual(binding, raw);
+  assert.notEqual(config.run, raw);
+  assert.equal(Object.isFrozen(raw), false);
+  assert.equal(Object.isFrozen(binding), true);
+  assert.equal(Object.isFrozen(config.run), true);
+  for (const key of Object.keys(raw) as (keyof typeof raw)[]) raw[key] = 'changed';
+  assert.deepEqual(binding, base.run);
+  assert.deepEqual(config.run, base.run);
+  assert.throws(() => Object.assign(binding, { run_id: 'other' }), TypeError);
+});
+
+test('resolved config digest matches canonical compact UTF-8 JSON and excludes only configDigest', () => {
+  const config = resolveEvalControlConfig({
+    ...base, run: { ...base.run, run_id: '运行-α' }, model: '模型',
+    maxSteps: 3, maxTokens: 99, reasoningEffort: 'high',
+    tools: { deny: ['write'], allow: ['read', 'write'] },
+    lineage: { parentTrialId: 'parent-trial', parentSessionId: 'parent', forkStep: 0 },
+  });
+  const canonical = `{"bundlePath":"bundle_descriptor.json","gatewayUrl":"http://127.0.0.1:9000","jobTokenFile":"/tmp/token","lineage":{"forkStep":0,"parentSessionId":"parent","parentTrialId":"parent-trial"},"maxSteps":3,"maxTokens":99,"model":"模型","provider":"fixture","reasoningEffort":"high","refuseAuxiliaryCalls":true,"run":{"config_file_sha256":"${'c'.repeat(64)}","job_config_hash":"${'b'.repeat(64)}","run_id":"运行-α","runtime_lock_digest":"${'d'.repeat(64)}"},"sessionId":"session","sessionRoot":"sessions/session","tools":{"allow":["read","write"],"deny":["write"]},"trialId":"trial"}`;
+  const expected = createHash('sha256').update(canonical, 'utf8').digest('hex');
+  assert.equal(digestEvalControlConfig(config), expected);
+  const reordered = {
+    ...Object.fromEntries(Object.entries(config).reverse()),
+    run: Object.fromEntries(Object.entries(config.run).reverse()),
+    lineage: Object.fromEntries(Object.entries(config.lineage!).reverse()),
+    tools: { deny: ['write'], allow: ['read', 'write'] },
+  } as unknown as typeof config;
+  assert.equal(digestEvalControlConfig(reordered), expected);
+  assert.equal(digestEvalControlConfig({ ...config, configDigest: 'f'.repeat(64) }), expected);
+  const bound = resolveEvalControlConfig({ ...config, configDigest: expected });
+  assert.equal(bound.configDigest, digestEvalControlConfig(bound));
+  // Resolution accepts structurally valid declarations; only the owner authenticates them.
+  assert.equal(config.configDigest, base.configDigest);
+  assert.notEqual(config.configDigest, expected);
+  assert.notEqual(createHash('sha256').update(canonical.replace('模型', '\\u6a21\\u578b')).digest('hex'), expected);
+  assert.notEqual(digestEvalControlConfig({ ...config, tools: { ...config.tools, allow: ['write', 'read'] } }), expected);
+  const changes = {
+    trialId: 'other-trial', sessionId: 'other-session', sessionRoot: 'other/session',
+    bundlePath: 'other.json', gatewayUrl: 'http://127.0.0.1:9001', jobTokenFile: '/other-token',
+    provider: 'other', model: 'other', reasoningEffort: 'low', maxSteps: 4, maxTokens: 100,
+    refuseAuxiliaryCalls: false, tools: { allow: [] }, lineage: { forkStep: 1 },
+  };
+  for (const [key, value] of Object.entries(changes)) {
+    assert.notEqual(digestEvalControlConfig(resolveEvalControlConfig({ ...config, [key]: value })), expected, key);
+  }
+  for (const key of Object.keys(config.run)) {
+    assert.notEqual(digestEvalControlConfig(resolveEvalControlConfig({
+      ...config, run: { ...config.run, [key]: key === 'run_id' ? 'other-run' : 'e'.repeat(64) },
+    })), expected, key);
+  }
+  const defaults = resolveEvalControlConfig(base);
+  assert.equal(digestEvalControlConfig(defaults), digestEvalControlConfig(resolveEvalControlConfig({
+    ...base, bundlePath: 'bundle_descriptor.json', refuseAuxiliaryCalls: true,
+  })));
+  assert.notEqual(digestEvalControlConfig(defaults), digestEvalControlConfig(resolveEvalControlConfig({ ...base, tools: { allow: [] } })));
 });
 
 test('required gateway identity, safe budgets and known-key policy fail closed', () => {

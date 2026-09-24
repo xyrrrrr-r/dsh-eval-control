@@ -1,4 +1,12 @@
+import { createHash } from 'node:crypto';
 import z from '@deepseek-ai/schemastery';
+
+export interface RunBinding {
+  readonly run_id: string;
+  readonly job_config_hash: string;
+  readonly config_file_sha256: string;
+  readonly runtime_lock_digest: string;
+}
 
 export interface ToolFaceConfig {
   readonly allow?: readonly string[];
@@ -12,6 +20,7 @@ export interface LineageConfig {
 }
 
 export interface EvalControlConfig {
+  readonly run: RunBinding;
   readonly trialId: string;
   readonly sessionId: string;
   readonly sessionRoot: string;
@@ -30,6 +39,12 @@ export interface EvalControlConfig {
 }
 
 export const EvalControlConfigFields = Object.freeze({
+  run: z.object({
+    run_id: z.string().required(),
+    job_config_hash: z.string().required(),
+    config_file_sha256: z.string().required(),
+    runtime_lock_digest: z.string().required(),
+  }).required(),
   trialId: z.string().required(),
   sessionId: z.string().required(),
   sessionRoot: z.string().required(),
@@ -78,14 +93,35 @@ function nonEmptyString(value: unknown, field: string): string {
   return value;
 }
 
-function identifier(value: unknown, field: string): string {
+export function validateIdentifier(value: unknown, field: string): string {
   const result = nonEmptyString(value, field);
   if (/\s/u.test(result)) fail(field, 'must not contain whitespace');
   return result;
 }
 
+export function validateSha256Digest(value: unknown, field: string): string {
+  if (typeof value !== 'string' || value.length !== 64 || !/^[0-9a-f]{64}$/u.test(value)) {
+    fail(field, 'must be a lowercase hex sha256');
+  }
+  return value;
+}
+
+export function validateRunBinding(raw: unknown): RunBinding {
+  const keys = ['run_id', 'job_config_hash', 'config_file_sha256', 'runtime_lock_digest'] as const;
+  const input = record(raw, 'run', keys);
+  for (const key of keys) {
+    if (!Object.hasOwn(input, key)) fail(`run.${key}`, 'is required');
+  }
+  return Object.freeze({
+    run_id: validateIdentifier(input['run_id'], 'run.run_id'),
+    job_config_hash: validateSha256Digest(input['job_config_hash'], 'run.job_config_hash'),
+    config_file_sha256: validateSha256Digest(input['config_file_sha256'], 'run.config_file_sha256'),
+    runtime_lock_digest: validateSha256Digest(input['runtime_lock_digest'], 'run.runtime_lock_digest'),
+  });
+}
+
 function optionalIdentifier(value: unknown, field: string): string | undefined {
-  return value === undefined ? undefined : identifier(value, field);
+  return value === undefined ? undefined : validateIdentifier(value, field);
 }
 
 export function validateSessionRoot(value: string): string {
@@ -126,7 +162,7 @@ function toolNames(value: unknown, field: string): readonly string[] | undefined
   const names: string[] = [];
   const seen = new Set<string>();
   for (const item of value) {
-    const name = identifier(item, field);
+    const name = validateIdentifier(item, field);
     if (!/^[A-Za-z0-9_-]{1,64}$/u.test(name)) fail(field, 'contains an invalid tool name');
     if (seen.has(name)) fail(field, 'must not contain duplicate tool names');
     seen.add(name);
@@ -161,13 +197,14 @@ function gateway(value: unknown): string {
 
 export function resolveEvalControlConfig(raw: unknown): EvalControlConfig {
   const input = record(raw, '', Object.keys(EvalControlConfigFields));
-  const trialId = identifier(input['trialId'], 'trialId');
-  const sessionId = identifier(input['sessionId'], 'sessionId');
+  const run = validateRunBinding(input['run']);
+  const trialId = validateIdentifier(input['trialId'], 'trialId');
+  const sessionId = validateIdentifier(input['sessionId'], 'sessionId');
   const sessionRoot = validateSessionRoot(input['sessionRoot'] as string);
-  const configDigest = nonEmptyString(input['configDigest'], 'configDigest');
-  if (!/^[0-9a-f]{64}$/u.test(configDigest)) fail('configDigest', 'must be a lowercase hex sha256');
-  const provider = identifier(input['provider'], 'provider');
-  const model = identifier(input['model'], 'model');
+  // Structural validation only: the owner must compute and bind this digest.
+  const configDigest = validateSha256Digest(input['configDigest'], 'configDigest');
+  const provider = validateIdentifier(input['provider'], 'provider');
+  const model = validateIdentifier(input['model'], 'model');
   const reasoningEffort = optionalIdentifier(input['reasoningEffort'], 'reasoningEffort');
   const maxSteps = safeInteger(input['maxSteps'], 'maxSteps', 1);
   const maxTokens = safeInteger(input['maxTokens'], 'maxTokens', 1);
@@ -205,7 +242,7 @@ export function resolveEvalControlConfig(raw: unknown): EvalControlConfig {
   if (typeof refuseAuxiliaryCalls !== 'boolean') fail('refuseAuxiliaryCalls', 'must be a boolean');
 
   return Object.freeze({
-    trialId, sessionId, sessionRoot, configDigest, provider, model,
+    run, trialId, sessionId, sessionRoot, configDigest, provider, model,
     ...(reasoningEffort !== undefined ? { reasoningEffort } : {}),
     ...(maxSteps !== undefined ? { maxSteps } : {}),
     ...(maxTokens !== undefined ? { maxTokens } : {}),
@@ -213,6 +250,22 @@ export function resolveEvalControlConfig(raw: unknown): EvalControlConfig {
     ...(lineage !== undefined ? { lineage } : {}),
     bundlePath, gatewayUrl, jobTokenFile, refuseAuxiliaryCalls,
   });
+}
+
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (value !== null && typeof value === 'object') {
+    const object = value as Record<string, unknown>;
+    return `{${Object.keys(object).sort().filter((key) => object[key] !== undefined)
+      .map((key) => `${JSON.stringify(key)}:${canonicalJson(object[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+/** Hash the complete resolved config except configDigest; this does not establish owner trust. */
+export function digestEvalControlConfig(config: EvalControlConfig): string {
+  const { configDigest: _configDigest, ...resolved } = config;
+  return createHash('sha256').update(canonicalJson(resolved), 'utf8').digest('hex');
 }
 
 export interface ConfigStandardSchema {
