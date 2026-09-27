@@ -11,7 +11,8 @@
   "types": "dist/index.d.ts",
   "bin": {
     "aeval-dsh-session-reader": "dist/session_reader.js",
-    "aeval-dsh-session-stub": "dist/session_stub.js"
+    "aeval-dsh-session-stub": "dist/session_stub.js",
+    "aeval-model-broker": "dist/broker_main.js"
   },
   "files": [
     "dist",

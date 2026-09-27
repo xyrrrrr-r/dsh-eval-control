@@ -3,7 +3,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { createServer as createTlsServer } from 'node:https';
 import { isIP, type Socket } from 'node:net';
 import { once } from 'node:events';
-import { writeFileSync } from 'node:fs';
+import { lstatSync, unlinkSync, writeFileSync, type Stats } from 'node:fs';
 import { isDeepStrictEqual } from 'node:util';
 import { BlockAssembler, ReasoningEffortId } from '@deepseek-ai/dsh-llm';
 import type { ContentBlock, GenerateOptions, LlmAdapter, LlmResolvedModelInfo, ModelMessageSource, StreamChunk, TokenUsage } from '@deepseek-ai/dsh-llm';
@@ -27,6 +27,13 @@ export interface HostBrokerOptions {
   readonly refuseAuxiliaryCalls?: boolean;
   readonly signal: AbortSignal;
   readonly timeoutMs?: number;
+  /**
+   * Wall-clock lifetime of the served job token, counted from broker startup.
+   * Authenticated requests after expiry fail with 401 `AEVAL_TOKEN_EXPIRED`;
+   * the process-level auto-stop timer that enforces shutdown lives with the
+   * broker host entry, which also owns the token file's cleanup.
+   */
+  readonly tokenTtlMs?: number;
   readonly listen?: { readonly host: string; readonly port?: number; readonly tls?: { readonly key: string; readonly cert: string } };
   readonly onStop?: (reason: StopReason) => void;
 }
@@ -251,10 +258,11 @@ export async function startHostBroker(options: HostBrokerOptions): Promise<HostB
   if (!Number.isSafeInteger(port) || port < 0 || port > 65535) throw new Error('Invalid broker listen port');
   if (!isLoopbackHost(host) && !tls) throw new Error('Nonloopback broker listeners require TLS');
   if (tls && (typeof tls.key !== 'string' || !tls.key || typeof tls.cert !== 'string' || !tls.cert)) throw new Error('Invalid broker TLS material');
-  for (const value of [options.maxOutputTokens, options.limits.maxSteps, options.limits.maxTokens, options.timeoutMs]) {
+  for (const value of [options.maxOutputTokens, options.limits.maxSteps, options.limits.maxTokens, options.timeoutMs, options.tokenTtlMs]) {
     if (value !== undefined && tokenCount(value) === 0) throw new Error('Broker limits must be positive safe integers');
   }
   if (options.timeoutMs !== undefined && options.timeoutMs > 2_147_483_647) throw new Error('Broker timeout exceeds timer range');
+  if (options.tokenTtlMs !== undefined && options.tokenTtlMs > 2_147_483_647) throw new Error('Broker token TTL exceeds timer range');
   if (options.limits.maxTokens !== undefined && !options.inputTokenUpperBound) throw new Error('Hard token budgets require a trusted provider input-token upper bound');
   options.signal.throwIfAborted();
   const model = await abortable(() => options.upstream.resolveModel(options.identity.provider, options.identity.model, options.signal), options.signal);
@@ -265,6 +273,9 @@ export async function startHostBroker(options: HostBrokerOptions): Promise<HostB
   const lease = new GatewayLease(options, { ...model, defaultMaxTokens: options.maxOutputTokens });
   const token = randomBytes(32).toString('hex');
   const expectedAuth = createHash('sha256').update(`Bearer ${token}`).digest();
+  // The TTL is anchored at token issuance, before the listener exists, so the
+  // credential can never outlive its lifetime while the host entry is starting up.
+  const expiresAt = options.tokenTtlMs === undefined ? undefined : Date.now() + options.tokenTtlMs;
   const active = new Set<Promise<void>>();
   const sockets = new Set<Socket>();
   const handler = (req: IncomingMessage, res: ServerResponse) => {
@@ -280,6 +291,12 @@ export async function startHostBroker(options: HostBrokerOptions): Promise<HostB
   async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const supplied = createHash('sha256').update(req.headers.authorization ?? '').digest();
     if (!timingSafeEqual(supplied, expectedAuth)) { res.writeHead(401).end(); return; }
+    // A correct token past its lifetime is still dead: the lease identity the
+    // candidate received must not outlive the host's enforced TTL.
+    if (expiresAt !== undefined && Date.now() >= expiresAt) {
+      res.writeHead(401, { 'aeval-error-code': 'AEVAL_TOKEN_EXPIRED' }).end();
+      return;
+    }
     const controller = new AbortController();
     const signal = AbortSignal.any([controller.signal, lease.signal]);
     const disconnected = () => { if (!res.writableFinished) controller.abort(); };
@@ -374,4 +391,25 @@ export function writeJobToken(path: string, token: string): void {
   if (process.platform === 'win32') throw new Error('Job-token files require a POSIX 0600 runtime');
   if (!/^[a-f0-9]{64}$/.test(token)) throw new Error('Invalid job token');
   writeFileSync(path, token, { mode: 0o600, flag: 'wx' });
+}
+
+/**
+ * Remove a job-token file this host wrote. Only an existing, owned, 0600
+ * regular file that is not a symlink is deleted — anything else at the path
+ * refuses removal — and every failure surfaces to the caller, because this
+ * runs on the credentialed host side where silent cleanup gaps accumulate.
+ */
+export function cleanupJobToken(path: string): void {
+  if (process.platform === 'win32') throw new Error('Job-token files require a POSIX 0600 runtime');
+  let stat: Stats;
+  try {
+    stat = lstatSync(path);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return;
+    throw error;
+  }
+  if (stat.isSymbolicLink() || !stat.isFile() || stat.uid !== process.getuid?.() || (stat.mode & 0o777) !== 0o600) {
+    throw new Error('Refusing to remove a job-token file that is not an owned 0600 regular file');
+  }
+  unlinkSync(path);
 }

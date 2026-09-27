@@ -2,12 +2,15 @@ import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { ServerResponse } from 'node:http';
 import { createConnection } from 'node:net';
+import { existsSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { setImmediate as turn } from 'node:timers/promises';
 import test from 'node:test';
 import { BlockAssembler, LlmAdapter, ReasoningEffortId, ToolCallId } from '@deepseek-ai/dsh-llm';
 import type { GenerateOptions, LlmResolvedModelInfo, StreamChunk, TokenUsage } from '@deepseek-ai/dsh-llm';
 import { SessionId } from '@deepseek-ai/dsh-session';
-import { GatewayLease, isLoopbackHost, startHostBroker } from '../src/host_broker.js';
+import { cleanupJobToken, GatewayLease, isLoopbackHost, startHostBroker, writeJobToken } from '../src/host_broker.js';
 import type { HostBroker, HostBrokerOptions } from '../src/host_broker.js';
 import { BrokerAdapter, GATEWAY_PROTOCOL, GatewayError, MAX_WIRE_BYTES, parseBrokerRequest, usageTotals } from '../src/gateway_lease.js';
 import { EvalControlConfigError, type EvalControlConfig, type RunBinding } from '../src/config.js';
@@ -607,4 +610,53 @@ test('a signal aborted during bind cancels the listener without an uncaught erro
   controller.abort();
   await assert.rejects(startHostBroker(policy(new OfflineAdapter(), { signal: controller.signal })),
     (error: unknown) => (error as Error).name === 'AbortError');
+});
+
+test('a correct token past its TTL fails 401 with AEVAL_TOKEN_EXPIRED while a wrong token stays plain 401', { timeout: 5000 }, async () => {
+  const broker = await startHostBroker(policy(new OfflineAdapter(), { tokenTtlMs: 800 }));
+  try {
+    const call = (token: string) => fetch(`${broker.url}/info`, { headers: { authorization: `Bearer ${token}` } });
+    assert.equal((await promptly(call(broker.token))).status, 200);
+    const wrong = await promptly(call('f'.repeat(64)));
+    assert.equal(wrong.status, 401);
+    assert.equal(wrong.headers.get('aeval-error-code'), null);
+    await new Promise((resolve) => { setTimeout(resolve, 1000); });
+    const expired = await promptly(call(broker.token));
+    assert.equal(expired.status, 401);
+    assert.equal(expired.headers.get('aeval-error-code'), 'AEVAL_TOKEN_EXPIRED');
+    // Expiry kills the credential, not the in-process lease inspection the
+    // trusted owner still relies on for finalization.
+    assert.equal(broker.lease.snapshot().stopReason, undefined);
+  } finally { await promptly(broker.close()); }
+});
+
+test('token TTL options are validated like the other broker limits', async () => {
+  await assert.rejects(startHostBroker(policy(new OfflineAdapter(), { tokenTtlMs: 0 })), /Broker limits must be positive safe integers/);
+  await assert.rejects(startHostBroker(policy(new OfflineAdapter(), { tokenTtlMs: 2_147_483_648 })), /Broker token TTL exceeds timer range/);
+  for (const tokenTtlMs of [-1, 1.5, Number.NaN]) {
+    await assert.rejects(startHostBroker(policy(new OfflineAdapter(), { tokenTtlMs })),
+      (error: unknown) => error instanceof GatewayError && error.code === 'AEVAL_INVALID_USAGE');
+  }
+});
+
+test('cleanupJobToken removes only an existing owned 0600 regular file', () => {
+  const root = mkdtempSync(join(realpathSync(tmpdir()), 'aeval-cleanup-'));
+  try {
+    // A path that never existed is already clean.
+    cleanupJobToken(join(root, 'absent'));
+    const mine = join(root, 'mine');
+    writeJobToken(mine, 'a'.repeat(64));
+    cleanupJobToken(mine);
+    assert.equal(existsSync(mine), false);
+    const loose = join(root, 'loose');
+    writeFileSync(loose, 'a'.repeat(64), { mode: 0o644 });
+    assert.throws(() => cleanupJobToken(loose), /0600 regular file/);
+    assert.equal(existsSync(loose), true);
+    const target = join(root, 'target');
+    writeJobToken(target, 'a'.repeat(64));
+    const link = join(root, 'link');
+    symlinkSync(target, link);
+    assert.throws(() => cleanupJobToken(link), /0600 regular file/);
+    assert.equal(existsSync(target), true);
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });

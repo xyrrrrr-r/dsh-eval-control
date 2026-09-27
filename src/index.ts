@@ -13,8 +13,12 @@ export { EvalControlConfigSchema, resolveEvalControlConfig, validateRunBinding, 
 export type { EvalControlConfig, RunBinding } from './config.js';
 export { BrokerAdapter, GatewayError, readJobToken } from './gateway_lease.js';
 export type { LeaseIdentity, LeaseLimits, BrokerInfo } from './gateway_lease.js';
-export { GatewayLease, startHostBroker, writeJobToken } from './host_broker.js';
+export { GatewayLease, startHostBroker, writeJobToken, cleanupJobToken, isLoopbackHost } from './host_broker.js';
 export type { HostBroker, HostBrokerOptions } from './host_broker.js';
+export { createUpstreamAdapter, buildChatCompletionsBody, readUpstreamKey } from './upstream.js';
+export type { UpstreamAdapterOptions, ChatCompletionsBody, WireMessage, WireToolCall } from './upstream.js';
+export { createProviderCountBound } from './token_bound.js';
+export type { ProviderCountBoundOptions, ProviderInputTokenBound } from './token_bound.js';
 export { agentOptionsOf, installExperimentVariables } from './variable_inject.js';
 export { forkLineageOf, forkSessionMeta, validateForkLineage } from './fork.js';
 export {

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join, resolve, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test, type TestContext } from 'node:test';
 import { Context } from '@deepseek-ai/cordis';
@@ -52,9 +52,20 @@ test('a stub is written by the official backend in the layout the reader walks',
   fs.mkdirSync(root, { recursive: true });
   await mint(root, 'session-aeval-trial-0002');
 
+  // POSIX write handles leave the official backend's empty `session.lock`
+  // flock(2) lease artifact beside the log; Windows leases through a named
+  // kernel semaphore and leaves no file. Only that documented artifact may
+  // accompany the single session record the reader walks — anything else
+  // (a stray file, a second record) still fails the layout assertion.
   const files = walk(root);
-  assert.equal(files.length, 1);
-  assert.ok(files[0]!.endsWith(join('session-aeval-trial-0002', 'session.v4.jsonl.zstd')), files[0]!);
+  const lease = files.filter((path) => path.endsWith('session.lock'));
+  const records = files.filter((path) => !path.endsWith('session.lock'));
+  assert.equal(records.length, 1);
+  assert.ok(records[0]!.endsWith(join('session-aeval-trial-0002', 'session.v4.jsonl.zstd')), records[0]!);
+  for (const path of lease) {
+    assert.equal(basename(path), 'session.lock', path);
+    assert.equal(fs.statSync(path).size, 0, path);
+  }
 });
 
 function walk(dir: string): string[] {
