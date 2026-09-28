@@ -314,7 +314,7 @@ export class BrokerAdapter extends LlmAdapter {
     let usageSeen = false;
     let failure: StopReason | undefined;
     let gatewayFailure = false;
-    let busyConflict = false;
+    let expectedRejection = false;
     try {
       const response = await abortable(() => this.request('/stream', { method: 'POST', body: JSON.stringify(body), signal }), signal);
       if (!response.body) throw new GatewayError('AEVAL_INVALID_WIRE');
@@ -372,8 +372,11 @@ export class BrokerAdapter extends LlmAdapter {
       // runtime issues advisory calls (a session-title request) alongside
       // the real one, so treating this as a trusted failure recorded
       // infra_error on a healthy run and blocked the owner's finalization
-      // (real-chain finding, tracked down through the plugin trace).
-      busyConflict = cause instanceof GatewayError && cause.code === 'AEVAL_LEASE_BUSY';
+      // (real-chain finding, tracked down through the plugin trace). A
+      // policy-refused advisory call is the same shape: the owner decided
+      // that request consumes nothing, so it cannot downgrade the trial.
+      expectedRejection = cause instanceof GatewayError
+        && (cause.code === 'AEVAL_LEASE_BUSY' || cause.code === 'AEVAL_AUXILIARY_REFUSED');
       failure = cause instanceof GatewayError ? cause.stopReason : 'infra_error';
       throw cause instanceof GatewayError ? cause : new GatewayError('AEVAL_GATEWAY_FAILED', failure);
     } finally {
@@ -392,7 +395,7 @@ export class BrokerAdapter extends LlmAdapter {
       // reported by its own error code here, and is re-read from /info
       // when the owner finalizes.
       const callerCancelled = !gatewayFailure && !brokerReported && options.signal?.aborted === true;
-      if (!finished && !callerCancelled && !busyConflict) for (const listener of [...this.#listeners]) {
+      if (!finished && !callerCancelled && !expectedRejection) for (const listener of [...this.#listeners]) {
         detachedCleanup(() => listener(reason));
       }
     }

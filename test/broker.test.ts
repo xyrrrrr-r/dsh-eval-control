@@ -13,6 +13,7 @@ import { SessionId } from '@deepseek-ai/dsh-session';
 import { cleanupJobToken, GatewayLease, isLoopbackHost, startHostBroker, writeJobToken } from '../src/host_broker.js';
 import type { HostBroker, HostBrokerOptions } from '../src/host_broker.js';
 import { BrokerAdapter, GATEWAY_PROTOCOL, GatewayError, MAX_WIRE_BYTES, parseBrokerRequest, usageTotals } from '../src/gateway_lease.js';
+import type { GatewayRejectionRecord } from '../src/gateway_lease.js';
 import { EvalControlConfigError, type EvalControlConfig, type RunBinding } from '../src/config.js';
 
 const run: RunBinding = Object.freeze({ run_id: 'run', job_config_hash: 'b'.repeat(64), config_file_sha256: 'c'.repeat(64), runtime_lock_digest: 'd'.repeat(64) });
@@ -52,8 +53,11 @@ class OfflineAdapter extends LlmAdapter {
 function policy(upstream: LlmAdapter, overrides: Partial<HostBrokerOptions> = {}): HostBrokerOptions {
   return { run, trialId: 'trial', sessionId: 'session', configDigest: 'a'.repeat(64), identity: { provider: 'test', model: 'model' }, limits: { maxSteps: 10, maxTokens: 100 }, maxOutputTokens: 20, upstream, inputTokenUpperBound: () => 10, signal: new AbortController().signal, ...overrides };
 }
-function client(broker?: HostBroker, overrides: Partial<EvalControlConfig> = {}) {
-  return new BrokerAdapter({ run, trialId: 'trial', sessionId: 'session', sessionRoot: '.', configDigest: 'a'.repeat(64), provider: 'test', model: 'model', maxSteps: 10, maxTokens: 100, bundlePath: 'unused', gatewayUrl: broker?.url ?? 'http://127.0.0.1:1', jobTokenFile: 'unused', refuseAuxiliaryCalls: true, ...overrides }, broker?.token ?? 'a'.repeat(64));
+function client(
+  broker?: HostBroker, overrides: Partial<EvalControlConfig> = {},
+  onRejection?: (record: GatewayRejectionRecord) => void,
+) {
+  return new BrokerAdapter({ run, trialId: 'trial', sessionId: 'session', sessionRoot: '.', configDigest: 'a'.repeat(64), provider: 'test', model: 'model', maxSteps: 10, maxTokens: 100, bundlePath: 'unused', gatewayUrl: broker?.url ?? 'http://127.0.0.1:1', jobTokenFile: 'unused', refuseAuxiliaryCalls: true, ...overrides }, broker?.token ?? 'a'.repeat(64), onRejection);
 }
 const rejected = (code: string, reason?: string) => (error: unknown) => error instanceof GatewayError && error.code === code && (reason === undefined || error.stopReason === reason);
 const ndjson = (chunks: unknown[]) => chunks.map((chunk) => JSON.stringify(chunk)).join('\n') + '\n';
@@ -776,4 +780,34 @@ test('cleanupJobToken removes only an existing owned 0600 regular file', () => {
     assert.throws(() => cleanupJobToken(link), /0600 regular file/);
     assert.equal(existsSync(target), true);
   } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('a refused advisory call neither stops the lease nor consumes budget (D45)', async () => {
+  const upstream = new OfflineAdapter();
+  const broker = await startHostBroker(policy(upstream));
+  try {
+    const rejections: GatewayRejectionRecord[] = [];
+    const adapter = client(broker, {}, (record) => rejections.push(record));
+    const terminals: string[] = [];
+    const stopObserving = adapter.observeTerminal((reason) => terminals.push(reason));
+    const advisory = (): GenerateOptions => ({ ...request(), purpose: 'session-title' }) as GenerateOptions;
+    // The runtime issues this advisory call while the real turn is pending;
+    // in the real sandbox it landed BEFORE the first model call.
+    await assert.rejects(promptly(collect(adapter.stream(advisory()))), rejected('AEVAL_AUXILIARY_REFUSED'));
+    const info = await adapter.info();
+    assert.equal(info.stopReason, undefined, 'a refused advisory call must not close the lease');
+    assert.equal(info.usedSteps, 0, 'the refusal happens before dispatch');
+    // A second advisory call is refused again instead of finding a dead lease.
+    await assert.rejects(promptly(collect(adapter.stream(advisory()))), rejected('AEVAL_AUXILIARY_REFUSED'));
+    // The real call still runs, dispatches exactly once, and the refusal is
+    // never reported as a trusted terminal failure.
+    assert.ok((await promptly(collect(adapter.stream(request())))).length > 0);
+    assert.equal(upstream.requests.length, 1);
+    assert.deepEqual(terminals, []);
+    assert.deepEqual(rejections, [
+      { code: 'AEVAL_AUXILIARY_REFUSED', purpose: 'session-title' },
+      { code: 'AEVAL_AUXILIARY_REFUSED', purpose: 'session-title' },
+    ]);
+    stopObserving();
+  } finally { await broker.close(); }
 });

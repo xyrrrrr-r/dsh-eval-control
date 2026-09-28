@@ -148,7 +148,16 @@ export class GatewayLease {
       // Never forward candidate-owned native state, even after equality checks.
       return { ...message, content: structuredClone(issued.content), source: structuredClone(issued.source) };
     });
-    if (input.purpose && (this.#policy.refuseAuxiliaryCalls ?? true)) this.refuse('AEVAL_AUXILIARY_REFUSED', 'infra_error');
+    if (input.purpose && (this.#policy.refuseAuxiliaryCalls ?? true)) {
+      // An advisory call the owner's policy forbids is refused for THIS
+      // request only. Stopping the lease here turned a refused session-title
+      // call into a dead run: the main model call then failed with
+      // AEVAL_LEASE_CLOSED, the agent exited 1, and the trial exposed no
+      // session at all (real-chain regression). The refusal happens before
+      // dispatch, so it provably consumes no tokens *and* must not end a
+      // healthy lease — the same non-terminal shape as AEVAL_LEASE_BUSY.
+      throw new GatewayError('AEVAL_AUXILIARY_REFUSED');
+    }
     this.#busy = true;
     let dispatched = false;
     let complete = false;
