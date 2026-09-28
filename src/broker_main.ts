@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { LlmError } from '@deepseek-ai/dsh-llm';
 import { EvalControlConfigError, validateIdentifier, validateRunBinding, validateSha256Digest, type RunBinding } from './config.js';
 import { GATEWAY_PROTOCOL } from './gateway_lease.js';
-import type { LeaseIdentity, LeaseLimits } from './gateway_lease.js';
+import type { AuxiliaryDecision, AuxiliaryPurpose, LeaseIdentity, LeaseLimits } from './gateway_lease.js';
 import { cleanupJobToken, isLoopbackHost, startHostBroker, writeJobToken } from './host_broker.js';
 import type { HostBroker } from './host_broker.js';
 import { createProviderCountBound } from './token_bound.js';
@@ -33,6 +33,7 @@ export interface BrokerMainConfig {
   readonly maxOutputTokens: number;
   readonly timeoutMs?: number;
   readonly tokenTtlMs?: number;
+  readonly auxiliaryPolicy?: Readonly<Partial<Record<AuxiliaryPurpose, AuxiliaryDecision>>>;
   readonly listen: { readonly host: string; readonly port?: number; readonly tls?: { readonly key: string; readonly cert: string } };
   readonly tokenOut: string;
   readonly upstream: {
@@ -133,7 +134,7 @@ function parseListen(raw: unknown): BrokerMainConfig['listen'] {
 }
 
 export function parseBrokerMainConfig(raw: unknown): BrokerMainConfig {
-  const input = record(raw, '', ['run', 'trialId', 'sessionId', 'configDigest', 'identity', 'limits', 'maxOutputTokens', 'timeoutMs', 'tokenTtlMs', 'listen', 'tokenOut', 'upstream', 'tokenCount']);
+  const input = record(raw, '', ['run', 'trialId', 'sessionId', 'configDigest', 'identity', 'limits', 'maxOutputTokens', 'timeoutMs', 'tokenTtlMs', 'listen', 'tokenOut', 'upstream', 'tokenCount', 'auxiliaryPolicy']);
   const identityRaw = record(input['identity'], 'identity', ['provider', 'model', 'reasoningEffort']);
   const reasoningEffort = identityRaw['reasoningEffort'] === undefined ? undefined : validateIdentifier(identityRaw['reasoningEffort'], 'identity.reasoningEffort');
   const identity: LeaseIdentity = Object.freeze({
@@ -173,6 +174,20 @@ export function parseBrokerMainConfig(raw: unknown): BrokerMainConfig {
       ...(raw['timeoutMs'] !== undefined ? { timeoutMs: positiveInt(raw['timeoutMs'], 'tokenCount.timeoutMs') } : {}),
     });
   }
+  // D47: per-purpose decisions for advisory model calls. Only the two known
+  // purposes may be configured, and only with an explicit decision; the
+  // resolved policy (against refuseAuxiliaryCalls, default refuse) is what
+  // the lease serves and /info reports.
+  let auxiliaryPolicy: BrokerMainConfig['auxiliaryPolicy'];
+  if (input['auxiliaryPolicy'] !== undefined) {
+    const raw = record(input['auxiliaryPolicy'], 'auxiliaryPolicy', ['compaction', 'session-title']);
+    for (const purpose of ['compaction', 'session-title'] as const) {
+      const decision = raw[purpose];
+      if (decision === undefined) continue;
+      if (decision !== 'refuse' && decision !== 'allow') fail('auxiliaryPolicy', `${purpose} must be 'refuse' or 'allow'`);
+      auxiliaryPolicy = Object.freeze({ ...auxiliaryPolicy, [purpose]: decision });
+    }
+  }
   return Object.freeze({
     run: validateRunBinding(input['run']),
     trialId: validateIdentifier(input['trialId'], 'trialId'),
@@ -187,6 +202,7 @@ export function parseBrokerMainConfig(raw: unknown): BrokerMainConfig {
     tokenOut: filePath(input['tokenOut'], 'tokenOut'),
     upstream,
     ...(tokenCount !== undefined ? { tokenCount } : {}),
+    ...(auxiliaryPolicy !== undefined ? { auxiliaryPolicy } : {}),
   });
 }
 
@@ -254,6 +270,7 @@ export async function main(argv: readonly string[] = process.argv.slice(2)): Pro
       limits: config.limits,
       maxOutputTokens: config.maxOutputTokens,
       upstream,
+      ...(config.auxiliaryPolicy !== undefined ? { auxiliaryPolicy: config.auxiliaryPolicy } : {}),
       ...(meter !== undefined ? { inputTokenUpperBound: meter } : {}),
       signal: controller.signal,
       ...(config.timeoutMs !== undefined ? { timeoutMs: config.timeoutMs } : {}),

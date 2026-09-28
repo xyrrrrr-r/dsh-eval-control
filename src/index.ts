@@ -5,7 +5,7 @@ import { writeFileSync } from 'node:fs';
 import { isDeepStrictEqual } from 'node:util';
 import { EvalControlConfigSchema, resolveEvalControlConfig, type EvalControlConfig } from './config.js';
 import {
-  abortable, BrokerAdapter, readJobToken, type GatewayRejectionRecord,
+  abortable, BrokerAdapter, readJobToken, type GatewayDispatchRecord, type GatewayRejectionRecord,
 } from './gateway_lease.js';
 import { BundleWriter, RunObservationState } from './bundle_writer.js';
 import { validateForkLineage } from './fork.js';
@@ -53,10 +53,11 @@ declare module '@deepseek-ai/cordis' {
 export async function installBrokerTransport(
   owner: Context, rawConfig: unknown, jobToken?: string,
   onRejection?: (record: GatewayRejectionRecord) => void,
+  onDispatch?: (record: GatewayDispatchRecord) => void,
 ): Promise<EvalBrokerTransport> {
   if (scopeOf(owner) !== undefined) throw new Error('Broker transport requires a global host context');
   const config = resolveEvalControlConfig(rawConfig);
-  const adapter = new BrokerAdapter(config, jobToken ?? readJobToken(config.jobTokenFile), onRejection);
+  const adapter = new BrokerAdapter(config, jobToken ?? readJobToken(config.jobTokenFile), onRejection, onDispatch);
   const info = await adapter.info();
   if (info.stopReason !== undefined) throw new Error('Cannot install a closed broker lease');
   const registration = owner.llm.registerAdapter([config.provider], adapter);

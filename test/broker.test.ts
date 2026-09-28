@@ -12,8 +12,8 @@ import type { GenerateOptions, LlmResolvedModelInfo, StreamChunk, TokenUsage } f
 import { SessionId } from '@deepseek-ai/dsh-session';
 import { cleanupJobToken, GatewayLease, isLoopbackHost, startHostBroker, writeJobToken } from '../src/host_broker.js';
 import type { HostBroker, HostBrokerOptions } from '../src/host_broker.js';
-import { BrokerAdapter, GATEWAY_PROTOCOL, GatewayError, MAX_WIRE_BYTES, parseBrokerRequest, usageTotals } from '../src/gateway_lease.js';
-import type { GatewayRejectionRecord } from '../src/gateway_lease.js';
+import { BrokerAdapter, GATEWAY_PROTOCOL, GatewayError, MAX_WIRE_BYTES, parseBrokerRequest, resolveAuxiliaryPolicy, usageTotals } from '../src/gateway_lease.js';
+import type { GatewayDispatchRecord, GatewayRejectionRecord } from '../src/gateway_lease.js';
 import { EvalControlConfigError, type EvalControlConfig, type RunBinding } from '../src/config.js';
 
 const run: RunBinding = Object.freeze({ run_id: 'run', job_config_hash: 'b'.repeat(64), config_file_sha256: 'c'.repeat(64), runtime_lock_digest: 'd'.repeat(64) });
@@ -56,8 +56,9 @@ function policy(upstream: LlmAdapter, overrides: Partial<HostBrokerOptions> = {}
 function client(
   broker?: HostBroker, overrides: Partial<EvalControlConfig> = {},
   onRejection?: (record: GatewayRejectionRecord) => void,
+  onDispatch?: (record: GatewayDispatchRecord) => void,
 ) {
-  return new BrokerAdapter({ run, trialId: 'trial', sessionId: 'session', sessionRoot: '.', configDigest: 'a'.repeat(64), provider: 'test', model: 'model', maxSteps: 10, maxTokens: 100, bundlePath: 'unused', gatewayUrl: broker?.url ?? 'http://127.0.0.1:1', jobTokenFile: 'unused', refuseAuxiliaryCalls: true, ...overrides }, broker?.token ?? 'a'.repeat(64), onRejection);
+  return new BrokerAdapter({ run, trialId: 'trial', sessionId: 'session', sessionRoot: '.', configDigest: 'a'.repeat(64), provider: 'test', model: 'model', maxSteps: 10, maxTokens: 100, bundlePath: 'unused', gatewayUrl: broker?.url ?? 'http://127.0.0.1:1', jobTokenFile: 'unused', refuseAuxiliaryCalls: true, ...overrides }, broker?.token ?? 'a'.repeat(64), onRejection, onDispatch);
 }
 const rejected = (code: string, reason?: string) => (error: unknown) => error instanceof GatewayError && error.code === code && (reason === undefined || error.stopReason === reason);
 const ndjson = (chunks: unknown[]) => chunks.map((chunk) => JSON.stringify(chunk)).join('\n') + '\n';
@@ -119,7 +120,7 @@ test('host binding copies are frozen at construction and before asynchronous sta
   try {
     assert.deepEqual(lease.snapshot().run, run);
     const info = await client(broker).info();
-    assert.equal(info.protocol, 'aeval-model-broker/2');
+    assert.equal(info.protocol, 'aeval-model-broker/3');
     assert.deepEqual(info.run, run);
     assert.equal(Object.isFrozen(info.run), true);
     assert.equal(broker.lease.snapshot().trialId, 'trial');
@@ -130,7 +131,7 @@ test('host binding copies are frozen at construction and before asynchronous sta
 
 test('info rejects old protocol, missing run and every independently mismatched binding field', async (t) => {
   const info = new GatewayLease(policy(new OfflineAdapter()), model).snapshot();
-  assert.equal(GATEWAY_PROTOCOL, 'aeval-model-broker/2');
+  assert.equal(GATEWAY_PROTOCOL, 'aeval-model-broker/3');
   const variants: Record<string, unknown>[] = [
     { ...info, protocol: 'aeval-model-broker/1' }, { ...info, run: undefined },
     { ...info, run: null }, { ...info, run: { ...run, extra: true } },
@@ -809,5 +810,61 @@ test('a refused advisory call neither stops the lease nor consumes budget (D45)'
       { code: 'AEVAL_AUXILIARY_REFUSED', purpose: 'session-title' },
     ]);
     stopObserving();
+  } finally { await broker.close(); }
+});
+
+test('resolveAuxiliaryPolicy: explicit per-purpose entries win over the blanket flag (D47)', () => {
+  assert.deepEqual(resolveAuxiliaryPolicy(undefined, undefined), { compaction: 'refuse', 'session-title': 'refuse' });
+  assert.deepEqual(resolveAuxiliaryPolicy(undefined, true), { compaction: 'refuse', 'session-title': 'refuse' });
+  assert.deepEqual(resolveAuxiliaryPolicy(undefined, false), { compaction: 'allow', 'session-title': 'allow' });
+  assert.deepEqual(resolveAuxiliaryPolicy({ compaction: 'allow' }, true), { compaction: 'allow', 'session-title': 'refuse' });
+  assert.deepEqual(resolveAuxiliaryPolicy({ 'session-title': 'allow' }, true), { compaction: 'refuse', 'session-title': 'allow' });
+});
+
+test('an allowed compaction call dispatches, is metered, and is ledgered with its usage (D47)', async () => {
+  const upstream = new OfflineAdapter();
+  const broker = await startHostBroker(policy(upstream, { auxiliaryPolicy: { compaction: 'allow' } }));
+  try {
+    const dispatches: GatewayDispatchRecord[] = [];
+    const adapter = client(broker, { auxiliaryPolicy: { compaction: 'allow' } }, undefined, (record) => dispatches.push(record));
+    const chunks = await promptly(collect(adapter.stream({ ...request(), purpose: 'compaction' } as GenerateOptions)));
+    assert.ok(chunks.length > 0, 'an allowed auxiliary call completes like any dispatch');
+    assert.equal(upstream.requests.length, 1);
+    const info = await adapter.info();
+    assert.equal(info.auxiliaryPolicy['compaction'], 'allow');
+    assert.equal(info.auxiliaryPolicy['session-title'], 'refuse');
+    assert.equal(info.stopReason, undefined, 'an allowed auxiliary call must not close the lease');
+    assert.equal(info.usedSteps, 1, 'an allowed auxiliary call consumes a step like any dispatch');
+    assert.deepEqual(dispatches, [{ code: 'AEVAL_AUXILIARY_DISPATCHED', purpose: 'compaction', usage }]);
+    // The same lease still refuses the other purpose before dispatch.
+    await assert.rejects(
+      promptly(collect(adapter.stream({ ...request(), purpose: 'session-title' } as GenerateOptions))),
+      rejected('AEVAL_AUXILIARY_REFUSED'),
+    );
+    assert.equal(upstream.requests.length, 1, 'a refused advisory call never reaches the upstream');
+    assert.equal((await adapter.info()).usedSteps, 1, 'the refusal happens before dispatch');
+  } finally { await broker.close(); }
+});
+
+test('a control config that disagrees with the served auxiliary policy fails closed at /info (D47)', async () => {
+  const upstream = new OfflineAdapter();
+  const broker = await startHostBroker(policy(upstream, { auxiliaryPolicy: { compaction: 'allow' } }));
+  try {
+    // The control config still refuses everything while the lease allows
+    // compaction: the identity chain is broken, so installation must fail.
+    const adapter = client(broker);
+    await assert.rejects(adapter.info(), rejected('AEVAL_LEASE_MISMATCH'));
+  } finally { await broker.close(); }
+});
+
+test('ordinary model calls never produce dispatch ledger entries (D47)', async () => {
+  const upstream = new OfflineAdapter();
+  const broker = await startHostBroker(policy(upstream));
+  try {
+    const dispatches: GatewayDispatchRecord[] = [];
+    const adapter = client(broker, {}, undefined, (record) => dispatches.push(record));
+    await promptly(collect(adapter.stream(request())));
+    assert.equal(upstream.requests.length, 1);
+    assert.deepEqual(dispatches, [], 'only purpose-tagged calls belong in the dispatch ledger');
   } finally { await broker.close(); }
 });

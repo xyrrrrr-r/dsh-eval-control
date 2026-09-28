@@ -1,11 +1,47 @@
 import { closeSync, constants, fstatSync, openSync, readFileSync } from 'node:fs';
+import { isDeepStrictEqual } from 'node:util';
 import { LlmAdapter, LlmError, attributionHeaders, resolveRetryPolicy } from '@deepseek-ai/dsh-llm';
 import type { GenerateOptions, LlmResolvedModelInfo, StreamChunk, TokenUsage } from '@deepseek-ai/dsh-llm';
 import { validateRunBinding, type EvalControlConfig, type RunBinding } from './config.js';
 import { isStopReason, type StopReason } from './stop_reason.js';
 
-export const GATEWAY_PROTOCOL = 'aeval-model-broker/2';
+export const GATEWAY_PROTOCOL = 'aeval-model-broker/3';
 export const MAX_WIRE_BYTES = 8 * 1024 * 1024;
+
+/** Purposes a runtime may declare for an advisory (non-turn) model call. */
+export type AuxiliaryPurpose = 'compaction' | 'session-title';
+/** Per-purpose owner decision: refuse before dispatch, or allow and account. */
+export type AuxiliaryDecision = 'refuse' | 'allow';
+/** The complete, resolved per-purpose policy a lease serves. */
+export type AuxiliaryPolicy = Readonly<Record<AuxiliaryPurpose, AuxiliaryDecision>>;
+
+/**
+ * Resolve the authored auxiliary policy against the legacy blanket flag.
+ *
+ * An explicit per-purpose decision always wins; purposes without one take
+ * ``refuseAuxiliaryCalls`` (default refuse). Both the broker and the sandbox
+ * adapter resolve with this exact function, so ``/info`` comparisons are
+ * authoritative rather than field-by-field approximations.
+ */
+export function resolveAuxiliaryPolicy(
+  partial: Readonly<Partial<Record<AuxiliaryPurpose, AuxiliaryDecision>>> | undefined,
+  refuseAll: boolean | undefined,
+): AuxiliaryPolicy {
+  const fallback: AuxiliaryDecision = refuseAll === false ? 'allow' : 'refuse';
+  const resolved: Record<AuxiliaryPurpose, AuxiliaryDecision> = {
+    compaction: fallback,
+    'session-title': fallback,
+  };
+  if (partial !== undefined) {
+    if (partial.compaction !== undefined) resolved.compaction = partial.compaction;
+    if (partial['session-title'] !== undefined) resolved['session-title'] = partial['session-title'];
+  }
+  return Object.freeze(resolved);
+}
+
+export function isAuxiliaryPurpose(value: unknown): value is AuxiliaryPurpose {
+  return value === 'compaction' || value === 'session-title';
+}
 
 export interface LeaseIdentity {
   readonly provider: string;
@@ -26,7 +62,7 @@ export interface BrokerInfo {
   readonly configDigest: string;
   readonly identity: LeaseIdentity;
   readonly limits: LeaseLimits;
-  readonly refuseAuxiliaryCalls: boolean;
+  readonly auxiliaryPolicy: AuxiliaryPolicy;
   readonly usedSteps: number;
   readonly usedTokens: number;
   readonly reservedTokens: number;
@@ -230,21 +266,45 @@ export interface GatewayRejectionRecord {
   readonly purpose?: string;
 }
 
+/**
+ * One dispatched auxiliary model call, recorded with the usage the broker
+ * metered on the wire (D47). The session an auxiliary call belongs to never
+ * settles its tokens as an ``assistant/message`` sample, so the sandbox
+ * transport persists this beside the descriptor and the transcript reducer
+ * merges it into the accounted totals — an allowed compaction call is
+ * accounted, never silently dropped.
+ */
+export interface GatewayDispatchRecord {
+  readonly code: 'AEVAL_AUXILIARY_DISPATCHED';
+  readonly purpose: string;
+  readonly usage: {
+    readonly inputTokens: number;
+    readonly outputTokens: number;
+    readonly cacheReadTokens?: number;
+    readonly cacheWriteTokens?: number;
+    readonly totalTokens?: number;
+    readonly reasoningTokens?: number;
+  };
+}
+
 export class BrokerAdapter extends LlmAdapter {
   readonly #token: string;
   readonly #config: EvalControlConfig;
   readonly #listeners = new Set<(reason: StopReason) => void>();
   readonly #onRejection: ((record: GatewayRejectionRecord) => void) | undefined;
+  readonly #onDispatch: ((record: GatewayDispatchRecord) => void) | undefined;
   #model: LlmResolvedModelInfo | undefined;
 
   constructor(
     config: EvalControlConfig, jobToken: string,
     onRejection?: (record: GatewayRejectionRecord) => void,
+    onDispatch?: (record: GatewayDispatchRecord) => void,
   ) {
     super();
     this.#config = Object.freeze({ ...config, run: validateRunBinding(config.run) });
     this.#token = jobToken;
     this.#onRejection = onRejection;
+    this.#onDispatch = onDispatch;
   }
 
   observeTerminal(listener: (reason: StopReason) => void): () => void {
@@ -281,7 +341,8 @@ export class BrokerAdapter extends LlmAdapter {
       || run.run_id !== c.run.run_id || run.job_config_hash !== c.run.job_config_hash
       || run.config_file_sha256 !== c.run.config_file_sha256 || run.runtime_lock_digest !== c.run.runtime_lock_digest
       || identity['provider'] !== c.provider || identity['model'] !== c.model || identity['reasoningEffort'] !== c.reasoningEffort
-      || limits['maxSteps'] !== c.maxSteps || limits['maxTokens'] !== c.maxTokens || raw['refuseAuxiliaryCalls'] !== c.refuseAuxiliaryCalls) throw new GatewayError('AEVAL_LEASE_MISMATCH');
+      || limits['maxSteps'] !== c.maxSteps || limits['maxTokens'] !== c.maxTokens
+      || !isDeepStrictEqual(raw['auxiliaryPolicy'], resolveAuxiliaryPolicy(c.auxiliaryPolicy, c.refuseAuxiliaryCalls))) throw new GatewayError('AEVAL_LEASE_MISMATCH');
     tokenCount(raw['usedSteps']); tokenCount(raw['usedTokens']); tokenCount(raw['reservedTokens']);
     if (raw['stopReason'] !== undefined && !isStopReason(raw['stopReason'])) throw new GatewayError('AEVAL_INVALID_WIRE');
     const model = objectOf(raw['model']);
@@ -312,6 +373,7 @@ export class BrokerAdapter extends LlmAdapter {
     let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
     let finished = false;
     let usageSeen = false;
+    let usage: TokenUsage | undefined;
     let failure: StopReason | undefined;
     let gatewayFailure = false;
     let expectedRejection = false;
@@ -337,6 +399,7 @@ export class BrokerAdapter extends LlmAdapter {
           if (chunk.type === 'usage') {
             if (usageSeen) throw new GatewayError('AEVAL_INVALID_USAGE');
             usageSeen = true;
+            usage = (chunk as unknown as { usage: TokenUsage }).usage;
           } else if (usageSeen && chunk.type !== 'finish') throw new GatewayError('AEVAL_INVALID_WIRE');
           if (chunk.type === 'finish') {
             if (chunk.reason.kind === 'error' || chunk.reason.kind === 'aborted') throw new GatewayError('AEVAL_UPSTREAM_FAILED');
@@ -350,6 +413,17 @@ export class BrokerAdapter extends LlmAdapter {
       signal.throwIfAborted();
       if (buffer || !terminal || !usageSeen) throw new GatewayError('AEVAL_TRUNCATED_STREAM');
       finished = true;
+      // D47: an auxiliary call the policy allowed and the broker dispatched
+      // is model work the session will never settle as an assistant sample.
+      // Record its metered usage beside the descriptor so the reducer can
+      // merge it into the accounted totals. Recording must never disturb
+      // the model path — same contract as the rejection recorder.
+      const purpose = (body as { purpose?: unknown }).purpose;
+      if (typeof purpose === 'string' && purpose !== '' && usage !== undefined) {
+        try {
+          this.#onDispatch?.({ code: 'AEVAL_AUXILIARY_DISPATCHED', purpose, usage: structuredClone(usage) });
+        } catch { /* the caller's recorder must not break the run */ }
+      }
       yield terminal;
     } catch (error) {
       const cause = signal.aborted && signal.reason instanceof GatewayError ? signal.reason : error;

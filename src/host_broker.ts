@@ -8,8 +8,8 @@ import { isDeepStrictEqual } from 'node:util';
 import { BlockAssembler, ReasoningEffortId } from '@deepseek-ai/dsh-llm';
 import type { ContentBlock, GenerateOptions, LlmAdapter, LlmResolvedModelInfo, ModelMessageSource, StreamChunk, TokenUsage } from '@deepseek-ai/dsh-llm';
 import { SessionId } from '@deepseek-ai/dsh-session';
-import { GATEWAY_PROTOCOL, MAX_WIRE_BYTES, GatewayError, abortable, detachedCleanup, parseBrokerRequest, parseStreamChunk, tokenCount, usageTotals } from './gateway_lease.js';
-import type { BrokerInfo, LeaseIdentity, LeaseLimits } from './gateway_lease.js';
+import { GATEWAY_PROTOCOL, MAX_WIRE_BYTES, GatewayError, abortable, detachedCleanup, isAuxiliaryPurpose, parseBrokerRequest, parseStreamChunk, resolveAuxiliaryPolicy, tokenCount, usageTotals } from './gateway_lease.js';
+import type { AuxiliaryDecision, AuxiliaryPolicy, AuxiliaryPurpose, BrokerInfo, LeaseIdentity, LeaseLimits } from './gateway_lease.js';
 import { isStopReason, type StopReason } from './stop_reason.js';
 import { validateIdentifier, validateRunBinding, validateSha256Digest, type RunBinding } from './config.js';
 
@@ -24,7 +24,15 @@ export interface HostBrokerOptions {
   readonly upstream: LlmAdapter;
   // This must bound provider input tokens including caching, framing, and tool schemas; estimates are insufficient.
   readonly inputTokenUpperBound?: (request: Readonly<GenerateOptions>) => number | Promise<number>;
+  /** Legacy blanket decision for purposes without an explicit entry. */
   readonly refuseAuxiliaryCalls?: boolean;
+  /**
+   * Per-purpose owner decisions for advisory model calls (D47). Explicit
+   * entries win; missing entries take ``refuseAuxiliaryCalls`` (default
+   * refuse). Allowing a purpose dispatches and meters it — the accounting
+   * evidence is the dispatch ledger, not the session.
+   */
+  readonly auxiliaryPolicy?: Readonly<Partial<Record<AuxiliaryPurpose, AuxiliaryDecision>>>;
   readonly signal: AbortSignal;
   readonly timeoutMs?: number;
   /**
@@ -79,6 +87,9 @@ export class GatewayLease {
   #reservedTokens = 0;
   #busy = false;
   #stopReason: StopReason | undefined;
+  // The complete per-purpose decision this lease serves (D47): explicit
+  // entries from the operator's spec, falling back to the blanket flag.
+  readonly #auxiliary: AuxiliaryPolicy;
 
   constructor(options: HostBrokerOptions, model: LlmResolvedModelInfo) {
     this.#policy = Object.freeze({
@@ -90,6 +101,8 @@ export class GatewayLease {
       identity: freeze(structuredClone(options.identity)),
       limits: freeze(structuredClone(options.limits)),
     });
+    this.#auxiliary = resolveAuxiliaryPolicy(
+      this.#policy.auxiliaryPolicy, this.#policy.refuseAuxiliaryCalls ?? true);
     this.#model = freeze(structuredClone(model));
   }
 
@@ -118,7 +131,7 @@ export class GatewayLease {
       configDigest: this.#policy.configDigest,
       identity: this.#policy.identity,
       limits: this.#policy.limits,
-      refuseAuxiliaryCalls: this.#policy.refuseAuxiliaryCalls ?? true,
+      auxiliaryPolicy: this.#auxiliary,
       usedSteps: this.#usedSteps,
       usedTokens: this.#usedTokens,
       reservedTokens: this.#reservedTokens,
@@ -148,15 +161,14 @@ export class GatewayLease {
       // Never forward candidate-owned native state, even after equality checks.
       return { ...message, content: structuredClone(issued.content), source: structuredClone(issued.source) };
     });
-    if (input.purpose && (this.#policy.refuseAuxiliaryCalls ?? true)) {
-      // An advisory call the owner's policy forbids is refused for THIS
-      // request only. Stopping the lease here turned a refused session-title
-      // call into a dead run: the main model call then failed with
-      // AEVAL_LEASE_CLOSED, the agent exited 1, and the trial exposed no
-      // session at all (real-chain regression). The refusal happens before
-      // dispatch, so it provably consumes no tokens *and* must not end a
-      // healthy lease — the same non-terminal shape as AEVAL_LEASE_BUSY.
-      throw new GatewayError('AEVAL_AUXILIARY_REFUSED');
+    if (input.purpose) {
+      // D47: the decision is per-purpose. A refused advisory call is still
+      // request-scoped (D45): it provably consumes no tokens and must not
+      // end a healthy lease — the same non-terminal shape as AEVAL_LEASE_BUSY.
+      const decision: AuxiliaryDecision = isAuxiliaryPurpose(input.purpose)
+        ? this.#auxiliary[input.purpose]
+        : 'refuse';
+      if (decision === 'refuse') throw new GatewayError('AEVAL_AUXILIARY_REFUSED');
     }
     this.#busy = true;
     let dispatched = false;

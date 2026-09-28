@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import z from '@deepseek-ai/schemastery';
+import type { AuxiliaryDecision, AuxiliaryPurpose } from './gateway_lease.js';
 
 export interface RunBinding {
   readonly run_id: string;
@@ -37,6 +38,15 @@ export interface EvalControlConfig {
   readonly gatewayUrl: string;
   readonly jobTokenFile: string;
   readonly refuseAuxiliaryCalls: boolean;
+  /**
+   * Per-purpose decisions for advisory model calls, as authored (D47).
+   * Explicit entries win over ``refuseAuxiliaryCalls``; missing entries take
+   * that blanket flag (default refuse). Kept as-authored so the config
+   * digest matches the harness-composed config field for field; the resolved
+   * complete map is computed at the comparison sites via
+   * ``resolveAuxiliaryPolicy``.
+   */
+  readonly auxiliaryPolicy?: Readonly<Partial<Record<AuxiliaryPurpose, AuxiliaryDecision>>>;
 }
 
 export const EvalControlConfigFields = Object.freeze({
@@ -68,6 +78,12 @@ export const EvalControlConfigFields = Object.freeze({
   gatewayUrl: z.string().required(),
   jobTokenFile: z.string().required(),
   refuseAuxiliaryCalls: z.boolean(),
+  // Values are validated to 'refuse' | 'allow' during resolution; the
+  // schema only declares the shape (schemastery has no enum literal).
+  auxiliaryPolicy: z.object({
+    compaction: z.string(),
+    'session-title': z.string(),
+  }),
 });
 
 export class EvalControlConfigError extends Error {
@@ -246,6 +262,23 @@ export function resolveEvalControlConfig(raw: unknown): EvalControlConfig {
   // opt-in owner-side finalize (one-shot sandboxed deployments only)
   const ownerFinalize = input['ownerFinalize'] === true;
   if (typeof refuseAuxiliaryCalls !== 'boolean') fail('refuseAuxiliaryCalls', 'must be a boolean');
+  // D47: per-purpose decisions, as authored. Validation here is the last
+  // line before the digest is pinned: only the two known purposes, only
+  // explicit decisions. The complete map is resolved where it is compared
+  // (see resolveAuxiliaryPolicy) so this config hashes exactly what the
+  // harness composed.
+  let auxiliaryPolicy: EvalControlConfig['auxiliaryPolicy'];
+  if (input['auxiliaryPolicy'] !== undefined) {
+    const raw = input['auxiliaryPolicy'];
+    if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) fail('auxiliaryPolicy', 'must be an object');
+    const authored = raw as Record<string, unknown>;
+    for (const key of Object.keys(authored)) {
+      if (key !== 'compaction' && key !== 'session-title') fail('auxiliaryPolicy', `has an unknown purpose: ${key}`);
+      const decision = authored[key];
+      if (decision !== 'refuse' && decision !== 'allow') fail('auxiliaryPolicy', `${key} must be 'refuse' or 'allow'`);
+    }
+    auxiliaryPolicy = Object.freeze({ ...authored } as Partial<Record<AuxiliaryPurpose, AuxiliaryDecision>>);
+  }
 
   return Object.freeze({
     run, trialId, sessionId, sessionRoot, configDigest, provider, model,
@@ -255,6 +288,7 @@ export function resolveEvalControlConfig(raw: unknown): EvalControlConfig {
     ...(tools !== undefined ? { tools } : {}),
     ...(lineage !== undefined ? { lineage } : {}),
     bundlePath, gatewayUrl, jobTokenFile, refuseAuxiliaryCalls,
+    ...(auxiliaryPolicy !== undefined ? { auxiliaryPolicy } : {}),
     // included only when set, so the digest of an ordinary deployment is
     // unchanged by the flag's existence
     ...(ownerFinalize ? { ownerFinalize } : {}),

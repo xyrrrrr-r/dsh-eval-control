@@ -162,7 +162,7 @@ function launch(t: TestContext, config: unknown, env: Record<string, string> = {
         clearTimeout(timer);
         try {
           const line = JSON.parse(stdout.slice(0, newline)) as { ready?: unknown; url?: string; tokenPath?: string; protocol?: string };
-          if (line.ready !== true || typeof line.url !== 'string' || typeof line.tokenPath !== 'string' || line.protocol !== 'aeval-model-broker/2') {
+          if (line.ready !== true || typeof line.url !== 'string' || typeof line.tokenPath !== 'string' || line.protocol !== 'aeval-model-broker/3') {
             throw new Error(`unexpected readiness line: ${stdout.slice(0, newline)}`);
           }
           resolve({ url: line.url, tokenPath: line.tokenPath, token: fs.readFileSync(line.tokenPath, 'utf8').trim() });
@@ -231,7 +231,7 @@ test('the bin serves its lease, reports readiness once, and cleans the token on 
   assert.match(ready.token, /^[a-f0-9]{64}$/);
   assert.equal(fs.statSync(tokenOut).mode & 0o777, 0o600);
   const snapshot = await info(ready.token, ready.url);
-  assert.equal(snapshot['protocol'], 'aeval-model-broker/2');
+  assert.equal(snapshot['protocol'], 'aeval-model-broker/3');
   assert.equal(snapshot['trialId'], 'trial-main');
   assert.equal(snapshot['sessionId'], 'session-main');
   assert.deepEqual(snapshot['identity'], { provider: PROVIDER, model: MODEL });

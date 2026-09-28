@@ -89,9 +89,22 @@ export async function apply(ctx: Context, rawConfig: unknown): Promise<void> {
   const rejectionLog = typeof bundlePath === 'string' && bundlePath !== ''
     ? join(dirname(bundlePath), 'gateway_refusals.jsonl')
     : undefined;
-  await installBrokerTransport(ctx, config, token, rejectionLog === undefined ? undefined : (record) => {
-    appendFileSync(rejectionLog, `${JSON.stringify(record)}\n`, { mode: 0o600 });
-  });
+  // D47: an auxiliary call the policy ALLOWED is the mirror image — real
+  // metered model work the session will never settle as an assistant
+  // sample. Persist the dispatched call with its broker-reported usage so
+  // the reducer can merge it into the accounted totals. Same evidence
+  // channel and same fail-closed rule: missing evidence means unaccounted,
+  // never silently scored.
+  const dispatchLog = typeof bundlePath === 'string' && bundlePath !== ''
+    ? join(dirname(bundlePath), 'gateway_aux_dispatches.jsonl')
+    : undefined;
+  await installBrokerTransport(ctx, config, token,
+    rejectionLog === undefined ? undefined : (record) => {
+      appendFileSync(rejectionLog, `${JSON.stringify(record)}\n`, { mode: 0o600 });
+    },
+    dispatchLog === undefined ? undefined : (record) => {
+      appendFileSync(dispatchLog, `${JSON.stringify(record)}\n`, { mode: 0o600 });
+    });
 }
 
 export default { name, inject, Config, apply };

@@ -146,3 +146,21 @@ test('the wire key set is exactly what the parser accepts', () => {
     assert.ok(typeof key === 'string' && key.length > 0);
   }
 });
+
+test('broker main accepts a per-purpose auxiliary policy and rejects anything else (D47)', () => {
+  const tls = { key: '/etc/tls/key.pem', cert: '/etc/tls/cert.pem' };
+  const withPolicy = baseConfig(tls) as Record<string, unknown>;
+  withPolicy['auxiliaryPolicy'] = { compaction: 'allow' };
+  const parsed = parseBrokerMainConfig(withPolicy);
+  assert.deepEqual(parsed.auxiliaryPolicy, { compaction: 'allow' });
+  // Unknown purposes and undecided values are configuration failures.
+  const unknownPurpose = baseConfig(tls) as Record<string, unknown>;
+  unknownPurpose['auxiliaryPolicy'] = { research: 'allow' };
+  assert.throws(() => parseBrokerMainConfig(unknownPurpose), /auxiliaryPolicy/);
+  const badValue = baseConfig(tls) as Record<string, unknown>;
+  badValue['auxiliaryPolicy'] = { compaction: 'sometimes' };
+  assert.throws(() => parseBrokerMainConfig(badValue), /must be 'refuse' or 'allow'/);
+  // A config without the key keeps the default (refuse everything).
+  const plain = parseBrokerMainConfig(baseConfig(tls));
+  assert.equal(plain.auxiliaryPolicy, undefined);
+});
