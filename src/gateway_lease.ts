@@ -211,16 +211,40 @@ export function readJobToken(path: string): string {
   }
 }
 
+/** Rejections that a lease returns BEFORE dispatching to any provider. */
+const PRE_DISPATCH_REJECTION_CODES = new Set([
+  'AEVAL_LEASE_CLOSED', 'AEVAL_LEASE_BUSY', 'AEVAL_AUXILIARY_REFUSED', 'AEVAL_BUDGET_EXHAUSTED',
+]);
+
+/**
+ * One gateway rejection, recorded as evidence about consumption.
+ *
+ * A code in ``PRE_DISPATCH_REJECTION_CODES`` means the broker answered
+ * without dispatching, so the request provably consumed zero tokens. The
+ * sandbox transport persists these next to the request purpose, and the
+ * transcript reducer uses them to keep an advisory call (a session-title
+ * request) from being counted as unaccounted model work (D44).
+ */
+export interface GatewayRejectionRecord {
+  readonly code: string;
+  readonly purpose?: string;
+}
+
 export class BrokerAdapter extends LlmAdapter {
   readonly #token: string;
   readonly #config: EvalControlConfig;
   readonly #listeners = new Set<(reason: StopReason) => void>();
+  readonly #onRejection: ((record: GatewayRejectionRecord) => void) | undefined;
   #model: LlmResolvedModelInfo | undefined;
 
-  constructor(config: EvalControlConfig, jobToken: string) {
+  constructor(
+    config: EvalControlConfig, jobToken: string,
+    onRejection?: (record: GatewayRejectionRecord) => void,
+  ) {
     super();
     this.#config = Object.freeze({ ...config, run: validateRunBinding(config.run) });
     this.#token = jobToken;
+    this.#onRejection = onRejection;
   }
 
   observeTerminal(listener: (reason: StopReason) => void): () => void {
@@ -329,6 +353,17 @@ export class BrokerAdapter extends LlmAdapter {
       yield terminal;
     } catch (error) {
       const cause = signal.aborted && signal.reason instanceof GatewayError ? signal.reason : error;
+      if (cause instanceof GatewayError && PRE_DISPATCH_REJECTION_CODES.has(cause.code)) {
+        // Evidence only: the broker already refused, so this cannot consume
+        // tokens. Recording must never disturb the model path.
+        const purpose = (body as { purpose?: unknown }).purpose;
+        try {
+          this.#onRejection?.({
+            code: cause.code,
+            ...(typeof purpose === 'string' && purpose !== '' ? { purpose } : {}),
+          });
+        } catch { /* the caller's recorder must not break the run */ }
+      }
       gatewayFailure = cause instanceof GatewayError;
       // A concurrent request that finds the lease busy is an expected,
       // retryable conflict, not an infrastructure fault: the broker answers

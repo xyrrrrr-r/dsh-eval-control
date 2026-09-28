@@ -21,7 +21,8 @@
  * (`jobTokenFile`) unless this entry is given an explicit override.
  */
 
-import { readFileSync } from 'node:fs';
+import { appendFileSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import z from '@deepseek-ai/schemastery';
 import type { Context } from '@deepseek-ai/cordis';
 import { installBrokerTransport } from './index.js';
@@ -75,7 +76,22 @@ export async function apply(ctx: Context, rawConfig: unknown): Promise<void> {
   // treated as a disposable effect, and an arbitrary object is rejected
   // with "Invalid effect" (found in the real sandbox). The service is
   // published through the context instead.
-  await installBrokerTransport(ctx, config, token);
+  // D44: an advisory call (a session-title request) that the lease rejects
+  // before dispatch consumed zero tokens, but the session records only that
+  // the request was made. Persist the authoritative rejection beside the
+  // descriptor so the transcript reducer can tell "refused, provably zero"
+  // from "unaccounted model work". Missing or malformed evidence keeps the
+  // fail-closed verdict: this file can only ever REMOVE doubt about a
+  // refusal the broker itself reported.
+  const bundlePath = (config as { bundlePath?: unknown }).bundlePath;
+  // Without a descriptor path there is nowhere to attest the record, so the
+  // transport installs without a recorder and the reducer stays fail-closed.
+  const rejectionLog = typeof bundlePath === 'string' && bundlePath !== ''
+    ? join(dirname(bundlePath), 'gateway_refusals.jsonl')
+    : undefined;
+  await installBrokerTransport(ctx, config, token, rejectionLog === undefined ? undefined : (record) => {
+    appendFileSync(rejectionLog, `${JSON.stringify(record)}\n`, { mode: 0o600 });
+  });
 }
 
 export default { name, inject, Config, apply };
