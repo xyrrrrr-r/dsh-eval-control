@@ -134,9 +134,36 @@ export function parseStreamChunk(raw: unknown): StreamChunk {
   return chunk as unknown as StreamChunk;
 }
 
+/**
+ * The exact key set the broker's trust boundary accepts. Kept next to
+ * ``parseBrokerRequest`` so the two cannot drift apart silently.
+ */
+export const BROKER_WIRE_KEYS = Object.freeze([
+  'provider', 'model', 'reasoningEffort', 'messages', 'system', 'tools',
+  'temperature', 'maxTokens', 'stop', 'sessionId', 'purpose',
+] as const);
+
+/**
+ * Project DSH's ``GenerateOptions`` onto the broker wire contract.
+ *
+ * DSH carries fields the wire does not define — ``toolHistory`` is
+ * optional by contract ("omission sends complete declarations without
+ * tool updates") and ``signal`` is transport-local — so forwarding the
+ * object verbatim makes the broker answer ``AEVAL_INVALID_REQUEST``
+ * (found by running a real sandbox against a real broker).
+ */
+export function wireBodyOf(options: GenerateOptions): Record<string, unknown> {
+  const source = options as unknown as Record<string, unknown>;
+  const body: Record<string, unknown> = {};
+  for (const key of BROKER_WIRE_KEYS) {
+    if (source[key] !== undefined) body[key] = source[key];
+  }
+  return body;
+}
+
 export function parseBrokerRequest(raw: unknown): GenerateOptions {
   const request = objectOf(raw);
-  const keys = new Set(['provider', 'model', 'reasoningEffort', 'messages', 'system', 'tools', 'temperature', 'maxTokens', 'stop', 'sessionId', 'purpose']);
+  const keys = new Set<string>(BROKER_WIRE_KEYS);
   if (Object.keys(request).some((key) => !keys.has(key)) || !Array.isArray(request['messages'])) throw new GatewayError('AEVAL_INVALID_REQUEST');
   for (const rawMessage of request['messages']) {
     const message = objectOf(rawMessage);
@@ -250,7 +277,14 @@ export class BrokerAdapter extends LlmAdapter {
   override async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
     const controller = new AbortController();
     const signal = options.signal ? AbortSignal.any([options.signal, controller.signal]) : controller.signal;
-    const { signal: _signal, ...body } = options;
+    // Project onto the broker's wire contract instead of forwarding every
+    // DSH field: the broker validates a strict key set (unknown keys are
+    // AEVAL_INVALID_REQUEST), and DSH carries fields the wire does not
+    // define — `toolHistory` is optional by contract ("omission sends
+    // complete declarations without tool updates") and `signal` is
+    // transport-local. Found by running the real sandbox against a real
+    // broker: the request was rejected with AEVAL_INVALID_REQUEST.
+    const body = wireBodyOf(options);
     let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
     let finished = false;
     let usageSeen = false;

@@ -1,6 +1,7 @@
 import type { Context } from '@deepseek-ai/cordis';
 import { SessionId, type Session } from '@deepseek-ai/dsh-session';
 import { scopeOf } from '@deepseek-ai/dsh-scope';
+import { writeFileSync } from 'node:fs';
 import { isDeepStrictEqual } from 'node:util';
 import { EvalControlConfigSchema, resolveEvalControlConfig, type EvalControlConfig } from './config.js';
 import { abortable, BrokerAdapter, readJobToken } from './gateway_lease.js';
@@ -122,10 +123,55 @@ export function apply(ctx: Context, rawConfig: unknown): void {
       validateForkLineage(created, config);
       session = created;
     }, { global: true });
+    // The owner-side finalize: when a turn completes the run has quiesced,
+    // so prove durability through the OFFICIAL barrier (the same
+    // ``sessions.flush`` entry point dsh-headless uses for its shutdown
+    // flush) and record the real terminal reason. Without this the
+    // descriptor can only ever report ``infra_error``, because completion
+    // alone never proves persistence (P0-5; observed on the real chain: a
+    // completed turn still produced stop_reason=infra_error).
+    let ownerFinalizeStarted = false;
+    const finalizeCompletedTurn = async (target: Session): Promise<void> => {
+      // Opt-in deployment mode (``ownerFinalize: true`` in the control
+      // config): inside a sandboxed one-shot run the harness process IS
+      // the owner — no external caller can reach ``evalControl`` — so it
+      // must perform the owner's durable-then-finalize sequence itself.
+      // Left OFF by default: the designed contract is that an external
+      // owner calls ``finalize`` after quiescing, and a long-running or
+      // multi-turn deployment must not have a completed turn seal the
+      // descriptor early.
+      if (!config.ownerFinalize) return;
+      if (ownerFinalizeStarted || finalized || finalizing || !ownsControl()) return;
+      ownerFinalizeStarted = true;
+      try {
+        await ctx.evalControl.finalize('agent_claimed_done', async () => {
+          await ctx.sessions.flush(target);
+        });
+      } catch (error) {
+        // finalize records the failure on the observation and flushes the
+        // descriptor itself; the descriptor must never be silently absent.
+        // The reason is written next to the descriptor so it travels back
+        // with the agent logs — a swallowed failure left the real chain
+        // reporting infra_error with nothing explaining why.
+        try {
+          // Include the observation's own state: "the current turn has not
+          // completed" has several causes (no turn/start seen, an earlier
+          // terminal reason suppressing turn recording, control lost), and
+          // the real chain could not distinguish them.
+          writeFileSync(`${config.bundlePath}.finalize-error.txt`,
+            `${error instanceof Error ? `${error.name}: ${error.message}\n${error.stack ?? ''}` : String(error)}\n`
+            + `observation=${JSON.stringify(observation.describe())}\n`);
+        } catch { /* the descriptor write below is what must not fail */ }
+        if (ownsControl() && !finalized) writer.flush(observation);
+      }
+    };
     ctx.on('session/event', (changed, event) => {
       if (!ownsControl() || changed !== session || finalized) return;
       if (event.type === 'turn/start') observation.recordTurnStart(event.data.turn);
-      if (event.type === 'turn/end') observation.recordTurnEnd(event.data.reason.kind, event.data.turn);
+      if (event.type === 'turn/end') {
+        observation.recordTurnEnd(event.data.reason.kind, event.data.turn);
+        if (event.data.reason.kind === 'completed') void finalizeCompletedTurn(changed);
+      }
     }, { global: true });
     ctx.on('session/disposed', (disposed) => {
       if (!ownsControl() || disposed !== session || finalized) return;

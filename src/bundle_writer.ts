@@ -234,6 +234,22 @@ export class RunObservationState {
       && !this.turnInProgress && this.lastTurnEndKind === 'completed';
   }
 
+  /** Structured snapshot for diagnostics (never used for decisions). */
+  describe(): Record<string, unknown> {
+    return {
+      currentTurn: this.currentTurn ?? null,
+      lastTurnEndTurn: this.lastTurnEndTurn ?? null,
+      lastTurnEndKind: this.lastTurnEndKind ?? null,
+      turnInProgress: this.turnInProgress,
+      sessionDisposed: this.sessionDisposed,
+      controlLost: this.controlLost,
+      terminalReason: this.terminalReason ?? null,
+      hasRefusal: this.refusal !== undefined,
+      finalizationFailed: this.finalizationFailed,
+      hasCompletedTurn: this.hasCompletedTurn(),
+    };
+  }
+
   recordSessionDisposed(): void {
     this.sessionDisposed = true;
   }

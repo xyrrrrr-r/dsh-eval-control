@@ -398,3 +398,24 @@ test('failed installation releases control and writer claims for a later owner',
   await f.ctx.evalControl.finalize('agent_exit_0', async () => {});
   assert.equal(f.descriptor().stop_reason, 'infra_error');
 });
+
+test('a completed turn finalizes through the official flush barrier', async (t) => {
+  // D35 (real chain): the descriptor reported infra_error for a run whose
+  // turn completed, because nothing called finalize(). The owner-side
+  // finalize must prove durability through the official sessions.flush
+  // entry point and record the real terminal reason.
+  const f = await fixture(t, { ownerFinalize: true });
+  let flushed = 0;
+  const originalFlush = f.ctx.sessions.flush.bind(f.ctx.sessions);
+  f.ctx.sessions.flush = (async (session: unknown) => {
+    flushed += 1;
+    return await originalFlush(session as never);
+  }) as typeof f.ctx.sessions.flush;
+
+  f.session.append('turn/start', { turn: 1 });
+  f.session.append('turn/end', { turn: 1, reason: { kind: 'completed' } });
+  await new Promise((resolve) => setTimeout(resolve, 20));
+
+  assert.equal(flushed > 0, true, 'the official flush barrier ran');
+  assert.equal(f.descriptor().stop_reason, 'agent_claimed_done');
+});

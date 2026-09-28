@@ -3,7 +3,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { createServer as createTlsServer } from 'node:https';
 import { isIP, type Socket } from 'node:net';
 import { once } from 'node:events';
-import { lstatSync, unlinkSync, writeFileSync, type Stats } from 'node:fs';
+import { lstatSync, readFileSync, unlinkSync, writeFileSync, type Stats } from 'node:fs';
 import { isDeepStrictEqual } from 'node:util';
 import { BlockAssembler, ReasoningEffortId } from '@deepseek-ai/dsh-llm';
 import type { ContentBlock, GenerateOptions, LlmAdapter, LlmResolvedModelInfo, ModelMessageSource, StreamChunk, TokenUsage } from '@deepseek-ai/dsh-llm';
@@ -283,7 +283,12 @@ export async function startHostBroker(options: HostBrokerOptions): Promise<HostB
     active.add(work);
   };
   const serverOptions = { maxHeaderSize: 16_384, requestTimeout: 30_000 };
-  const server = tls ? createTlsServer({ ...serverOptions, ...tls }, handler) : createServer(serverOptions, handler);
+  // ``tls.key``/``tls.cert`` are file paths: node's TLS server parses the
+  // strings it receives as PEM, so the material is read here and an
+  // unreadable pair fails loudly instead of starting a broken listener.
+  const server = tls
+    ? createTlsServer({ ...serverOptions, key: readFileSync(tls.key), cert: readFileSync(tls.cert) }, handler)
+    : createServer(serverOptions, handler);
   server.on('connection', (socket: Socket) => {
     sockets.add(socket);
     socket.once('close', () => sockets.delete(socket));

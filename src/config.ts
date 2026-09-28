@@ -24,6 +24,7 @@ export interface EvalControlConfig {
   readonly trialId: string;
   readonly sessionId: string;
   readonly sessionRoot: string;
+  readonly ownerFinalize?: boolean;
   readonly configDigest: string;
   readonly provider: string;
   readonly model: string;
@@ -48,6 +49,9 @@ export const EvalControlConfigFields = Object.freeze({
   trialId: z.string().required(),
   sessionId: z.string().required(),
   sessionRoot: z.string().required(),
+  // Opt-in: the harness process performs the owner-side finalize after a
+  // completed turn (one-shot sandboxed runs). See apply() for the caveat.
+  ownerFinalize: z.boolean(),
   configDigest: z.string().required(),
   provider: z.string().required(),
   model: z.string().required(),
@@ -239,6 +243,8 @@ export function resolveEvalControlConfig(raw: unknown): EvalControlConfig {
   const gatewayUrl = gateway(input['gatewayUrl']);
   const jobTokenFile = filePath(input['jobTokenFile'], 'jobTokenFile');
   const refuseAuxiliaryCalls = input['refuseAuxiliaryCalls'] === undefined ? true : input['refuseAuxiliaryCalls'];
+  // opt-in owner-side finalize (one-shot sandboxed deployments only)
+  const ownerFinalize = input['ownerFinalize'] === true;
   if (typeof refuseAuxiliaryCalls !== 'boolean') fail('refuseAuxiliaryCalls', 'must be a boolean');
 
   return Object.freeze({
@@ -249,6 +255,9 @@ export function resolveEvalControlConfig(raw: unknown): EvalControlConfig {
     ...(tools !== undefined ? { tools } : {}),
     ...(lineage !== undefined ? { lineage } : {}),
     bundlePath, gatewayUrl, jobTokenFile, refuseAuxiliaryCalls,
+    // included only when set, so the digest of an ordinary deployment is
+    // unchanged by the flag's existence
+    ...(ownerFinalize ? { ownerFinalize } : {}),
   });
 }
 

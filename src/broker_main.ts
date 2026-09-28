@@ -122,7 +122,11 @@ function parseListen(raw: unknown): BrokerMainConfig['listen'] {
   let tls: { readonly key: string; readonly cert: string } | undefined;
   if (input['tls'] !== undefined) {
     const material = record(input['tls'], 'listen.tls', ['key', 'cert']);
-    tls = Object.freeze({ key: nonEmptyString(material['key'], 'listen.tls.key'), cert: nonEmptyString(material['cert'], 'listen.tls.cert') });
+    // File paths, not PEM text: node's TLS server parses what it is given
+    // as PEM, so a path needs reading first and inline PEM is rejected by
+    // the control-character check. A nonloopback listener could otherwise
+    // never start (found during environment verification).
+    tls = Object.freeze({ key: filePath(material['key'], 'listen.tls.key'), cert: filePath(material['cert'], 'listen.tls.cert') });
   }
   if (!isLoopbackHost(host) && tls === undefined) fail('listen', 'nonloopback listeners require TLS material');
   return Object.freeze({ host, ...(port !== undefined ? { port } : {}), ...(tls !== undefined ? { tls } : {}) });
