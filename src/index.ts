@@ -91,8 +91,32 @@ export function apply(ctx: Context, rawConfig: unknown): void {
   let active = true;
   let finalized = false;
   let finalizing = false;
+  // In-flight owner finalization, so plugin teardown can wait for it instead
+  // of aborting it (see the shutdown barrier in ``dispose``), plus the bound
+  // on that wait so a wedged finalization cannot hold shutdown open.
+  let pendingFinalization: Promise<void> | undefined;
+  const graceEnv = process.env['AEVAL_FINALIZE_GRACE_MS'];
+  const configuredGrace = graceEnv === undefined || graceEnv.trim() === '' ? Number.NaN : Number(graceEnv);
+  const shutdownGraceMs = Number.isFinite(configuredGrace) && configuredGrace >= 0 ? configuredGrace : 5000;
   const ownsControl = () => active && observation.ownsControl(owner);
-  const dispose = () => {
+  const dispose = async (): Promise<void> => {
+    if (!active) return;
+    // Shutdown barrier (real-chain D41): a single-turn headless run tears
+    // this plugin down the moment its turn ends, while the finalization it
+    // started at ``turn/end`` is still awaiting the official session flush
+    // and the broker /info round-trip. Aborting there discarded a completed
+    // turn's terminal reason and left the descriptor on the fail-closed
+    // ``infra_error``. A persistence operation already in flight is allowed
+    // to finish, bounded by the grace above; the identity guards inside
+    // ``finalize`` still fail closed when the control or session really
+    // changed.
+    const pending = pendingFinalization;
+    if (pending !== undefined) {
+      await Promise.race([
+        pending.then(() => undefined, () => undefined),
+        new Promise<void>((resolve) => { setTimeout(resolve, shutdownGraceMs); }),
+      ]);
+    }
     if (!active) return;
     active = false;
     controller.abort(new Error('Control or session changed during finalization'));
@@ -131,7 +155,8 @@ export function apply(ctx: Context, rawConfig: unknown): void {
     // alone never proves persistence (P0-5; observed on the real chain: a
     // completed turn still produced stop_reason=infra_error).
     let ownerFinalizeStarted = false;
-    const finalizeCompletedTurn = async (target: Session): Promise<void> => {
+    const trace: string[] = [];
+    const finalizeCompletedTurn = (target: Session): void => {
       // Opt-in deployment mode (``ownerFinalize: true`` in the control
       // config): inside a sandboxed one-shot run the harness process IS
       // the owner — no external caller can reach ``evalControl`` — so it
@@ -143,6 +168,7 @@ export function apply(ctx: Context, rawConfig: unknown): void {
       if (!config.ownerFinalize) return;
       if (ownerFinalizeStarted || finalized || finalizing || !ownsControl()) return;
       ownerFinalizeStarted = true;
+      const pending = (async () => {
       try {
         await ctx.evalControl.finalize('agent_claimed_done', async () => {
           await ctx.sessions.flush(target);
@@ -160,13 +186,26 @@ export function apply(ctx: Context, rawConfig: unknown): void {
           // the real chain could not distinguish them.
           writeFileSync(`${config.bundlePath}.finalize-error.txt`,
             `${error instanceof Error ? `${error.name}: ${error.message}\n${error.stack ?? ''}` : String(error)}\n`
-            + `observation=${JSON.stringify(observation.describe())}\n`);
+            + `observation=${JSON.stringify(observation.describe())}\n`
+            + `trace=${JSON.stringify(trace)}\n`);
         } catch { /* the descriptor write below is what must not fail */ }
         if (ownsControl() && !finalized) writer.flush(observation);
       }
+      })();
+      pendingFinalization = pending;
+      void pending.then(
+        () => { if (pendingFinalization === pending) pendingFinalization = undefined; },
+        () => { if (pendingFinalization === pending) pendingFinalization = undefined; },
+      );
     };
     ctx.on('session/event', (changed, event) => {
       if (!ownsControl() || changed !== session || finalized) return;
+      // Trace the events that decide completion. "The current turn has not
+      // completed" has several causes and the live event shape is not the
+      // persisted one; without this the failure is unattributable.
+      if (event.type === 'turn/start' || event.type === 'turn/end') {
+        trace.push(`${new Date().toISOString()} ${event.type} keys=${Object.keys(event.data ?? {}).join(',')} data=${JSON.stringify(event.data)}`);
+      }
       if (event.type === 'turn/start') observation.recordTurnStart(event.data.turn);
       if (event.type === 'turn/end') {
         observation.recordTurnEnd(event.data.reason.kind, event.data.turn);
@@ -182,6 +221,7 @@ export function apply(ctx: Context, rawConfig: unknown): void {
       if (!ownsControl()) return;
       // Adapter failures remain authoritative after successful finalization.
       if (finalized && (reason === 'agent_exit_0' || reason === 'agent_claimed_done')) return;
+      trace.push(`${new Date().toISOString()} adapter_terminal reason=${reason}`);
       observation.recordTerminal(reason);
       writer.flush(observation);
     }));

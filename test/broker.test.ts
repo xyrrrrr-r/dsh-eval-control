@@ -297,9 +297,55 @@ for (const mode of ['owner', 'client', 'close'] as const) test(`${mode} cancella
     assert.equal(signal.aborted, true);
     assert.equal(upstream.requests.length, 0);
     assert.equal(broker.lease.snapshot().usedTokens, 0);
-    assert.equal(stops.length, 1);
+    // A caller that cancels before anything was dispatched abandons no
+    // work: its request fails, but the lease must survive so the run can
+    // continue. Owner stops and broker closes still end the lease.
+    assert.equal(stops.length, mode === 'client' ? 0 : 1);
+    if (mode === 'client') assert.equal(broker.lease.snapshot().stopReason, undefined);
     pending.reject(new Error('late meter failure'));
     await turn();
+  } finally { await promptly(broker.close()); }
+});
+
+test('a pre-dispatch client cancellation leaves the lease usable', { timeout: 5000 }, async () => {
+  // Regression for the amplification that cost two real runs: a client
+  // cancellation before dispatch closed the lease, and every later model
+  // call then failed with AEVAL_LEASE_CLOSED.
+  const entered = deferred<void>();
+  const pending = deferred<number>();
+  const caller = new AbortController();
+  const upstream = new OfflineAdapter();
+  let meters = 0;
+  const broker = await startHostBroker(policy(upstream, {
+    inputTokenUpperBound: () => { meters += 1; if (meters === 1) { entered.resolve(); return pending.promise; } return Promise.resolve(10); },
+  }));
+  try {
+    const failure = assert.rejects(collect(broker.lease.stream(request(), caller.signal)), (error: unknown) => error instanceof GatewayError);
+    await promptly(entered.promise);
+    caller.abort();
+    await promptly(failure);
+    assert.equal(broker.lease.snapshot().stopReason, undefined);
+    // The very next call must still reach the provider.
+    const chunks = await promptly(collect(broker.lease.stream(request(), new AbortController().signal)));
+    assert.equal(chunks.at(-1)?.type, 'finish');
+    assert.equal(upstream.requests.length, 1);
+  } finally { await promptly(broker.close()); }
+});
+
+test('a caller that aborts while a provider call is in flight still stops the lease', { timeout: 5000 }, async () => {
+  // Fail-closed is preserved where it matters: an abandoned in-flight
+  // provider call has unknown usage and stays unaccountable.
+  const entered = deferred<void>();
+  const upstream = new OfflineAdapter(() => (async function* () { entered.resolve(); await never(); })());
+  const caller = new AbortController();
+  const broker = await startHostBroker(policy(upstream));
+  try {
+    const failure = assert.rejects(collect(broker.lease.stream(request(), caller.signal)), (error: unknown) => error instanceof GatewayError);
+    await promptly(entered.promise);
+    caller.abort();
+    await promptly(failure);
+    assert.equal(broker.lease.snapshot().stopReason, 'infra_error');
+    assert.equal(upstream.requests.length, 1);
   } finally { await promptly(broker.close()); }
 });
 
@@ -459,6 +505,48 @@ test('consumer return after timeout retains that reason instead of infra_error',
   assert.deepEqual(seen, ['timeout_killed']);
 });
 
+test('a caller cancelling its own request reports no trusted failure', async (t) => {
+  // The runtime aborts model calls for ordinary control-flow reasons. A
+  // bare abort carries no gateway failure, so it must not be reported as
+  // a trusted infrastructure terminal: doing so recorded infra_error on a
+  // healthy run and permanently downgraded the trial (real-chain finding).
+  const body = new ReadableStream<Uint8Array>({ start(controller) { controller.enqueue(Buffer.from(ndjson([{ type: 'text-delta', index: 0, text: 'hello' }]))); } });
+  t.mock.method(globalThis, 'fetch', async () => new Response(body));
+  const caller = new AbortController();
+  const adapter = client();
+  const seen: string[] = [];
+  adapter.observeTerminal((reason) => seen.push(reason));
+  const stream = adapter.stream({ ...request(), signal: caller.signal })[Symbol.asyncIterator]();
+  await stream.next();
+  caller.abort(new Error('cancelled by the runtime'));
+  await promptly(stream.return!());
+  assert.deepEqual(seen, []);
+});
+
+test('a real gateway failure still reports a trusted terminal with a live caller signal', async (t) => {
+  // Guards the opposite direction: the cancellation exemption must not
+  // swallow genuine gateway failures.
+  t.mock.method(globalThis, 'fetch', async () => new Response(ndjson([{ type: 'usage', usage }, { type: 'finish', reason: { kind: 'error', failure: { code: 'FAILED', message: 'failure' } } }])));
+  const adapter = client();
+  const seen: string[] = [];
+  adapter.observeTerminal((reason) => seen.push(reason));
+  await assert.rejects(collect(adapter.stream({ ...request(), signal: new AbortController().signal })), rejected('AEVAL_UPSTREAM_FAILED'));
+  assert.deepEqual(seen, ['infra_error']);
+});
+
+test('a busy-lease conflict is retryable, not a trusted failure', async (t) => {
+  // The runtime issues advisory calls (session title) next to the real one;
+  // the broker answers 409 for the loser and deliberately keeps the lease.
+  // Reporting that as a trusted terminal recorded infra_error on a healthy
+  // run and blocked the owner's finalization (real-chain finding).
+  t.mock.method(globalThis, 'fetch', async () => new Response('', { status: 409, headers: { 'aeval-error-code': 'AEVAL_LEASE_BUSY' } }));
+  const adapter = client();
+  const seen: string[] = [];
+  adapter.observeTerminal((reason) => seen.push(reason));
+  await assert.rejects(collect(adapter.stream(request())), rejected('AEVAL_LEASE_BUSY'));
+  assert.deepEqual(seen, []);
+});
+
 test('coalesced valid NDJSON lines may exceed the per-line limit together', async (t) => {
   const text = 'x'.repeat(MAX_WIRE_BYTES / 2);
   const payload = ndjson([{ type: 'text-delta', index: 0, text }, { type: 'text-delta', index: 0, text }, { type: 'usage', usage }, { type: 'finish', reason: { kind: 'stop' } }]);
@@ -602,6 +690,35 @@ test('malformed listen targets never reach the resolver', async () => {
   for (const port of [-1, 65_536, 1.5, Number.NaN]) {
     await assert.rejects(startHostBroker(policy(new OfflineAdapter(), { listen: { host: '127.0.0.1', port } })),
       /Invalid broker listen port/);
+  }
+});
+
+test('a lifetime abort records how the lease stopped', async () => {
+  // Real-chain D43: the broker's lifetime signal aborts on owner shutdown,
+  // which can arrive after the descriptor was settled. The diagnostic must
+  // name that path instead of leaving the cause unspecified (where it reads
+  // as an unexplained mid-run failure in the trial's broker_diagnostics).
+  const lines: string[] = [];
+  const original = process.stderr.write.bind(process.stderr);
+  process.env['AEVAL_BROKER_DIAG'] = '1';
+  (process.stderr as { write: (chunk: string) => boolean }).write = (chunk: string) => {
+    lines.push(String(chunk));
+    return true;
+  };
+  let broker: Awaited<ReturnType<typeof startHostBroker>> | undefined;
+  try {
+    const controller = new AbortController();
+    broker = await startHostBroker(policy(new OfflineAdapter(), { signal: controller.signal }));
+    controller.abort();
+    assert.equal(broker.lease.snapshot().stopReason, 'infra_error');
+    assert.ok(lines.some((line) => line.includes('reason=infra_error cause=lifetime_abort')),
+      `expected the lifetime-abort cause, saw: ${lines.join('')}`);
+  } finally {
+    // The listener holds the event loop open; a leaked broker kept the whole
+    // test process alive after the last assertion.
+    await broker?.close().catch(() => undefined);
+    (process.stderr as { write: typeof original }).write = original;
+    delete process.env['AEVAL_BROKER_DIAG'];
   }
 });
 

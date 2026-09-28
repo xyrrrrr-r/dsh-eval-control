@@ -289,6 +289,8 @@ export class BrokerAdapter extends LlmAdapter {
     let finished = false;
     let usageSeen = false;
     let failure: StopReason | undefined;
+    let gatewayFailure = false;
+    let busyConflict = false;
     try {
       const response = await abortable(() => this.request('/stream', { method: 'POST', body: JSON.stringify(body), signal }), signal);
       if (!response.body) throw new GatewayError('AEVAL_INVALID_WIRE');
@@ -327,14 +329,35 @@ export class BrokerAdapter extends LlmAdapter {
       yield terminal;
     } catch (error) {
       const cause = signal.aborted && signal.reason instanceof GatewayError ? signal.reason : error;
+      gatewayFailure = cause instanceof GatewayError;
+      // A concurrent request that finds the lease busy is an expected,
+      // retryable conflict, not an infrastructure fault: the broker answers
+      // 409 and deliberately neither dispatches nor stops the lease (see
+      // "busy requests neither dispatch nor stop the active lease"). The
+      // runtime issues advisory calls (a session-title request) alongside
+      // the real one, so treating this as a trusted failure recorded
+      // infra_error on a healthy run and blocked the owner's finalization
+      // (real-chain finding, tracked down through the plugin trace).
+      busyConflict = cause instanceof GatewayError && cause.code === 'AEVAL_LEASE_BUSY';
       failure = cause instanceof GatewayError ? cause.stopReason : 'infra_error';
       throw cause instanceof GatewayError ? cause : new GatewayError('AEVAL_GATEWAY_FAILED', failure);
     } finally {
-      const reason = failure ?? (signal.aborted && signal.reason instanceof GatewayError ? signal.reason.stopReason : 'infra_error');
+      const brokerReported = signal.aborted && signal.reason instanceof GatewayError;
+      const reason = failure ?? (brokerReported ? (signal.reason as GatewayError).stopReason : 'infra_error');
       controller.abort();
       detachedCleanup(() => reader?.cancel());
       detachedCleanup(() => reader?.releaseLock());
-      if (!finished) for (const listener of [...this.#listeners]) {
+      // A caller that cancels its OWN request observes no gateway failure:
+      // the run's runtime aborts model calls for ordinary control-flow
+      // reasons (step cancellation, shutdown). Reporting that as a trusted
+      // infrastructure failure permanently downgraded the trial — the
+      // descriptor recorded infra_error and the evidence gate treated a
+      // healthy run as infra-invalid (real-chain finding). The broker's
+      // lease state stays authoritative: a lease that really stopped is
+      // reported by its own error code here, and is re-read from /info
+      // when the owner finalizes.
+      const callerCancelled = !gatewayFailure && !brokerReported && options.signal?.aborted === true;
+      if (!finished && !callerCancelled && !busyConflict) for (const listener of [...this.#listeners]) {
         detachedCleanup(() => listener(reason));
       }
     }

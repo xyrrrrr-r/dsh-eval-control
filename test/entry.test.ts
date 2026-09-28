@@ -109,6 +109,55 @@ test('failed durability rejects finalization and leaves infra_error', async (t) 
   assert.equal(f.descriptor().stop_reason, 'infra_error');
 });
 
+test('plugin teardown waits for an in-flight owner finalization', async (t) => {
+  // Shutdown barrier (real-chain D41): a single-turn headless run disposes
+  // the plugin right after ``turn/end``, while the owner finalization it
+  // started is still awaiting the official flush. Aborting there discarded
+  // the completed turn and left the descriptor on the fail-closed
+  // ``infra_error``.
+  const f = await fixture(t, { ownerFinalize: true });
+  let started!: () => void;
+  const flushStarted = new Promise<void>((resolve) => { started = resolve; });
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => { release = resolve; });
+  t.mock.method(f.ctx.sessions, 'flush', async () => { started(); await gate; return true; });
+  f.completeTurn();
+  await flushStarted;
+  const teardown = f.controlPlugin.dispose();
+  release();
+  await teardown;
+  // The framework does not await an async disposer's promise, so the
+  // barrier finishes on its own; poll briefly for the outcome it protects.
+  const deadline = Date.now() + 2000;
+  while (f.descriptor().stop_reason !== 'agent_claimed_done' && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  assert.equal(f.descriptor().stop_reason, 'agent_claimed_done');
+});
+
+test('a finalization that outlives the grace still tears down fail-closed', async (t) => {
+  // The barrier is bounded: a wedged finalization must not hold shutdown
+  // open, and abandoning it leaves the descriptor fail-closed.
+  process.env['AEVAL_FINALIZE_GRACE_MS'] = '50';
+  try {
+    const f = await fixture(t, { ownerFinalize: true });
+    let started!: () => void;
+    const flushStarted = new Promise<void>((resolve) => { started = resolve; });
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    t.mock.method(f.ctx.sessions, 'flush', async () => { started(); await gate; return true; });
+    f.completeTurn();
+    await flushStarted;
+    const startedAt = Date.now();
+    await f.controlPlugin.dispose();
+    assert.ok(Date.now() - startedAt < 3000, 'teardown must not hang on a wedged finalization');
+    assert.equal(f.descriptor().stop_reason, 'infra_error');
+    release();
+  } finally {
+    delete process.env['AEVAL_FINALIZE_GRACE_MS'];
+  }
+});
+
 test('completed old turn cannot certify an active later turn', async (t) => {
   const f = await fixture(t);
   f.completeTurn();

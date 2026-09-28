@@ -93,10 +93,18 @@ export class GatewayLease {
     this.#model = freeze(structuredClone(model));
   }
 
-  stop(reason: StopReason): void {
+  stop(reason: StopReason, cause: string = 'unspecified'): void {
     if (!isStopReason(reason)) throw new Error('Invalid stop reason');
     if (this.#stopReason) return;
     this.#stopReason = reason;
+    // Diagnostics: the trial captures this process's stderr, and a lease
+    // that closes for an unexplained reason makes every later model call
+    // fail with AEVAL_LEASE_CLOSED. WHO closed it, and on which path, is
+    // otherwise unrecorded (real-chain finding: an unexplained closed
+    // lease cost two full runs before the cause could be attributed).
+    if (process.env['AEVAL_BROKER_DIAG'] === '1') {
+      process.stderr.write(`[aeval-broker] lease stop at=${new Date().toISOString()} reason=${reason} cause=${cause}\n${new Error('lease stop').stack ?? ''}\n`);
+    }
     this.#lifetime.abort(new GatewayError('AEVAL_LEASE_CLOSED', reason));
     detachedCleanup(() => this.#policy.onStop?.(reason));
   }
@@ -223,13 +231,24 @@ export class GatewayLease {
       this.#reservedTokens = 0;
       yield terminal;
     } catch (error) {
-      if (!this.#stopReason) this.stop('infra_error');
+      // Only an abandoned IN-FLIGHT provider call is unaccountable, and
+      // only that must fail closed. A caller that cancels before anything
+      // was dispatched spends no tokens and leaves no unknown usage, so
+      // closing the lease there converts one transient cancellation into
+      // a permanently dead trial: every later call answers
+      // AEVAL_LEASE_CLOSED and the run cannot recover (found on the real
+      // chain, where two runs were lost to exactly this amplification).
+      // The caller's own cancellation still fails its request.
+      const abandonedInFlight = signal.aborted && dispatched;
+      if (!this.#stopReason && (abandonedInFlight || !signal.aborted)) {
+        this.stop('infra_error', signal.aborted ? 'client_abort_in_flight' : 'upstream_error');
+      }
       throw new GatewayError(error instanceof GatewayError ? error.code : 'AEVAL_UPSTREAM_FAILED', this.#stopReason ?? 'infra_error');
     } finally {
       operation.abort();
       if (dispatched && !complete) {
         this.#usedTokens = tokenCount(this.#usedTokens + Math.max(reservation, actual ?? 0));
-        this.stop('infra_error');
+        this.stop('infra_error', 'dispatch_incomplete');
       }
       this.#reservedTokens = 0;
       this.#busy = false;
@@ -351,7 +370,13 @@ export async function startHostBroker(options: HostBrokerOptions): Promise<HostB
       res.removeListener('close', disconnected);
     }
   }
-  const stop = () => lease.stop('infra_error');
+  // The broker's lifetime signal aborts on process shutdown (SIGTERM/SIGINT
+  // from the owner), which may legitimately arrive AFTER the trial's
+  // descriptor was already settled. The reason stays the fail-closed
+  // ``infra_error`` (the broker cannot know whether the run had finished),
+  // but the cause names the path so the diagnostic is not misread as a
+  // mid-run provider failure (real-chain D43).
+  const stop = () => lease.stop('infra_error', 'lifetime_abort');
   options.signal.addEventListener('abort', stop, { once: true });
   const timer = options.timeoutMs === undefined ? undefined : setTimeout(() => lease.stop('timeout_killed'), options.timeoutMs);
   timer?.unref();
