@@ -21,9 +21,10 @@
     "LICENSE"
   ],
   "scripts": {
+    "pull-neutral": "node scripts/pull-neutral.mjs",
     "typecheck": "tsc --noEmit",
-    "build": "tsc -p tsconfig.build.json",
-    "test": "npm run build && tsc -p tsconfig.test.json && node --test \".test-dist/test/*.test.js\""
+    "build": "npm run pull-neutral && tsc -p tsconfig.build.json",
+    "test": "npm run build && tsc -p tsconfig.test.json && npm run pull-neutral && node --test \".test-dist/test/*.test.js\""
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "1.4.0",
