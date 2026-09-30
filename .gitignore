@@ -4,3 +4,4 @@ dist/
 *.tsbuildinfo
 .idea/
 .vscode/
+.DS_Store
