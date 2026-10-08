@@ -43,7 +43,8 @@
     "typecheck": "tsc --noEmit",
     "build": "npm run pull-neutral && tsc -p tsconfig.build.json",
     "prepublishOnly": "npm run build && npm test",
-    "test": "npm run build && tsc -p tsconfig.test.json && npm run pull-neutral && node --test \".test-dist/test/*.test.js\""
+    "clean:test": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('.test-dist', { recursive: true, force: true })\"",
+    "test": "npm run build && npm run clean:test && tsc -p tsconfig.test.json && npm run pull-neutral && node scripts/run-tests.mjs"
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "1.4.0",
