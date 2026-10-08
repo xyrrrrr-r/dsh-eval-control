@@ -12,6 +12,20 @@ schema、bundle descriptor 格式、bin 协议），每次都会在下方
 
 ## [Unreleased]
 
+### Fixed
+
+- **README 里的坏链**：README 链接的 `docs/TESTS/P0-3-host-broker.md` 对读者不可达
+  ——`docs/` 不在 npm 包的 `files` 白名单里（包内只有 `dist`/`src`/README/
+  CHANGELOG/LICENSE），该路径也已在仓库内移入 `docs/internal/`（内部资料，不对外）。
+  现改为自足的 `npm test` 说明，并链接 aeval 侧的三份使用者指南（写套件、接
+  agent、指标语义）。运行方式本身没有变化。
+
+### Changed
+
+- **内部资料归档**：`docs/TESTS/P0-3-host-broker.md` → `docs/internal/P0-3-host-broker.md`
+  （内容按历史原样保留，仅修正其中一条指向 aeval 文档的相对路径）。该目录为开发
+  过程记录，不作为接口说明，也不随 npm 包分发。
+
 ## [0.1.0] - 2026-10-08
 
 首个公开版本（experimental）。

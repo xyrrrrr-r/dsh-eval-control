@@ -105,7 +105,7 @@ export function apply(ctx: Context, rawConfig: unknown): void {
   const ownsControl = () => active && observation.ownsControl(owner);
   const dispose = async (): Promise<void> => {
     if (!active) return;
-    // Shutdown barrier (real-chain D41): a single-turn headless run tears
+    // Shutdown barrier: a single-turn headless run tears
     // this plugin down the moment its turn ends, while the finalization it
     // started at ``turn/end`` is still awaiting the official session flush
     // and the broker /info round-trip. Aborting there discarded a completed
@@ -156,7 +156,7 @@ export function apply(ctx: Context, rawConfig: unknown): void {
     // ``sessions.flush`` entry point dsh-headless uses for its shutdown
     // flush) and record the real terminal reason. Without this the
     // descriptor can only ever report ``infra_error``, because completion
-    // alone never proves persistence (P0-5; observed on the real chain: a
+    // alone never proves persistence (observed in a live end-to-end run: a
     // completed turn still produced stop_reason=infra_error).
     let ownerFinalizeStarted = false;
     const trace: string[] = [];
@@ -181,13 +181,13 @@ export function apply(ctx: Context, rawConfig: unknown): void {
         // finalize records the failure on the observation and flushes the
         // descriptor itself; the descriptor must never be silently absent.
         // The reason is written next to the descriptor so it travels back
-        // with the agent logs — a swallowed failure left the real chain
+        // with the agent logs — a swallowed failure left a real deployment
         // reporting infra_error with nothing explaining why.
         try {
           // Include the observation's own state: "the current turn has not
           // completed" has several causes (no turn/start seen, an earlier
           // terminal reason suppressing turn recording, control lost), and
-          // the real chain could not distinguish them.
+          // a live end-to-end run could not distinguish them.
           writeFileSync(`${config.bundlePath}.finalize-error.txt`,
             `${error instanceof Error ? `${error.name}: ${error.message}\n${error.stack ?? ''}` : String(error)}\n`
             + `observation=${JSON.stringify(observation.describe())}\n`

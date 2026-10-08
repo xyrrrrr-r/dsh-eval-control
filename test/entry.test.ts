@@ -112,7 +112,7 @@ test('failed durability rejects finalization and leaves infra_error', async (t) 
 });
 
 test('plugin teardown waits for an in-flight owner finalization', async (t) => {
-  // Shutdown barrier (real-chain D41): a single-turn headless run disposes
+  // Shutdown barrier: a single-turn headless run disposes
   // the plugin right after ``turn/end``, while the owner finalization it
   // started is still awaiting the official flush. Aborting there discarded
   // the completed turn and left the descriptor on the fail-closed
@@ -451,7 +451,7 @@ test('failed installation releases control and writer claims for a later owner',
 });
 
 test('a completed turn finalizes through the official flush barrier', async (t) => {
-  // D35 (real chain): the descriptor reported infra_error for a run whose
+  // A live end-to-end run once reported infra_error for a run whose
   // turn completed, because nothing called finalize(). The owner-side
   // finalize must prove durability through the official sessions.flush
   // entry point and record the real terminal reason.

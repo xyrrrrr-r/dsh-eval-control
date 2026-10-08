@@ -1,5 +1,5 @@
 /**
- * Sandbox-side entry point for the aeval control stack (P0-4).
+ * Sandbox-side entry point for the aeval control stack.
  *
  * Two Cordis plugins must be mounted inside the sandboxed DSH profile:
  *
@@ -76,7 +76,7 @@ export async function apply(ctx: Context, rawConfig: unknown): Promise<void> {
   // treated as a disposable effect, and an arbitrary object is rejected
   // with "Invalid effect" (found in the real sandbox). The service is
   // published through the context instead.
-  // D44: an advisory call (a session-title request) that the lease rejects
+  // An advisory call (a session-title request) that the lease rejects
   // before dispatch consumed zero tokens, but the session records only that
   // the request was made. Persist the authoritative rejection beside the
   // descriptor so the transcript reducer can tell "refused, provably zero"
@@ -89,7 +89,7 @@ export async function apply(ctx: Context, rawConfig: unknown): Promise<void> {
   const rejectionLog = typeof bundlePath === 'string' && bundlePath !== ''
     ? join(dirname(bundlePath), 'gateway_refusals.jsonl')
     : undefined;
-  // D47: an auxiliary call the policy ALLOWED is the mirror image — real
+  // An auxiliary call the policy ALLOWED is the mirror image — real
   // metered model work the session will never settle as an assistant
   // sample. Persist the dispatched call with its broker-reported usage so
   // the reducer can merge it into the accounted totals. Same evidence

@@ -147,7 +147,7 @@ test('the wire key set is exactly what the parser accepts', () => {
   }
 });
 
-test('broker main accepts a per-purpose auxiliary policy and rejects anything else (D47)', () => {
+test('broker main accepts a per-purpose auxiliary policy and rejects anything else', () => {
   const tls = { key: '/etc/tls/key.pem', cert: '/etc/tls/cert.pem' };
   const withPolicy = baseConfig(tls) as Record<string, unknown>;
   withPolicy['auxiliaryPolicy'] = { compaction: 'allow' };

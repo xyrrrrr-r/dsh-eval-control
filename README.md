@@ -118,8 +118,16 @@ dsh-eval-control (本包, TypeScript) DSH 形态控制插件：变量注入 · �
 
 `test/` 覆盖：配置解析与摘要、变量注入、fork 血统、证据/bundle 写入、
 session reader/stub 的路径安全拒绝、中立 shim 新鲜度、环境回归
-（`npm test` 全绿是提交前提）。宿主 broker 的测试计划见
-[docs/TESTS/P0-3-host-broker.md](docs/TESTS/P0-3-host-broker.md)。
+（`npm test` 全绿是提交前提）。
+
+```bash
+npm test    # build + 测试编译 + node --test，全部用例
+```
+
+想接入自己的 agent、写自己的评测套件，或弄清报告里每个指标的含义，见 aeval 的
+使用者指南：[写一个评测套件](https://gitcode.com/open_kunpeng_agentic_infra/aeval/blob/main/docs/guides/writing-a-suite.md) ·
+[接入一个新的 agent](https://gitcode.com/open_kunpeng_agentic_infra/aeval/blob/main/docs/guides/adding-an-agent.md) ·
+[指标语义与判分规则](https://gitcode.com/open_kunpeng_agentic_infra/aeval/blob/main/docs/guides/metric-semantics.md)。
 
 ## 发布
 
