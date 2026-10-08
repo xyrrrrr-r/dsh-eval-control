@@ -3,6 +3,23 @@
   "version": "0.1.0",
   "description": "Host-side Cordis control plugin for aeval: one-shot config injector (experiment variables, gateway-lease budgets, fork lineage, bundle descriptor).",
   "license": "Apache-2.0",
+  "keywords": [
+    "aeval",
+    "dsh",
+    "deepseek-harness",
+    "cordis",
+    "agent-evaluation",
+    "gateway-lease",
+    "eval-harness"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitcode.com/open_kunpeng_agentic_infra/dsh-eval-control.git"
+  },
+  "homepage": "https://gitcode.com/open_kunpeng_agentic_infra/dsh-eval-control#readme",
+  "bugs": {
+    "url": "https://gitcode.com/open_kunpeng_agentic_infra/dsh-eval-control/issues"
+  },
   "type": "module",
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
@@ -18,12 +35,14 @@
     "dist",
     "src",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "scripts": {
     "pull-neutral": "node scripts/pull-neutral.mjs",
     "typecheck": "tsc --noEmit",
     "build": "npm run pull-neutral && tsc -p tsconfig.build.json",
+    "prepublishOnly": "npm run build && npm test",
     "test": "npm run build && tsc -p tsconfig.test.json && npm run pull-neutral && node --test \".test-dist/test/*.test.js\""
   },
   "dependencies": {
