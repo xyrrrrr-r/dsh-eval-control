@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test, type TestContext } from 'node:test';
@@ -21,7 +21,9 @@ class Upstream extends LlmAdapter {
 }
 
 async function fixture(t: TestContext, overrides: Partial<EvalControlConfig> = {}) {
-  const root = mkdtempSync(join(tmpdir(), 'aeval-entry-'));
+  // realpathSync：与其他测试文件同一约定——macOS 的 tmpdir（/var/...）经
+  // 符号链接指向 /private/var，而 bundle 描述符拒绝符号链接祖先。
+  const root = mkdtempSync(join(realpathSync(tmpdir()), 'aeval-entry-'));
   mkdirSync(join(root, 'session'));
   const ctx = new Context();
   new LlmRuntime(ctx);
