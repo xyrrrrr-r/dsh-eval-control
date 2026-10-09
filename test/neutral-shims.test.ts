@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -18,7 +19,12 @@ const NEUTRAL_MODULES = [
   'stop_reason',
 ] as const;
 
-const root = join(import.meta.dirname, '..');
+// `npm test` runs COMPILED tests from `.test-dist/test/`, so the repository
+// root is two levels up. Deriving it as one level above `import.meta.dirname`
+// pointed at `.test-dist/`, which made this freshness guard skip forever even
+// with the sibling checkout present — a guard that never runs is worse than no
+// guard, because it reports as "skipped, by design".
+const root = fileURLToPath(new URL('../../', import.meta.url));
 const neutralDist = join(root, '..', 'aeval', 'control', 'dist');
 
 test('composed neutral files match the sibling aeval/control build', { skip: !existsSync(neutralDist) ? 'sibling aeval/control/dist not present (standalone clone)' : false }, () => {

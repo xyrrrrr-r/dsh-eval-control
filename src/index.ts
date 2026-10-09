@@ -3,7 +3,11 @@ import { SessionId, type Session } from '@deepseek-ai/dsh-session';
 import { scopeOf } from '@deepseek-ai/dsh-scope';
 import { writeFileSync } from 'node:fs';
 import { isDeepStrictEqual } from 'node:util';
-import { EvalControlConfigSchema, resolveEvalControlConfig, type EvalControlConfig } from './config.js';
+import {
+  resolveEvalControlConfig,
+  type ConfigStandardSchema, type EvalControlConfig,
+} from './config.js';
+import { resolveControlConfigSource } from './control_config_source.js';
 import {
   abortable, BrokerAdapter, readJobToken, type GatewayDispatchRecord, type GatewayRejectionRecord,
 } from './gateway_lease.js';
@@ -30,6 +34,12 @@ export {
 } from './bundle_writer.js';
 export { STOP_REASONS, deriveStopReason, isStopReason } from './stop_reason.js';
 export type { StopReason } from './stop_reason.js';
+export {
+  CONTROL_CONFIG_ENV, isControlConfigReference, readControlConfigFile, resolveControlConfigSource,
+} from './control_config_source.js';
+export type { ControlConfigReference, ResolvedControlConfigSource } from './control_config_source.js';
+export { CONTROL_STATUS_SERVICE, publishControlStatus, readControlStatus } from './control_status.js';
+export type { EvalControlStatus } from './control_status.js';
 
 export interface EvalBrokerTransport {
   readonly config: EvalControlConfig;
@@ -72,12 +82,76 @@ export async function installBrokerTransport(
 }
 
 export const name = 'dsh-eval-control';
+// `evalBroker` stays in the injection list on purpose: Cordis resolves an
+// injection only after the transport row has provided the service, which is
+// what makes the patch's row order authoritative even though the transport's
+// `apply` is async. Dropping it would let this row start before the broker
+// exists. A standalone profile therefore never activates this plugin at all
+// (the transport mounts nothing), which is the intended degraded behavior.
 export const inject = ['llm', 'tools', 'sessions', 'evalBroker'];
-export const Config = EvalControlConfigSchema;
+
+/**
+ * Row-config schema.
+ *
+ * The aeval runner inlines the complete configuration, and that path is
+ * unchanged: an inline config is validated by `resolveEvalControlConfig`
+ * exactly as before, so the configuration digest of an existing sealed run
+ * is untouched. An installed bundle needs a per-trial configuration it
+ * cannot inline, so a `{ controlConfigPath }` reference is accepted and
+ * resolved to the same canonical shape. `AEVAL_CONTROL_CONFIG` is the
+ * fallback for a row that carries no configuration at all.
+ */
+export const Config: ConfigStandardSchema = Object.freeze({
+  '~standard': Object.freeze({
+    version: 1 as const,
+    vendor: 'dsh-eval-control',
+    validate(value: unknown) {
+      try {
+        const source = resolveControlConfigSource(value);
+        if (source.kind === 'standalone') {
+          return {
+            issues: [{
+              message: 'dsh-eval-control: a control configuration is required '
+                + '(an inline config, a controlConfigPath reference, or AEVAL_CONTROL_CONFIG)',
+            }],
+          };
+        }
+        return { value: resolveEvalControlConfig(source.config) };
+      } catch (error) {
+        return {
+          issues: [{
+            message: error instanceof Error ? error.message : 'dsh-eval-control: invalid config',
+          }],
+        };
+      }
+    },
+  }),
+});
+
+/** The broker transport service this row binds to, or undefined when absent. */
+function brokerTransportOf(ctx: Context): EvalBrokerTransport | undefined {
+  return (ctx as unknown as { evalBroker?: EvalBrokerTransport }).evalBroker;
+}
 
 export function apply(ctx: Context, rawConfig: unknown): void {
-  const config = resolveEvalControlConfig(rawConfig);
-  const transport = ctx.evalBroker;
+  const source = resolveControlConfigSource(rawConfig);
+  if (source.kind === 'standalone') {
+    // Unreachable while `evalBroker` is injected (a standalone transport
+    // provides nothing, so this row stays pending). Reaching it means the
+    // row was mounted against a foreign broker, which must not be silent.
+    throw new Error(
+      'dsh-eval-control: this row needs a control configuration when the broker transport is active '
+      + `(${source.reason ?? 'none supplied'})`,
+    );
+  }
+  const config = resolveEvalControlConfig(source.config);
+  const transport = brokerTransportOf(ctx);
+  if (transport === undefined) {
+    throw new Error(
+      'dsh-eval-control: the broker transport is not installed; '
+      + "mount './dist/sandbox_entry.js' before this row",
+    );
+  }
   if (!isDeepStrictEqual(transport.config, config)) throw new Error('Control and broker configurations differ');
   if (transport.owner.fiber === ctx.fiber) throw new Error('Broker transport must be owned independently of control');
   const observation = transport.observation;

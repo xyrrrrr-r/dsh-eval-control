@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "aeval eval control",
+    "description": "Host-side control plugin that binds one evaluation trial's run binding, gateway-lease budget, fork lineage, and bundle descriptor to a DSH session, and reports its control status in the Web UI."
+  }
+}

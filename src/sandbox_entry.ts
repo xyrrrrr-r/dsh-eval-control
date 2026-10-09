@@ -19,6 +19,15 @@
  * sandbox. The control configuration is read from a file the owner
  * uploaded; the job token is read from the path the *config* declares
  * (`jobTokenFile`) unless this entry is given an explicit override.
+ *
+ * This row is also the plugin's STANDALONE entry: a published bundle is
+ * installed into ordinary profiles where no aeval run exists. With no
+ * configuration (no inline config, no `controlConfigPath`, no
+ * `AEVAL_CONTROL_CONFIG`) it publishes `evalControlStatus` and mounts
+ * nothing — installing the plugin never breaks a profile, and the control
+ * row simply stays inactive because `evalBroker` is never provided. A
+ * configuration that IS supplied keeps the original fail-closed behavior:
+ * an unreadable file or an unreachable broker refuses installation.
  */
 
 import { appendFileSync, readFileSync } from 'node:fs';
@@ -26,13 +35,15 @@ import { dirname, join } from 'node:path';
 import z from '@deepseek-ai/schemastery';
 import type { Context } from '@deepseek-ai/cordis';
 import { installBrokerTransport } from './index.js';
+import { resolveControlConfigSource } from './control_config_source.js';
+import { publishControlStatus } from './control_status.js';
 
 export const name = 'aeval-broker-transport';
 export const inject = ['llm'];
 
 export interface SandboxEntryConfig {
   /** Absolute path of the control configuration JSON in the sandbox. */
-  readonly controlConfigPath: string;
+  readonly controlConfigPath?: string;
   /** Overrides the config's own `jobTokenFile` when set. */
   readonly jobTokenPath?: string;
 }
@@ -40,31 +51,32 @@ export interface SandboxEntryConfig {
 // schemastery marks a field optional by omitting `.required()`, matching
 // the pattern used by EvalControlConfigFields.
 export const Config = z.object({
-  controlConfigPath: z.string().required(),
+  controlConfigPath: z.string(),
   jobTokenPath: z.string(),
 });
 
-function readConfig(path: string): unknown {
-  let raw: string;
-  try {
-    raw = readFileSync(path, 'utf8');
-  } catch (error) {
-    throw new Error(`aeval-broker-transport: cannot read control config at ${path}: ${String(error)}`);
-  }
-  try {
-    return JSON.parse(raw);
-  } catch (error) {
-    throw new Error(`aeval-broker-transport: control config at ${path} is not valid JSON: ${String(error)}`);
-  }
+/** Report a notice without assuming the host logger shape. */
+function notify(ctx: Context, message: string): void {
+  const logger = (ctx as unknown as { logger?: { info?: (text: string) => void } }).logger;
+  logger?.info?.(message);
 }
 
 export async function apply(ctx: Context, rawConfig: unknown): Promise<void> {
-  const entry = rawConfig as SandboxEntryConfig;
-  if (entry === null || typeof entry !== 'object' || typeof entry.controlConfigPath !== 'string'
-    || entry.controlConfigPath.length === 0) {
-    throw new Error('aeval-broker-transport: controlConfigPath is required');
+  const source = resolveControlConfigSource(rawConfig);
+  if (source.kind === 'standalone') {
+    // Nothing to mount. Publishing the status (and saying so once) is the
+    // whole effect; the control row stays pending on `evalBroker`, so a
+    // profile that merely installed the bundle keeps working untouched.
+    publishControlStatus(ctx, {
+      plugin: 'dsh-eval-control',
+      mode: 'standalone',
+      reason: source.reason ?? 'no control configuration',
+    });
+    notify(ctx, 'dsh-eval-control: standalone (no control configuration) — model calls are not redirected');
+    return;
   }
-  const config = readConfig(entry.controlConfigPath);
+  const entry = (rawConfig ?? {}) as SandboxEntryConfig;
+  const config = source.config;
   const token = entry.jobTokenPath === undefined
     ? undefined
     : readFileSync(entry.jobTokenPath, 'utf8').trim();
@@ -105,6 +117,11 @@ export async function apply(ctx: Context, rawConfig: unknown): Promise<void> {
     dispatchLog === undefined ? undefined : (record) => {
       appendFileSync(dispatchLog, `${JSON.stringify(record)}\n`, { mode: 0o600 });
     });
+  publishControlStatus(ctx, {
+    plugin: 'dsh-eval-control',
+    mode: 'active',
+    ...(source.kind === 'file' && source.configPath !== undefined ? { configPath: source.configPath } : {}),
+  });
 }
 
 export default { name, inject, Config, apply };

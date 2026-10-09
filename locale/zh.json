@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "aeval 评测控制",
+    "description": "宿主侧控制插件：把单次评测试次的 run 绑定、网关租约预算、fork 血统与 bundle descriptor 绑定到 DSH 会话，并在 Web 界面显示控制状态。"
+  }
+}

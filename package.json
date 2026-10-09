@@ -1,13 +1,14 @@
 {
   "name": "dsh-eval-control",
-  "version": "0.1.0",
-  "description": "Host-side Cordis control plugin for aeval: one-shot config injector (experiment variables, gateway-lease budgets, fork lineage, bundle descriptor).",
+  "version": "0.2.0",
+  "description": "Host-side Cordis control plugin for aeval: one-shot config injector (experiment variables, gateway-lease budgets, fork lineage, bundle descriptor), with a standalone status mode, a Web status chip, and a self-check command.",
   "license": "Apache-2.0",
   "keywords": [
     "aeval",
     "dsh",
     "deepseek-harness",
     "cordis",
+    "dsh-plugin",
     "agent-evaluation",
     "gateway-lease",
     "eval-harness"
@@ -26,14 +27,32 @@
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "icon": "./icon.svg",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./client": "./client/client.js",
+    "./package.json": "./package.json",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./locale/*.json": "./locale/*.json",
+    "./dist/*": "./dist/*",
+    "./src/*": "./src/*"
+  },
   "bin": {
     "aeval-dsh-session-reader": "dist/session_reader.js",
     "aeval-dsh-session-stub": "dist/session_stub.js",
-    "aeval-model-broker": "dist/broker_main.js"
+    "aeval-model-broker": "dist/broker_main.js",
+    "aeval-dsh-control-selfcheck": "dist/selfcheck.js"
   },
   "files": [
     "dist",
     "src",
+    "client",
+    "locale",
+    "icon.svg",
+    "cordis.patch.yml",
     "README.md",
     "CHANGELOG.md",
     "LICENSE"
@@ -46,25 +65,53 @@
     "clean:test": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('.test-dist', { recursive: true, force: true })\"",
     "test": "npm run build && npm run clean:test && tsc -p tsconfig.test.json && npm run pull-neutral && node scripts/run-tests.mjs"
   },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  },
   "dependencies": {
-    "@agentclientprotocol/sdk": "1.4.0",
+    "@agentclientprotocol/sdk": "1.4.0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.3",
+    "@deepseek-ai/dsh": ">=0.1.7-alpha.1 <0.2.0",
+    "@deepseek-ai/dsh-acp": ">=0.1.7-alpha.1 <0.2.0",
+    "@deepseek-ai/dsh-agent": ">=0.1.7-alpha.1 <0.2.0",
+    "@deepseek-ai/dsh-llm": ">=0.1.7-alpha.1 <0.2.0",
+    "@deepseek-ai/dsh-scope": ">=0.1.7-alpha.1 <0.2.0",
+    "@deepseek-ai/dsh-sdk-client": ">=0.1.7-alpha.1 <0.2.0",
+    "@deepseek-ai/dsh-sdk-protocol": ">=0.1.7-alpha.1 <0.2.0",
+    "@deepseek-ai/dsh-session": ">=0.1.7-alpha.1 <0.2.0",
+    "@deepseek-ai/dsh-session-persistence": ">=0.1.7-alpha.1 <0.2.0",
+    "@deepseek-ai/dsh-session-persistence-jsonl": ">=0.1.7-alpha.1 <0.2.0",
+    "@deepseek-ai/dsh-system-prompt": ">=0.1.7-alpha.1 <0.2.0",
+    "@deepseek-ai/dsh-tools": ">=0.1.7-alpha.1 <0.2.0",
+    "@deepseek-ai/schemastery": "^3.18.3"
+  },
+  "devDependencies": {
     "@deepseek-ai/cordis": "4.0.3",
     "@deepseek-ai/dsh": "0.1.7-alpha.1",
     "@deepseek-ai/dsh-acp": "0.1.7-alpha.1",
     "@deepseek-ai/dsh-agent": "0.1.7-alpha.1",
     "@deepseek-ai/dsh-llm": "0.1.7-alpha.1",
+    "@deepseek-ai/dsh-ptc-runtime": "0.1.7-alpha.1",
     "@deepseek-ai/dsh-scope": "0.1.7-alpha.1",
-    "@deepseek-ai/dsh-session-persistence": "0.1.7-alpha.1",
-    "@deepseek-ai/dsh-session-persistence-jsonl": "0.1.7-alpha.1",
-    "@deepseek-ai/dsh-system-prompt": "0.1.7-alpha.1",
     "@deepseek-ai/dsh-sdk-client": "0.1.7-alpha.1",
     "@deepseek-ai/dsh-sdk-protocol": "0.1.7-alpha.1",
     "@deepseek-ai/dsh-session": "0.1.7-alpha.1",
+    "@deepseek-ai/dsh-session-persistence": "0.1.7-alpha.1",
+    "@deepseek-ai/dsh-session-persistence-jsonl": "0.1.7-alpha.1",
+    "@deepseek-ai/dsh-system-prompt": "0.1.7-alpha.1",
     "@deepseek-ai/dsh-tools": "0.1.7-alpha.1",
-    "@deepseek-ai/schemastery": "3.18.3"
-  },
-  "devDependencies": {
-    "@deepseek-ai/dsh-ptc-runtime": "0.1.7-alpha.1",
+    "@deepseek-ai/schemastery": "3.18.3",
     "@types/node": "24.13.6",
     "typescript": "6.0.3"
   }

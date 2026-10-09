@@ -6,7 +6,7 @@ bundle descriptor。
 
 Host-side Cordis control plugin for [aeval](https://gitcode.com/open_kunpeng_agentic_infra/aeval):
 one-shot config injection for experiment variables, gateway-lease budgets,
-fork lineage, and bundle descriptors.（experimental · v0.1.0 · Apache-2.0）
+fork lineage, and bundle descriptors.（experimental · v0.2.0 · Apache-2.0）
 
 ## 它解决什么问题
 
@@ -35,9 +35,12 @@ fork 出来的会话认不了亲、证据说不清归属。本插件把这些全
 | `bundle_writer.ts` | bundle descriptor（证据归属，schema 版本化） |
 | `session_reader.ts` / `session_stub.ts` | 官方会话读取 / 桩会话创建（独立 bin，供 aeval 采集侧调用） |
 | `token_bound.ts` · `upstream.ts` · `stop_reason.ts` | 输入 token 上限、上游 chat-completions 适配、停止原因推导 |
+| `control_config_source.ts` · `control_status.ts` | 配置来源解析（内联 / `controlConfigPath` / `AEVAL_CONTROL_CONFIG`）与 `evalControlStatus` 状态服务 |
+| `selfcheck.ts` | 自检命令：只读核对配置、token、路径与 broker `/info` |
+| `client/client.js` | Web 只读状态胶囊（`dsh.client`，读宿主 `pluginInventory/list`） |
 
 独立命令（`package.json` bin）：`aeval-dsh-session-reader`、`aeval-dsh-session-stub`、
-`aeval-model-broker`。
+`aeval-model-broker`、`aeval-dsh-control-selfcheck`。
 
 ## 配置（EvalControlConfig）
 
@@ -67,10 +70,47 @@ fork 出来的会话认不了亲、证据说不清归属。本插件把这些全
 配置按原样（as-authored）参与摘要计算，宿主组合的配置与沙箱内解析的配置
 逐字段比对——**两边不一致即失败**，不做静默兼容。
 
+除内联配置外，行配置还接受两种等价形态（解析结果与内联逐字段一致，
+`configDigest` 不变）：`{ "controlConfigPath": "/abs/config.json" }` 指向
+owner 写出的配置文件；或整行为空 `{}` 且设置 `AEVAL_CONTROL_CONFIG`。
+两者都没有时进入 **standalone**：不挂载任何东西、不重定向模型调用，
+只发布 `evalControlStatus` 状态——安装插件不会破坏一个普通 profile。
+
 ## 安装
 
+### 作为 aeval 的控制栈（沙箱内）
+
+`aeval run` 的 DSH flavor 通过 `deploy_control_stack` 把编译后的 `dist/`
+部署进沙箱的 DSH 安装树，并注入自己生成的 patch（transport 在前、控制插件
+在后）。这条链路不读本包的 `cordis.patch.yml`，行为不受本包发布面影响。
+
+### 作为 DSH 插件（普通 profile）
+
 ```bash
-npm install dsh-eval-control    # Node ^22.19 || >=24；含编译产物、类型 shim 与三个 bin 命令
+dsh plugin --profile web add dsh-eval-control
+```
+
+装完即为 standalone：设置页里能看到插件卡片与 Web 状态胶囊，
+`aeval-dsh-control-selfcheck` 也能核对本机环境。要挂上完整控制栈，
+把 `cordis.patch.yml` 的两行补全（或设 `AEVAL_CONTROL_CONFIG`）并重启：
+
+```yaml
+- insert:
+    - id: aeval-broker-transport
+      name: './dist/sandbox_entry.js'
+      config:
+        controlConfigPath: '/abs/path/control-config.json'
+    - id: aeval-eval-control
+      name: './dist/index.js'
+      config:
+        controlConfigPath: '/abs/path/control-config.json'
+```
+
+行序不可颠倒：控制插件 inject `evalBroker`，只有 transport 提供它。
+
+```bash
+npm install dsh-eval-control    # Node ^22.19 || >=24；含编译产物、类型 shim 与四个 bin 命令
+aeval-dsh-control-selfcheck --config /abs/path/control-config.json   # 只读自检；加 --json 出机器可读报告
 ```
 
 变更见 [CHANGELOG](CHANGELOG.md)；语义化版本（0.x 实验期：minor 版本可能含破坏性
@@ -117,8 +157,10 @@ dsh-eval-control (本包, TypeScript) DSH 形态控制插件：变量注入 · �
 ## 测试
 
 `test/` 覆盖：配置解析与摘要、变量注入、fork 血统、证据/bundle 写入、
-session reader/stub 的路径安全拒绝、中立 shim 新鲜度、环境回归
-（`npm test` 全绿是提交前提）。
+session reader/stub 的路径安全拒绝、中立 shim 新鲜度、环境回归，以及发布面
+自身的守卫（bundle 声明与补丁文件、`files`/`exports` 白名单、locale/icon、
+peer 范围与构建期 pin 的分离、selfcheck 作为真实进程跑、standalone 与
+fail-closed 两条路径）。`npm test` 全绿是提交前提。
 
 ```bash
 npm test    # build + 测试编译 + node --test，全部用例
@@ -135,6 +177,17 @@ npm test    # build + 测试编译 + node --test，全部用例
 npm login       # 一次性；开了 2FA 的账号按提示输入 OTP（或使用 automation token）
 npm publish     # prepublishOnly 会先自动 build + 全量测试，任何失败即中止
 ```
+
+发布面的两条约定：
+
+- `@deepseek-ai/*` 通过 `peerDependencies` 给出宿主版本窗口
+  （`>=0.1.7-alpha.1 <0.2.0`、`cordis ^4.0.3`、`schemastery ^3.18.3`），
+  精确 pin 留在 `devDependencies` 作为构建记录——profile 因此复用宿主自己
+  的那一份 Harness，而不是再装一套；peer 范围不满足时 DSH 会**跳过整个
+  bundle**（仅 stderr 提示），所以改范围必须真装一次验证。
+- 收录进插件市场时，静态审查只读 `package.json` 的 `dsh.bundle.patch` 与
+  同 revision 的补丁文件；npm 上 latest manifest 声明 `dsh.bundle` 才会
+  出现安装命令。本包两者都已具备。
 
 ## License
 

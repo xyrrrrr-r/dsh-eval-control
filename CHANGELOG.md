@@ -12,24 +12,78 @@ schema、bundle descriptor 格式、bin 协议），每次都会在下方
 
 ## [Unreleased]
 
-### Fixed
-
-- **README 里的坏链**：README 链接的 `docs/TESTS/P0-3-host-broker.md` 对读者不可达
-  ——`docs/` 不在 npm 包的 `files` 白名单里（包内只有 `dist`/`src`/README/
-  CHANGELOG/LICENSE），该路径也已在仓库内移入 `docs/internal/`（内部资料，不对外）。
-  现改为自足的 `npm test` 说明，并链接 aeval 侧的三份使用者指南（写套件、接
-  agent、指标语义）。运行方式本身没有变化。
-
 ### Changed
 
 - **仓库迁移至 GitHub**：托管地址由 GitCode 的
-  `open_kunpeng_agentic_infra/dsh-eval-control` 改为
-  `github.com/xyrrrrr-r/dsh-eval-control`，`package.json` 与下方链接引用同步更新；
-  源码、测试与全部历史提交完整保留。迁移时开发过程记录（原 `docs/internal/`，
-  含本机绝对路径与内部工作包编号）已从**全部历史**中剔除，不随公开仓库分发。
+  `open_kunpeng_agentic_infra/dsh-eval-control` 改为 GitHub，`package.json` 与
+  下方链接引用同步更新；源码、测试与全部历史提交完整保留。迁移时对**全部历史**
+  做了清洗：开发过程记录（含其归档前后的两个仓库内路径）连同其中的本机绝对路径与
+  内部编号一并剔除，提交邮箱改为 GitHub noreply（署名保留）。因此本仓库的提交
+  SHA 与 GitCode 上的历史不再对应，从旧历史 cherry-pick 会冲突；0.2.0 这条即
+  如此摘入。
+
+## [0.2.0] - 2026-10-08
+
+发布面版本：让本包作为 DSH 插件可被收录、可被独立安装，且装完不炸。
+**aeval 的运行链路未变**：`deploy_control_stack` 依旧自己写 patch 与内联
+配置，插件行为、descriptor 格式与 `configDigest` 计算方式均未改动。
+
+### Added
+
+- **可发布的 Cordis bundle**：`package.json` 声明 `dsh.bundle.patch`，仓库
+  新增 `cordis.patch.yml`，`files` 白名单补齐补丁/locale/icon/client，
+  `exports` 暴露 `./client`、`./package.json`、`./cordis.patch.yml`、
+  `./locale/*.json`（并保留 `./dist/*`、`./src/*` 直通以免砍掉既有子路径）。
+  已用真实 DSH 的 profile loader 验证：bundle 解析成功、peer 预检通过、
+  补丁被加载且无跳过。
+
+- **standalone 激活路径**（`src/sandbox_entry.ts`）：`controlConfigPath`
+  改为可选。没有任何配置（无内联配置、无引用、无 `AEVAL_CONTROL_CONFIG`）
+  时不再抛错，而是发布 `evalControlStatus` 服务、打一条通知并**什么都不挂载**
+  ——模型调用不被重定向，控制行因缺少 `evalBroker` 保持未激活。**配置一旦
+  提供，fail-closed 语义原样保留**：配置文件读不到、broker 不可达仍然拒绝安装。
+
+- **配置引用形态**（`src/control_config_source.ts`）：行配置可以是内联完整
+  配置、`{ controlConfigPath }` 引用，或在空配置时回退到
+  `AEVAL_CONTROL_CONFIG`。内联路径逐字节透传，`configDigest` 不变。
+
+- **自检命令** `aeval-dsh-control-selfcheck`（第 4 个 bin）：只读检查 Node
+  版本、配置解析与摘要、run 绑定、job token（0600/归属/64-hex）、session
+  root、descriptor 目录可写性与 broker `/info` 可达性；支持 `--json`，
+  未配置时报 standalone 并以 0 退出，不打印 token。
+
+- **Web 只读状态胶囊**（`client/client.js` + `dsh.client`）：在
+  `conversation.composer.dock` 显示控制行是否挂载及其 fiber 阶段，数据来自
+  宿主 `pluginInventory/list` Remote；该 Remote 缺席时如实显示"宿主通道不可用"，
+  不做任何状态修改。
+
+- **展示元数据**：`locale/en.json`、`locale/zh.json`（`meta.title` /
+  `meta.description`）与顶层 `icon.svg`，已用真实 `readPluginMeta` 验证三者在
+  不激活插件的情况下均可解析。
+
+### Changed
+
+- **发布面 peer 范围与构建期 pin 分离**：`@deepseek-ai/*` 从 `dependencies`
+  移入 `peerDependencies`（范围为 `>=0.1.7-alpha.1 <0.2.0`、`cordis ^4.0.3`、
+  `schemastery ^3.18.3`），精确 pin 保留在 `devDependencies` 作为构建记录，
+  `@agentclientprotocol/sdk` 仍为普通依赖。profile 不再被塞入第二份 Harness。
 - **内部资料归档**：`docs/TESTS/P0-3-host-broker.md` → `docs/internal/P0-3-host-broker.md`
   （内容按历史原样保留，仅修正其中一条指向 aeval 文档的相对路径）。该目录为开发
   过程记录，不作为接口说明，也不随 npm 包分发。
+
+### Fixed
+
+- **README 里的坏链**：README 链接的 `docs/TESTS/P0-3-host-broker.md` 对读者不可达
+  ——`docs/` 不在 npm 包的 `files` 白名单里。现改为自足的 `npm test` 说明，并链接
+  aeval 侧的三份使用者指南（写套件、接 agent、指标语义）。运行方式本身没有变化。
+
+### 已知限制
+
+- aeval 部署路径仍按 `@deepseek-ai/dsh-*@0.1.7-alpha.1` 的片构建与锁定；
+  `peerDependencies` 的范围只描述**本包可被加载**的宿主版本窗口
+  （`>=0.1.7-alpha.1 <0.2.0`），不改变 aeval 侧的锁定纪律。跨窗口升级仍需
+  与 aeval 同步验证。
+- Node 要求 `^22.19.0 || >=24.0.0`。
 
 ## [0.1.0] - 2026-10-08
 
@@ -76,5 +130,6 @@ schema、bundle descriptor 格式、bin 协议），每次都会在下方
   适配器、官方 session 格式对齐）；升级需与 aeval 同步验证。
 - Node 要求 `^22.19.0 || >=24.0.0`。
 
-[Unreleased]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/xyrrrrr-r/dsh-eval-control/releases/tag/v0.1.0

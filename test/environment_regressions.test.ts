@@ -23,6 +23,8 @@ import { test } from 'node:test';
 import { parseBrokerMainConfig } from '../src/broker_main.js';
 import { BROKER_WIRE_KEYS, parseBrokerRequest, wireBodyOf } from '../src/gateway_lease.js';
 import entry, { apply as applyEntry } from '../src/sandbox_entry.js';
+import { readControlStatus } from '../src/control_status.js';
+import { Context } from '@deepseek-ai/cordis';
 
 const binPath = fileURLToPath(new URL('../../dist/broker_main.js', import.meta.url));
 
@@ -111,8 +113,18 @@ test('sandbox entry refuses a missing or malformed control config', async () => 
   }
 });
 
-test('sandbox entry requires controlConfigPath', async () => {
-  await assert.rejects(() => applyEntry({} as never, {}), /controlConfigPath is required/);
+test('sandbox entry stands alone when no control config is supplied', async () => {
+  // A published bundle is installed into ordinary profiles where no aeval run
+  // exists. An empty row must report a status and mount nothing; failing
+  // activation there was the reason the bundle could not be shipped.
+  const ctx = new Context();
+  try {
+    await applyEntry(ctx, {});
+    assert.equal(readControlStatus(ctx)?.mode, 'standalone');
+    assert.equal((ctx as unknown as { evalBroker?: unknown }).evalBroker, undefined);
+  } finally {
+    await ctx.fiber.dispose();
+  }
 });
 
 test('sandbox entry exports the Cordis plugin shape', () => {

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="aeval eval control">
+  <g fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M32 6 L54 18 v28 L32 58 10 46 V18 Z"/>
+    <path d="M22 26 v12"/>
+    <path d="M32 22 v20"/>
+    <path d="M42 26 v12"/>
+  </g>
+</svg>
