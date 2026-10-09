@@ -90,6 +90,13 @@ owner 写出的配置文件；或整行为空 `{}` 且设置 `AEVAL_CONTROL_CONF
 dsh plugin --profile web add dsh-eval-control
 ```
 
+也可以走 [1024 商店](https://deepseek1024.com/) 的追踪安装器——`dsh1024 plugin …` 就是官方
+`dsh plugin …` 换了名字，参数原样转发，额外记录一条匿名安装结果用于该店的安装量排名：
+
+```bash
+npm install -g dsh1024 && dsh1024 plugin --profile web add dsh-eval-control
+```
+
 装完即为 standalone：设置页里能看到插件卡片与 Web 状态胶囊，
 `aeval-dsh-control-selfcheck` 也能核对本机环境。要挂上完整控制栈，
 把 `cordis.patch.yml` 的两行补全（或设 `AEVAL_CONTROL_CONFIG`）并重启：
