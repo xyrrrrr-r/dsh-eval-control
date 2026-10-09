@@ -4,7 +4,7 @@
 变量、预算、血统、证据归属——一次性注入 DSH agent 进程，并密封成可校验的
 bundle descriptor。
 
-Host-side Cordis control plugin for [aeval](https://gitcode.com/open_kunpeng_agentic_infra/aeval):
+Host-side Cordis control plugin for [aeval](https://github.com/xyrrrrr-r/aeval):
 one-shot config injection for experiment variables, gateway-lease budgets,
 fork lineage, and bundle descriptors.（experimental · v0.2.0 · Apache-2.0）
 
@@ -167,9 +167,9 @@ npm test    # build + 测试编译 + node --test，全部用例
 ```
 
 想接入自己的 agent、写自己的评测套件，或弄清报告里每个指标的含义，见 aeval 的
-使用者指南：[写一个评测套件](https://gitcode.com/open_kunpeng_agentic_infra/aeval/blob/main/docs/guides/writing-a-suite.md) ·
-[接入一个新的 agent](https://gitcode.com/open_kunpeng_agentic_infra/aeval/blob/main/docs/guides/adding-an-agent.md) ·
-[指标语义与判分规则](https://gitcode.com/open_kunpeng_agentic_infra/aeval/blob/main/docs/guides/metric-semantics.md)。
+使用者指南：[写一个评测套件](https://github.com/xyrrrrr-r/aeval/blob/main/docs/guides/writing-a-suite.md) ·
+[接入一个新的 agent](https://github.com/xyrrrrr-r/aeval/blob/main/docs/guides/adding-an-agent.md) ·
+[指标语义与判分规则](https://github.com/xyrrrrr-r/aeval/blob/main/docs/guides/metric-semantics.md)。
 
 ## 发布
 
