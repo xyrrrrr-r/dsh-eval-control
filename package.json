@@ -14,11 +14,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://gitcode.com/open_kunpeng_agentic_infra/dsh-eval-control.git"
+    "url": "git+https://github.com/xyrrrrr-r/dsh-eval-control.git"
   },
-  "homepage": "https://gitcode.com/open_kunpeng_agentic_infra/dsh-eval-control#readme",
+  "homepage": "https://github.com/xyrrrrr-r/dsh-eval-control#readme",
   "bugs": {
-    "url": "https://gitcode.com/open_kunpeng_agentic_infra/dsh-eval-control/issues"
+    "url": "https://github.com/xyrrrrr-r/dsh-eval-control/issues"
   },
   "type": "module",
   "engines": {

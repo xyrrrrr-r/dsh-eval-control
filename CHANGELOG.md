@@ -22,6 +22,11 @@ schema、bundle descriptor 格式、bin 协议），每次都会在下方
 
 ### Changed
 
+- **仓库迁移至 GitHub**：托管地址由 GitCode 的
+  `open_kunpeng_agentic_infra/dsh-eval-control` 改为
+  `github.com/xyrrrrr-r/dsh-eval-control`，`package.json` 与下方链接引用同步更新；
+  源码、测试与全部历史提交完整保留。迁移时开发过程记录（原 `docs/internal/`，
+  含本机绝对路径与内部工作包编号）已从**全部历史**中剔除，不随公开仓库分发。
 - **内部资料归档**：`docs/TESTS/P0-3-host-broker.md` → `docs/internal/P0-3-host-broker.md`
   （内容按历史原样保留，仅修正其中一条指向 aeval 文档的相对路径）。该目录为开发
   过程记录，不作为接口说明，也不随 npm 包分发。
@@ -71,5 +76,5 @@ schema、bundle descriptor 格式、bin 协议），每次都会在下方
   适配器、官方 session 格式对齐）；升级需与 aeval 同步验证。
 - Node 要求 `^22.19.0 || >=24.0.0`。
 
-[Unreleased]: https://gitcode.com/open_kunpeng_agentic_infra/dsh-eval-control/compare/v0.1.0...HEAD
-[0.1.0]: https://gitcode.com/open_kunpeng_agentic_infra/dsh-eval-control/releases/tag/v0.1.0
+[Unreleased]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/xyrrrrr-r/dsh-eval-control/releases/tag/v0.1.0
