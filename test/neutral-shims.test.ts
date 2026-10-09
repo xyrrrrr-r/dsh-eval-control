@@ -53,3 +53,25 @@ test('this package no longer owns the moved sources', () => {
     );
   }
 });
+
+test('vendor/neutral carries the whole runtime a standalone clone needs', () => {
+  // Without a sibling checkout, vendor/neutral/ is the only source that
+  // composes dist/. A missing file surfaces as ERR_MODULE_NOT_FOUND deep
+  // inside the selfcheck cases, which is the wrong place to learn about it —
+  // so the completeness contract is asserted here instead.
+  const vendor = join(root, 'vendor', 'neutral');
+  assert.ok(
+    existsSync(vendor),
+    'vendor/neutral/ must exist: it is what keeps a bare clone buildable',
+  );
+  for (const name of [...NEUTRAL_MODULES, 'upstream_responses']) {
+    assert.ok(
+      existsSync(join(vendor, `${name}.js`)),
+      `vendor/neutral/${name}.js is missing, so dist/${name}.js cannot be composed`,
+    );
+    assert.ok(
+      existsSync(join(vendor, `${name}.d.ts`)),
+      `vendor/neutral/${name}.d.ts is missing, so dist/${name}.d.ts cannot be composed`,
+    );
+  }
+});

@@ -59,6 +59,7 @@
   ],
   "scripts": {
     "pull-neutral": "node scripts/pull-neutral.mjs",
+    "vendor:neutral": "node scripts/pull-neutral.mjs --refresh-vendor",
     "typecheck": "tsc --noEmit",
     "build": "npm run pull-neutral && tsc -p tsconfig.build.json",
     "prepublishOnly": "npm run build && npm test",

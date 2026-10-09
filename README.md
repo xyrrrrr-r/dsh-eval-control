@@ -166,6 +166,15 @@ fail-closed 两条路径）。`npm test` 全绿是提交前提。
 npm test    # build + 测试编译 + node --test，全部用例
 ```
 
+构建单元由中立运行时（`aeval/control`）组合而成，取用顺序是 `$AEVAL_CONTROL_DIST`
+→ 同级 `../aeval/control/dist` → 仓库内的 `vendor/neutral/`。`dist/` 本身不入库，
+所以 `vendor/neutral/` 正是**独立 clone 也能构建并跑全绿**的那一份；只有同级
+checkout 存在时，`src/` 里的类型 shim 才会被真实构建刷新。中立产物变化后同步一次：
+
+```bash
+npm run vendor:neutral    # 需同级 ../aeval/control 已 npm run build
+```
+
 想接入自己的 agent、写自己的评测套件，或弄清报告里每个指标的含义，见 aeval 的
 使用者指南：[写一个评测套件](https://github.com/xyrrrrr-r/aeval/blob/main/docs/guides/writing-a-suite.md) ·
 [接入一个新的 agent](https://github.com/xyrrrrr-r/aeval/blob/main/docs/guides/adding-an-agent.md) ·

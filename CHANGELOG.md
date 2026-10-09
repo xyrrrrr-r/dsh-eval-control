@@ -22,6 +22,19 @@ schema、bundle descriptor 格式、bin 协议），每次都会在下方
   SHA 与 GitCode 上的历史不再对应，从旧历史 cherry-pick 会冲突；0.2.0 这条即
   如此摘入。
 
+### Fixed
+
+- **独立 clone 无法构建运行面**：`scripts/pull-neutral.mjs` 原先只认同级
+  `../aeval/control/dist`（或 `$AEVAL_CONTROL_DIST`），取不到就打一行提示并
+  **以 0 退出**；而 `dist/` 在 `.gitignore` 里、`src/config.ts` 又已在瘦身时移除，
+  于是单独 clone 本仓库拿不到 `dist/config.js`，4 条 selfcheck 用例以
+  `ERR_MODULE_NOT_FOUND` 失败——README 承诺的"`npm test` 全绿是提交前提"对外部
+  贡献者并不成立。现在取用顺序为 `$AEVAL_CONTROL_DIST` → 同级 checkout → 仓库内
+  `vendor/neutral/`（8 个模块的 `.js` 与 `.d.ts`，与同级构建逐字节一致），三者皆缺
+  才报错退出；`npm run vendor:neutral` 把同级构建同步进 vendor，并拒绝在没有同级
+  checkout 时把回退副本复制给自己。`test/neutral-shims.test.ts` 新增完整性用例，
+  防止 vendor 被逐个删空后仍"看起来能构建"。
+
 ## [0.2.0] - 2026-10-08
 
 发布面版本：让本包作为 DSH 插件可被收录、可被独立安装，且装完不炸。
