@@ -1,5 +1,11 @@
 # dsh-eval-control
 
+[![npm version](https://img.shields.io/npm/v/dsh-eval-control?logo=npm&color=cb3837)](https://www.npmjs.com/package/dsh-eval-control)
+[![npm downloads](https://img.shields.io/npm/dm/dsh-eval-control)](https://www.npmjs.com/package/dsh-eval-control)
+[![license](https://img.shields.io/npm/l/dsh-eval-control)](LICENSE)
+[![dsh-plugin topic](https://img.shields.io/badge/topic-dsh--plugin-blue)](https://github.com/topics/dsh-plugin)
+[![dshfind](https://dshfind.com/api/badge/xyrrrrr-r/dsh-eval-control?metric=downloads)](https://dshfind.com/zh/plugins)
+
 **aeval 的宿主侧 DSH 评测控制插件**：把一次评测试次所需的全部实验事实——
 变量、预算、血统、证据归属——一次性注入 DSH agent 进程，并密封成可校验的
 bundle descriptor。
@@ -90,12 +96,16 @@ owner 写出的配置文件；或整行为空 `{}` 且设置 `AEVAL_CONTROL_CONF
 dsh plugin --profile web add dsh-eval-control
 ```
 
-也可以走 [1024 商店](https://deepseek1024.com/) 的追踪安装器——`dsh1024 plugin …` 就是官方
+也可以走 [1024 商店的插件页](https://deepseek1024.com/plugins/xyrrrrr-r/dsh-eval-control) 的追踪安装器——`dsh1024 plugin …` 就是官方
 `dsh plugin …` 换了名字，参数原样转发，额外记录一条匿名安装结果用于该店的安装量排名：
 
 ```bash
 npm install -g dsh1024 && dsh1024 plugin --profile web add dsh-eval-control
 ```
+
+目录收录：本包已在 [1024 商店](https://deepseek1024.com/plugins/xyrrrrr-r/dsh-eval-control) 的 `dev` 分类下；
+仓库带有 [`dsh-plugin` 主题](https://github.com/topics/dsh-plugin)，[dshfind](https://dshfind.com/zh/plugins)
+会在每日主题同步后自动索引，顶部 dshfind 徽章在收录前显示 `not listed` 属正常，收录后自动有值。
 
 装完即为 standalone：设置页里能看到插件卡片与 Web 状态胶囊，
 `aeval-dsh-control-selfcheck` 也能核对本机环境。要挂上完整控制栈，
