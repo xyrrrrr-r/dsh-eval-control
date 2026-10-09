@@ -24,6 +24,19 @@ schema、bundle descriptor 格式、bin 协议），每次都会在下方
 
 ### Fixed
 
+- **peer 窗口静默排除宿主预发布版本**：`@deepseek-ai/dsh*` 原先写作
+  `>=0.1.7-alpha.1 <0.2.0`。node-semver 只在范围里存在**同一
+  major.minor.patch 元组上带预发布标签的比较符**时才放行该预发布版本，而
+  `<0.2.0` 的上界不带预发布标签，于是 `0.2.0-rc.2`（桌面端内置的宿主）与
+  `0.1.8-alpha.*` 都被静默排除，宿主据 peer 范围**跳过整个 bundle**（仅
+  stderr 提示），表现上就像插件没装上。窗口改为按元组分段：
+  `>=0.1.7-alpha.1 <0.1.8-0 || >=0.1.8-alpha.1 <0.2.0-0 || >=0.2.0-0 <0.3.0-0`，
+  即"0.1.7 起至 0.2 线全部版本（含各自元组的预发布）"；`package.json` 与
+  `package-lock.json` 同步。`test/packaging.test.ts` 对发布面的断言（范围必须
+  带 `^`/`~`/`>=`、harness peer 必须同时留在 `devDependencies`、`devDependencies`
+  保持精确 pin）不受影响，无需改动。宿主出现 0.2.1 及以上 minor 的预发布时，
+  需再补一条对应元组的分支。
+
 - **独立 clone 无法构建运行面**：`scripts/pull-neutral.mjs` 原先只认同级
   `../aeval/control/dist`（或 `$AEVAL_CONTROL_DIST`），取不到就打一行提示并
   **以 0 退出**；而 `dist/` 在 `.gitignore` 里、`src/config.ts` 又已在瘦身时移除，
