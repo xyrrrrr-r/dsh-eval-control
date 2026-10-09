@@ -1,6 +1,6 @@
 {
   "name": "dsh-eval-control",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Host-side Cordis control plugin for aeval: one-shot config injector (experiment variables, gateway-lease budgets, fork lineage, bundle descriptor), with a standalone status mode, a Web status chip, and a self-check command.",
   "license": "Apache-2.0",
   "keywords": [

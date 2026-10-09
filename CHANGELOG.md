@@ -12,6 +12,12 @@ schema、bundle descriptor 格式、bin 协议），每次都会在下方
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-09
+
+宿主兼容性修复版本：peer 窗口放行整条 0.2 线（含 0.2.0 的预发布），本包在
+0.2.0-rc.2 这类宿主上不再因 peer 范围不匹配而被跳过整个 bundle。插件行为、
+配置 schema 与 bundle descriptor 格式均未改动。
+
 ### Changed
 
 - **仓库迁移至 GitHub**：托管地址由 GitCode 的
@@ -156,6 +162,7 @@ schema、bundle descriptor 格式、bin 协议），每次都会在下方
   适配器、官方 session 格式对齐）；升级需与 aeval 同步验证。
 - Node 要求 `^22.19.0 || >=24.0.0`。
 
-[Unreleased]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/xyrrrrr-r/dsh-eval-control/releases/tag/v0.1.0
