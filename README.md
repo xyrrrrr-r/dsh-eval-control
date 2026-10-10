@@ -12,7 +12,7 @@ bundle descriptor。
 
 Host-side Cordis control plugin for [aeval](https://github.com/xyrrrrr-r/aeval):
 one-shot config injection for experiment variables, gateway-lease budgets,
-fork lineage, and bundle descriptors.（experimental · v0.2.1 · Apache-2.0）
+fork lineage, and bundle descriptors.（experimental · v0.2.2 · Apache-2.0）
 
 ## 它解决什么问题
 
