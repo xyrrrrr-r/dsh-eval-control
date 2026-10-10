@@ -12,6 +12,16 @@ schema、bundle descriptor 格式、bin 协议），每次都会在下方
 
 ## [Unreleased]
 
+### Fixed
+
+- **Web 状态胶囊漏声明 `locale` 依赖**：`client/client.js` 调用
+  `ctx.locale.register` / `ctx.locale.bind`，但模块的 `inject` 只声明了
+  `slots`，只能靠存在性守卫兜底——`locale` 服务不在时字典不会注册、胶囊文案
+  退化成原始 key，且 loader 不会为它等待。现按官方 client 插件的写法（
+  `ui-schedule`、`ui-layout`、`ui-approval`、`ui-trajectory` 等一律把 `locale`
+  写进 `inject`）声明该依赖，随之移除那两处守卫。只影响 Web 状态胶囊的文案
+  注册，宿主侧行为与 bundle descriptor 均未改动。
+
 ## [0.2.1] - 2026-10-09
 
 宿主兼容性修复版本：peer 窗口放行整条 0.2 线（含 0.2.0 的预发布），本包在

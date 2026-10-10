@@ -102,14 +102,10 @@ window.__ModuleLoader__.load({
     }
 
     return {
-      inject: ['slots'],
+      inject: ['slots', 'locale'],
       apply(ctx) {
-        if (ctx.locale && typeof ctx.locale.register === 'function') {
-          ctx.effect(() => ctx.locale.register(NS, DICTIONARIES), 'dsh-eval-control:dictionaries');
-        }
-        const t = ctx.locale && typeof ctx.locale.bind === 'function'
-          ? ctx.locale.bind(NS)
-          : (key) => key;
+        ctx.effect(() => ctx.locale.register(NS, DICTIONARIES), 'dsh-eval-control:dictionaries');
+        const t = ctx.locale.bind(NS);
 
         const load = async () => {
           const inventory = ctx.remote && ctx.remote.pluginInventory;
