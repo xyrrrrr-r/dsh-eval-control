@@ -88,10 +88,10 @@ harbor:443/t-bench/base-pilot@sha256:df100e56…
 uv venv --python 3.12 .venv
 source .venv/bin/activate
 uv pip install aeval-harbor        # 需要 ≥ 0.3.0
-aeval --version
+python3 -c "import importlib.metadata as m; print(m.version('aeval-harbor'))"   # 确认版本
 ```
 
-> `aeval` 的发布名是 `aeval-harbor`，命令与包名都是 `aeval`。
+> `aeval` 的发布名是 `aeval-harbor`，命令与包名都是 `aeval`。**没有 `aeval --version` 这个选项**，查版本用上面这条。
 
 ### 2.2 控制栈：**用 npm 装一份**（关键，别直接用市场那份）
 
@@ -408,7 +408,10 @@ DeepSeek 的 Responses 线加 `"protocol": "responses"`，`baseUrl` 用 `https:/
 
 **多 run 聚合**：`--store` 可重复，聚合**同一套件**的多个 run；`run_id` 必须被其中某个 store 记录。
 
-**换套件**：套件是目录（`suite.yaml` + `jobs/` + `tasks/` + `graders/`…），写法见 `aeval/docs/guides/writing-a-suite.md`；用 `aeval explain <suite>` 先看它声明了什么。
+**换套件**：套件是目录（`suite.yaml` + `jobs/` + `tasks/` + `graders/`…），写法见 aeval 源码仓库的 `docs/guides/writing-a-suite.md`；先读 `suite.yaml` 与 `jobs/*.yaml` 看它声明了什么。
+（`aeval explain` 渲染器在 0.3.0 上有一个 `NameError` 缺陷——凡声明了族/引擎的套件都会抛
+`NameError: name 'case' is not defined`（`aeval/suite_loader/loader.py:517` 引用了不存在的名字）。
+它与本流程无关，暂以读套件目录代替。）
 
 ---
 
