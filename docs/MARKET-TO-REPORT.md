@@ -221,9 +221,9 @@ dsh plugin --profile web list        # 确认装上了
 
 - **`--profile` 是必填项**（连 `--help` 都要带）。
 - **不带版本号会装到市场目录当前广告的版本，而市场目录会明显滞后于 npm**。实测
-  （2026-10-11）：npm `latest` 已经是 `0.2.5` 时，一个**全新 profile** 不带版本仍解析到
-  `0.2.2`；写成 `dsh-eval-control@0.2.5` 才拿到最新（`dsh plugin --profile <p> list`
-  会显示 `dsh-eval-control@0.2.5`）。**所以务必显式写版本**，并用下面这条确认落点版本：
+  （2026-10-11）：npm `latest` 已经是 `0.2.6` 时，一个**全新 profile** 不带版本仍解析到
+  `0.2.2`；写成 `dsh-eval-control@0.2.6` 才拿到最新（`dsh plugin --profile <p> list`
+  会显示 `dsh-eval-control@0.2.6`）。**所以务必显式写版本**，并用下面这条确认落点版本：
 
 ```bash
 node -p "require('./node_modules/dsh-eval-control/package.json').version"          # 工作区这份
