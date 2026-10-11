@@ -140,9 +140,23 @@ aeval-dsh-control-selfcheck --config /abs/path/control-config.json   # 只读自
 补 `cordis.patch.yml` 那条路能挂上控制栈，但**不会产生评测报告**——套件、试次、
 沙箱、证据门、封存、报告都是 aeval 的职责。要拿到报告，必须由 aeval 来编排。
 
-以下步骤在 `hw-lab` 上实测通过：pip 安装的 aeval + 市场式位置（`dsh plugin add`
-的落点 `~/.dsh-beta/profiles/<profile>/node_modules/dsh-eval-control`）安装的本包，
-3 个试次全部 reward=1，证据覆盖 3/3，封存 `recompute passed`。
+> **完整执行文档：[docs/MARKET-TO-REPORT.md](docs/MARKET-TO-REPORT.md)**
+> ——前置条件、任务镜像、证书、排障表、可整段复制的脚本都在那里；下面是最短路径。
+
+先澄清一件最容易踩的事：**`dsh plugin add` 装的那份不能当 `controlRoot`。**
+插件市场安装走 pnpm 严格布局，`@deepseek-ai/dsh-*` 这些 peer 是留给 **DSH 宿主**
+提供的，所以 profile 里那份**没有这些依赖**；而 aeval 的 broker 是一个独立 Node
+进程，必须自己解析得到依赖，否则启动即
+`ERR_MODULE_NOT_FOUND: Cannot find package '@deepseek-ai/dsh-llm'`，该试次以
+"模型 broker 起不来"被整轮排除。所以：
+
+- 要在 DSH 里用插件 → `dsh plugin add dsh-eval-control@<版本>`（走 pnpm）；
+- 要让 aeval 跑评测 → **再 `npm install dsh-eval-control@<版本>` 一份**，用那份当
+  `controlRoot`。两者互不替代。
+
+以下步骤在 `hw-lab` 上实测通过：pip 安装的 aeval + `npm install` 的控制栈，
+3 个试次**全部进入判分**（有效分母 3/3、排除率 0.0%）、证据覆盖 3/3、封存
+`recompute passed`（89 个封存文件）。
 
 > **需要 aeval ≥ 0.3.0**：`--init`、`controlRoot` 一处推导、以及"自动找到 DSH
 > profile 里装的本包"都是 0.3.0 才有的。更早的版本（含 PyPI 上同为 0.2.0 的
@@ -154,35 +168,61 @@ aeval-dsh-control-selfcheck --config /abs/path/control-config.json   # 只读自
 uv venv --python 3.12 && source .venv/bin/activate
 uv pip install aeval-harbor
 
-# 2. 声明：装出来的 aeval 旁边没有 agents/，这条命令从包内写出起点
+# 2. 控制栈：broker 宿主侧用这份（不是 dsh plugin add 的那份）
+npm install dsh-eval-control@0.2.3
+
+# 3. 声明：装出来的 aeval 旁边没有 agents/，这条命令从包内写出起点
 aeval agents --init --agents-dir agents   # _base/ + _runtime/images.yaml + dsh.yaml
 aeval agents --agents-dir agents          # 应打印：1 agent declaration(s) agree ...
 
-# 3. 指向本包：只需一处 —— controlRoot
+# 4. 可信 token 计数器：spec 设了 maxTokens 就必须有，否则 broker 拒绝启动
+#    （参考实现：套件自带 suites/tbench-pilot/tools/token_count.py，契约是"永不少算"）
+python3 suites/tbench-pilot/tools/token_count.py --host 127.0.0.1 --port 8791 &
+
+# 5. spec：只有 controlRoot 一处指向本包；上游四件套 / 计数器 / TLS 都别省
 cat > broker.json <<'JSON'
 {
   "controlRoot": "/abs/path/to/node_modules/dsh-eval-control",
+  "listenHost": "10.0.0.12",
   "listenPort": 8447,
-  "upstream": {"apiKeyEnv": "DEEPSEEK_API_KEY"},
+  "listenTls": {"cert": "/abs/path/gateway.crt", "key": "/abs/path/gateway.key"},
+  "controlCa": "/abs/path/ca.crt",
+  "upstream": {"provider": "deepseek", "baseUrl": "https://api.deepseek.com/v1",
+               "apiKeyEnv": "DEEPSEEK_API_KEY", "model": "deepseek-chat"},
   "identity": {"model": "deepseek-chat", "provider": "deepseek"},
   "limits": {"maxSteps": 60, "maxTokens": 2000000},
-  "maxOutputTokens": 16384
+  "maxOutputTokens": 16384,
+  "tokenCount": {"endpoint": "http://127.0.0.1:8791/tokens/count", "margin": 8}
 }
 JSON
 
-# 4. 上游 key 在宿主侧（broker 跑在宿主，不是沙箱里）
+# 6. 上游 key 在宿主侧（broker 跑在宿主，不是沙箱里）
 export DEEPSEEK_API_KEY=...
 
-# 5. 跑 + 出报告
+# 7. 跑 + 链证据 + 出报告
 export AEVAL_BROKER_JSON=$PWD/broker.json
 aeval run --suite <套件目录> --run-dir runs/1 --store runs/1.sqlite3 \
           --agents-dir agents --harbor-cli harbor
-aeval report run-1 --store runs/1.sqlite3
+mkdir -p runs/trials
+for t in runs/1/harbor/*/*/; do [ -f "$t/collection_manifest.json" ] && \
+  ln -sfn "$PWD/$t" "runs/trials/$(basename "$t")"; done
+aeval report run-1 --store runs/1.sqlite3 --k 1
 ```
 
 **指向本包只需要一处**：spec 的 `controlRoot`（含 `dist/broker_main.js` 的目录）。
 `brokerJs` 与 `controlDist` 都由它推导，会话读取器也从它、或从 DSH profile 的安装
 位置自动找到。显式写 `controlDist` 仍然优先，用于构建产物放在包外的场景。
+
+**为什么上面的 spec 不能更省**（三条都是实测拒绝，不是建议）：
+
+- `upstream` 少写字段 → `broker config upstream.model: invalid identifier ''`
+  （`provider` / `baseUrl` / `model` / `apiKeyEnv` 四个都要）；
+- 设了 `limits.maxTokens` 却没 `tokenCount` →
+  `limits.maxTokens requires a trusted tokenCount source`（broker 退出码 3）；
+- docker 沙箱里连 loopback → 沙箱侧 `TypeError: fetch failed` /
+  `connect ECONNREFUSED 127.0.0.1:8447`，最终表现为
+  `the trial's agent exposes no DSH session`。容器里的 `127.0.0.1` 是它自己，
+  所以 `listenHost` 必须是**沙箱能连到的宿主机 IP**，非 loopback 监听强制 TLS。
 
 **失败形态**（全部为实测原文，逐条对应一次真实排障）：
 
@@ -191,8 +231,15 @@ aeval report run-1 --store runs/1.sqlite3
 | `DshRunError: official DSH session reader not found` | aeval 找不到本包。设 `AEVAL_DSH_CONTROL_ROOT`、在 agent 声明的 launch kwargs 写 `session_reader`，或在 spec 里给 `controlRoot` 任一处即可 |
 | `BootstrapError: … carries no controlDist and no controlRoot with a built dist/` | 既没 `controlDist` 也没编译好的 `controlRoot`。此时试次会跑成"有计量之名、无计量之实"，所以拒绝而不是降级 |
 | broker 起不来，报 `upstream API key is not set` | 宿主没导出 `upstream.apiKeyEnv` 指的那个变量。**后续症状会伪装**：该试次被标 infra-invalid → 控制栈静默跳过 → 沙箱里只看到 `MISSING_CREDENTIAL`，与真正原因毫无相似之处。看 `aeval_run_summary.json` 的 `trials[*].infra_invalid_reasons` |
+| `Cannot find package '@deepseek-ai/dsh-llm'` + `ERR_MODULE_NOT_FOUND` | `controlRoot` 那份没有依赖（`dsh plugin add` 的市场副本不给 peer）→ 换成 `npm install` 的那份（本文第 2 步） |
+| `limits.maxTokens requires a trusted tokenCount source` | 硬预算没计数器 → 起 `token_count.py` 并在 spec 里写 `tokenCount`（本文第 4/5 步） |
+| `connect ECONNREFUSED 127.0.0.1:8447`，随后 `the trial's agent exposes no DSH session` | 沙箱连不到 broker → `listenHost` 给沙箱可达的宿主机 IP，配 `listenTls` + `controlCa` |
 | `error: no agent declarations under agents` | 还没 `aeval agents --init`，或 `--agents-dir` 指错 |
-| 报告里"证据覆盖 0/N" | 采集产物没进证据目录。报告读的是 store 同级目录下的 `trials/`，自摆 run-dir 时要留意 |
+| 报告里"证据覆盖 0/N" | 采集产物没进证据目录。报告读的是 store 同级目录下的 `trials/`（见上面第 7 步） |
+
+**跑了但全被排除时，退出码仍是 `0`**（接线故障不算用例失败）。所以判断成败看
+`run … sealed:` 之后那行 `<valid>/<total> trial(s) scored`——分母才是试次数；
+排除率超标报告会自己警告。
 
 ## 构建与测试
 

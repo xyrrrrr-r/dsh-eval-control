@@ -12,6 +12,34 @@ schema、bundle descriptor 格式、bin 协议），每次都会在下方
 
 ## [Unreleased]
 
+### Added
+
+- **端到端执行文档 [`docs/MARKET-TO-REPORT.md`](docs/MARKET-TO-REPORT.md)**：从
+  aeval 与控制栈安装、套件获取、可信 token 计数器、broker spec，一路到出报告，
+  全部命令在真机（Linux/aarch64 + Docker 后端）上端到端跑通——3 个 terminal-bench
+  任务全部进入判分（有效分母 3/3、排除率 0.0%）、证据覆盖 3/3、封存
+  `recompute passed`（89 个封存文件）。附逐条实测报错原文的排障表，以及可整段
+  复制的脚本。
+
+### Fixed
+
+- **README「装了插件之后：真正跑一次评测」给出的 spec 跑不起来**：示例 `upstream`
+  只写了 `apiKeyEnv`（实测被拒：`broker config upstream.model: invalid identifier ''`）、
+  设了 `limits.maxTokens` 却没有 `tokenCount`（实测被拒：`limits.maxTokens requires
+  a trusted tokenCount source`）、docker 后端沿用 loopback（沙箱侧
+  `TypeError: fetch failed` / `connect ECONNREFUSED 127.0.0.1:8447`，最终表现为
+  `the trial's agent exposes no DSH session`）。现改为实测可用的完整形状，并补上
+  token 计数器、`listenHost`/`listenTls`/`controlCa`、以及 `trials/` 证据链接三步。
+- **README 关于"市场式安装位置"的说法会误导**：`dsh plugin add` 走 pnpm 严格布局，
+  `@deepseek-ai/dsh-*` 这些 peer 由 DSH 宿主提供，profile 里那份**没有这些依赖**
+  （实测 `.pnpm/` 下 0 个 `deepseek` 包），**不能**当作 aeval 的 `controlRoot`
+  （实测 `ERR_MODULE_NOT_FOUND: Cannot find package '@deepseek-ai/dsh-llm' imported
+  from .../dist/broker_main.js`）。现已写明两条安装路径的分工：DSH 内用插件走
+  `dsh plugin add`，让 aeval 跑评测另装一份 `npm install` 的控制栈。
+- **README 的实测结论改为可复核的措辞**：原文写"3 个试次全部 reward=1"（那是更早
+  一次 run 的结果）；现按本文档对应的 run 记为"3 个试次全部进入判分（有效分母
+  3/3、排除率 0.0%）、证据覆盖 3/3"。
+
 ## [0.2.3] - 2026-10-11
 
 文档与依赖声明版本：补上"装完插件之后评测怎么才算真的跑起来"的实测步骤，
