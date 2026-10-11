@@ -133,6 +133,67 @@ aeval-dsh-control-selfcheck --config /abs/path/control-config.json   # 只读自
 变更见 [CHANGELOG](CHANGELOG.md)；语义化版本（0.x 实验期：minor 版本可能含破坏性
 变更，均在 CHANGELOG 显式列出）。
 
+### 装了插件之后：真正跑一次评测
+
+插件**不是**评测。装上它只是让 DSH 变得可控：standalone 模式什么都不挂、不接管
+任何模型调用（`aeval-dsh-control-selfcheck` 会如实报 `mode: standalone`）；上面手工
+补 `cordis.patch.yml` 那条路能挂上控制栈，但**不会产生评测报告**——套件、试次、
+沙箱、证据门、封存、报告都是 aeval 的职责。要拿到报告，必须由 aeval 来编排。
+
+以下步骤在 `hw-lab` 上实测通过：pip 安装的 aeval + 市场式位置（`dsh plugin add`
+的落点 `~/.dsh-beta/profiles/<profile>/node_modules/dsh-eval-control`）安装的本包，
+3 个试次全部 reward=1，证据覆盖 3/3，封存 `recompute passed`。
+
+> **需要 aeval ≥ 0.3.0**：`--init`、`controlRoot` 一处推导、以及"自动找到 DSH
+> profile 里装的本包"都是 0.3.0 才有的。更早的版本（含 PyPI 上同为 0.2.0 的
+> 那一版）必须显式给 `controlDist`，并把会话读取器路径用
+> `AEVAL_DSH_CONTROL_ROOT` 或声明的 `session_reader` 指出来。
+
+```bash
+# 1. aeval（要求 Python ≥3.12；装到哪都行，旁边不需要本包的源码）
+uv venv --python 3.12 && source .venv/bin/activate
+uv pip install aeval-harbor
+
+# 2. 声明：装出来的 aeval 旁边没有 agents/，这条命令从包内写出起点
+aeval agents --init --agents-dir agents   # _base/ + _runtime/images.yaml + dsh.yaml
+aeval agents --agents-dir agents          # 应打印：1 agent declaration(s) agree ...
+
+# 3. 指向本包：只需一处 —— controlRoot
+cat > broker.json <<'JSON'
+{
+  "controlRoot": "/abs/path/to/node_modules/dsh-eval-control",
+  "listenPort": 8447,
+  "upstream": {"apiKeyEnv": "DEEPSEEK_API_KEY"},
+  "identity": {"model": "deepseek-chat", "provider": "deepseek"},
+  "limits": {"maxSteps": 60, "maxTokens": 2000000},
+  "maxOutputTokens": 16384
+}
+JSON
+
+# 4. 上游 key 在宿主侧（broker 跑在宿主，不是沙箱里）
+export DEEPSEEK_API_KEY=...
+
+# 5. 跑 + 出报告
+export AEVAL_BROKER_JSON=$PWD/broker.json
+aeval run --suite <套件目录> --run-dir runs/1 --store runs/1.sqlite3 \
+          --agents-dir agents --harbor-cli harbor
+aeval report run-1 --store runs/1.sqlite3
+```
+
+**指向本包只需要一处**：spec 的 `controlRoot`（含 `dist/broker_main.js` 的目录）。
+`brokerJs` 与 `controlDist` 都由它推导，会话读取器也从它、或从 DSH profile 的安装
+位置自动找到。显式写 `controlDist` 仍然优先，用于构建产物放在包外的场景。
+
+**失败形态**（全部为实测原文，逐条对应一次真实排障）：
+
+| 症状 | 原因 |
+| --- | --- |
+| `DshRunError: official DSH session reader not found` | aeval 找不到本包。设 `AEVAL_DSH_CONTROL_ROOT`、在 agent 声明的 launch kwargs 写 `session_reader`，或在 spec 里给 `controlRoot` 任一处即可 |
+| `BootstrapError: … carries no controlDist and no controlRoot with a built dist/` | 既没 `controlDist` 也没编译好的 `controlRoot`。此时试次会跑成"有计量之名、无计量之实"，所以拒绝而不是降级 |
+| broker 起不来，报 `upstream API key is not set` | 宿主没导出 `upstream.apiKeyEnv` 指的那个变量。**后续症状会伪装**：该试次被标 infra-invalid → 控制栈静默跳过 → 沙箱里只看到 `MISSING_CREDENTIAL`，与真正原因毫无相似之处。看 `aeval_run_summary.json` 的 `trials[*].infra_invalid_reasons` |
+| `error: no agent declarations under agents` | 还没 `aeval agents --init`，或 `--agents-dir` 指错 |
+| 报告里"证据覆盖 0/N" | 采集产物没进证据目录。报告读的是 store 同级目录下的 `trials/`，自摆 run-dir 时要留意 |
+
 ## 构建与测试
 
 从源码构建（要求 Node `^22.19.0 || >=24.0.0`）：
