@@ -140,7 +140,7 @@ aeval-dsh-control-selfcheck --config /abs/path/control-config.json   # 只读自
 补 `cordis.patch.yml` 那条路能挂上控制栈，但**不会产生评测报告**——套件、试次、
 沙箱、证据门、封存、报告都是 aeval 的职责。要拿到报告，必须由 aeval 来编排。
 
-> **完整执行文档：[docs/MARKET-TO-REPORT.md](docs/MARKET-TO-REPORT.md)**
+> **完整执行文档：[docs/MARKET-TO-REPORT.md](https://github.com/xyrrrrr-r/dsh-eval-control/blob/main/docs/MARKET-TO-REPORT.md)**
 > ——前置条件、任务镜像、证书、排障表、可整段复制的脚本都在那里；下面是最短路径。
 
 先澄清一件最容易踩的事：**`dsh plugin add` 装的那份不能当 `controlRoot`。**

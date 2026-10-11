@@ -12,9 +12,15 @@ schema、bundle descriptor 格式、bin 协议），每次都会在下方
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-10-11
+
+文档与实测修正版本：**源码零改动**，插件行为、配置 schema、bundle descriptor
+格式均未变。补上同事端从安装到出报告的完整执行文档，并修掉 README 里一段
+"照做必然失败"的最短路径（给的 spec 缺三项必填、且把市场安装副本当成可用控制栈）。
+
 ### Added
 
-- **端到端执行文档 [`docs/MARKET-TO-REPORT.md`](docs/MARKET-TO-REPORT.md)**：从
+- **端到端执行文档 [`docs/MARKET-TO-REPORT.md`](https://github.com/xyrrrrr-r/dsh-eval-control/blob/main/docs/MARKET-TO-REPORT.md)**：从
   aeval 与控制栈安装、套件获取、可信 token 计数器、broker spec，一路到出报告，
   全部命令在真机（Linux/aarch64 + Docker 后端）上端到端跑通——3 个 terminal-bench
   任务全部进入判分（有效分母 3/3、排除率 0.0%）、证据覆盖 3/3、封存
@@ -231,7 +237,8 @@ peer。插件行为、配置 schema 与 bundle descriptor 格式均未改动，�
   适配器、官方 session 格式对齐）；升级需与 aeval 同步验证。
 - Node 要求 `^22.19.0 || >=24.0.0`。
 
-[Unreleased]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.2.4...HEAD
+[0.2.4]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.2.0...v0.2.1
