@@ -1,6 +1,6 @@
 {
   "name": "dsh-eval-control",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Host-side Cordis control plugin for aeval: one-shot config injector (experiment variables, gateway-lease budgets, fork lineage, bundle descriptor), with a standalone status mode, a Web status chip, and a self-check command.",
   "license": "Apache-2.0",
   "keywords": [
@@ -61,10 +61,11 @@
     "pull-neutral": "node scripts/pull-neutral.mjs",
     "vendor:neutral": "node scripts/pull-neutral.mjs --refresh-vendor",
     "typecheck": "tsc --noEmit",
-    "build": "npm run pull-neutral && tsc -p tsconfig.build.json",
+    "build": "npm run pull-neutral && tsc -p tsconfig.build.json && npm run bundle:standalone",
+    "bundle:standalone": "node scripts/bundle-standalone.mjs",
     "prepublishOnly": "npm run build && npm test",
     "clean:test": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('.test-dist', { recursive: true, force: true })\"",
-    "test": "npm run build && npm run clean:test && tsc -p tsconfig.test.json && npm run pull-neutral && node scripts/run-tests.mjs"
+    "test": "npm run build && npm run clean:test && tsc -p tsconfig.test.json && npm run pull-neutral && npm run bundle:standalone && node scripts/run-tests.mjs"
   },
   "dsh": {
     "bundle": {
@@ -112,6 +113,7 @@
     "@deepseek-ai/dsh-tools": "0.2.0-rc.2",
     "@deepseek-ai/schemastery": "3.18.4",
     "@types/node": "24.13.6",
+    "esbuild": "0.28.2",
     "typescript": "6.0.3"
   }
 }

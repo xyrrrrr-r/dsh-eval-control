@@ -9,6 +9,7 @@
  */
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync, statSync } from 'node:fs';
+import { builtinModules } from 'node:module';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { test } from 'node:test';
@@ -103,4 +104,62 @@ test('runtime peers are ranged while build-time pins stay exact', () => {
 test('the self-check command is built and wired as a bin', () => {
   assert.equal(manifest.bin['aeval-dsh-control-selfcheck'], 'dist/selfcheck.js');
   assert.ok(existsSync(join(root, 'dist', 'selfcheck.js')), 'the build must emit dist/selfcheck.js');
+});
+
+test('the subprocess entries aeval spawns resolve nothing at runtime', () => {
+  // aeval runs these two as their own process (`node <entry> [args]`), so they
+  // cannot borrow the DSH host's instances. A market install only brings
+  // `dependencies`, which is why a peer-provided copy is absent there and the
+  // entries died with ERR_MODULE_NOT_FOUND: Cannot find package
+  // '@deepseek-ai/dsh-llm'. The build inlines their imports instead
+  // (scripts/bundle-standalone.mjs) — this is the regression guard for that.
+  const bare = /(?:from|import)\s*\(?\s*['"]([^'"\s]+)['"]/g;
+  for (const entry of ['broker_main.js', 'session_reader.js']) {
+    const text = readFileSync(join(root, 'dist', entry), 'utf8');
+    const external = [...text.matchAll(bare)]
+      .map((match) => match[1] ?? '')
+      .filter(
+        (spec) =>
+          spec !== '' &&
+          !spec.startsWith('.') &&
+          !spec.startsWith('node:') &&
+          !builtinModules.includes(spec),
+      );
+    assert.deepEqual(
+      external,
+      [],
+      `dist/${entry} must be self-contained: aeval executes it with no module tree around it`,
+    );
+    assert.ok(text.startsWith('#!'), `dist/${entry} must keep its shebang`);
+  }
+  // ...and the bundled broker must really carry the neutral runtime, not a stub.
+  const neutral = readFileSync(join(root, 'vendor', 'neutral', 'broker_main.js'), 'utf8');
+  const bundled = readFileSync(join(root, 'dist', 'broker_main.js'), 'utf8');
+  assert.ok(neutral.includes('parseBrokerMainConfig'), 'the vendor copy is the neutral entry');
+  assert.ok(
+    bundled.includes('parseBrokerMainConfig'),
+    'the bundled broker must carry the neutral runtime it was built from',
+  );
+  assert.ok(
+    bundled.length > neutral.length,
+    'the bundled broker must be the inlined build, not the pristine copy',
+  );
+});
+
+test('the in-process entries keep resolving the host peers', () => {
+  // The files the DSH host loads through cordis.patch.yml must import the
+  // host's own @deepseek-ai instances: SessionId and scopeOf are runtime
+  // values, so a private copy would take the plugin out of the host's realm
+  // (and the manifest forbids those packages as install-time dependencies).
+  for (const [entry, peer] of [
+    ['index.js', '@deepseek-ai/dsh-session'],
+    ['index.js', '@deepseek-ai/dsh-scope'],
+    ['sandbox_entry.js', '@deepseek-ai/schemastery'],
+  ] as const) {
+    const text = readFileSync(join(root, 'dist', entry), 'utf8');
+    assert.ok(
+      text.includes(`'${peer}'`),
+      `dist/${entry} must keep importing ${peer} so the host instance is reused`,
+    );
+  }
 });

@@ -3,8 +3,9 @@
 > 目标读者：拿到 `dsh-eval-control` 之后，想在自己的机器上**真正跑完一轮 DeepSeek Harness 评测并拿到报告**的人。
 > 本文所有命令都在实验机上端到端跑通过，遇到的坑与报错原文一并列出。
 >
-> 版本基线：`aeval-harbor 0.3.0` · `dsh-eval-control 0.2.5` · DSH CLI `0.2.0-rc.2` · Python `3.12` · Node `24`
-> （0.2.3–0.2.5 的控制栈代码相同，只动文档；本文命令在 0.2.3 与 0.2.4 上都原样跑过）
+> 版本基线：`aeval-harbor 0.3.0` · `dsh-eval-control 0.2.6` · DSH CLI `0.2.0-rc.2` · Python `3.12` · Node `24`
+> （0.2.3–0.2.5 只有文档变化；**0.2.6 是本文流程最省事的一版**——控制栈那两个独立进程入口自带依赖，
+> 见 §2.2。本文命令在 0.2.3、0.2.4、0.2.6 上都原样跑过）
 >
 > **本文脚本原样跑出来的结果**（实验机 hw-lab，3 个 terminal-bench 任务）：
 > `run run-demo sealed: 3 trial(s) recorded, 89 file(s) attested, recompute passed`；
@@ -97,12 +98,20 @@ python3 -c "import importlib.metadata as m; print(m.version('aeval-harbor'))"   
 ### 2.2 控制栈：两条路线，选一条
 
 broker 跑在**宿主**上、是一个独立的 Node 进程，它必须自己解析得到 `@deepseek-ai/*`。
-路线 A 在工作区装一份自带依赖的副本；路线 B 继续用插件市场装的那份，把它缺的依赖补上。
+路线 A 在工作区装一份；路线 B 直接用插件市场装的那份。
+
+> **从 0.2.6 起，路线 B 不需要任何额外步骤。** aeval 当独立进程跑的两个入口
+> （`dist/broker_main.js` 模型 broker、`dist/session_reader.js` 会话读取器）已构建成
+> **自带依赖**的 bundle，所以 `dsh plugin add` 装完就是完整控制栈：`controlRoot` 直接写
+> `~/.dsh/profiles/<profile>/node_modules/dsh-eval-control` 即可。
+> 下面"补依赖"那一节只对 **≤0.2.5** 有意义——那几版把 13 个 `@deepseek-ai/*` 全留给了
+> DSH 宿主（正确的 peer 设计），而独立进程解析不到。进程内加载的 `dist/index.js` /
+> `dist/sandbox_entry.js` 至今仍然只用宿主 peer，插件在 DSH 里的行为没有变。
 
 **路线 A（默认，最稳）：在工作区装一份**
 
 ```bash
-npm install dsh-eval-control@0.2.5        # → ./node_modules/dsh-eval-control
+npm install dsh-eval-control@0.2.6        # → ./node_modules/dsh-eval-control
 ```
 
 spec 的 `controlRoot` 指 `./node_modules/dsh-eval-control`。这份自带全部 `@deepseek-ai/*`
@@ -204,7 +213,7 @@ npm 包，直接解析到
 
 ```bash
 pnpm -v                              # 没有 pnpm 会直接报：dsh: pnpm was not found
-dsh plugin --profile web add dsh-eval-control@0.2.5
+dsh plugin --profile web add dsh-eval-control@0.2.6
 dsh plugin --profile web list        # 确认装上了
 ```
 
@@ -521,7 +530,7 @@ uv venv --python 3.12 .venv && source .venv/bin/activate
 uv pip install aeval-harbor
 
 # 2) 控制栈（npm 那份供 broker 用）
-npm install dsh-eval-control@0.2.5 --no-audit --no-fund
+npm install dsh-eval-control@0.2.6 --no-audit --no-fund
 
 # 3) 套件（sdist）+ 出处门禁
 curl -sLO https://files.pythonhosted.org/packages/source/a/aeval-harbor/aeval_harbor-0.3.0.tar.gz

@@ -19,6 +19,15 @@ const NEUTRAL_MODULES = [
   'stop_reason',
 ] as const;
 
+// `broker_main` is the one neutral module dist/ does NOT keep verbatim: it is a
+// subprocess entry aeval executes directly (aeval/control/broker.py:
+// `node <broker_main.js> <config.json>`), so the build bundles it with its
+// imports inlined — a peer-provided copy does not exist in a profile where only
+// `dependencies` were installed. The anti-fork guarantee is kept where it
+// belongs instead: the pristine bytes stay in vendor/neutral and are compared
+// below, and test/packaging.test.ts asserts the shipped entry is self-contained.
+const COMPOSED_VERBATIM = NEUTRAL_MODULES.filter((name) => name !== 'broker_main');
+
 // `npm test` runs COMPILED tests from `.test-dist/test/`, so the repository
 // root is two levels up. Deriving it as one level above `import.meta.dirname`
 // pointed at `.test-dist/`, which made this freshness guard skip forever even
@@ -28,7 +37,7 @@ const root = fileURLToPath(new URL('../../', import.meta.url));
 const neutralDist = join(root, '..', 'aeval', 'control', 'dist');
 
 test('composed neutral files match the sibling aeval/control build', { skip: !existsSync(neutralDist) ? 'sibling aeval/control/dist not present (standalone clone)' : false }, () => {
-  for (const name of NEUTRAL_MODULES) {
+  for (const name of COMPOSED_VERBATIM) {
     assert.equal(
       readFileSync(join(root, 'src', `${name}.d.ts`), 'utf8'),
       readFileSync(join(neutralDist, `${name}.d.ts`), 'utf8'),
@@ -40,6 +49,18 @@ test('composed neutral files match the sibling aeval/control build', { skip: !ex
       `dist/${name}.js drifted from the neutral build`,
     );
   }
+  // The bundled entry's source of truth: a fork here would still fork the
+  // runtime, so the pristine bytes are guarded even though dist/ is bundled.
+  assert.equal(
+    readFileSync(join(root, 'vendor', 'neutral', 'broker_main.js'), 'utf8'),
+    readFileSync(join(neutralDist, 'broker_main.js'), 'utf8'),
+    'vendor/neutral/broker_main.js drifted from the neutral build',
+  );
+  assert.equal(
+    readFileSync(join(root, 'src', 'broker_main.d.ts'), 'utf8'),
+    readFileSync(join(neutralDist, 'broker_main.d.ts'), 'utf8'),
+    'src/broker_main.d.ts shim drifted from the neutral build',
+  );
 });
 
 test('this package no longer owns the moved sources', () => {

@@ -12,6 +12,45 @@ schema、bundle descriptor 格式、bin 协议），每次都会在下方
 
 ## [Unreleased]
 
+## [0.2.6] - 2026-10-11
+
+**修掉"市场安装的控制栈不能独立跑"这个根因。** 此前 `dsh plugin add` 装进 profile 的副本
+无法被 aeval 使用：aeval 把 `dist/broker_main.js`（模型 broker）与 `dist/session_reader.js`
+（会话读取器）当**独立 Node 进程**执行，而本包把 `@deepseek-ai/*` 声明为 peer（这是正确的
+设计——插件被 DSH 宿主进程内加载时必须用宿主那份，`SessionId` / `scopeOf` 是运行时值），
+pnpm 又只装 `dependencies`，于是那两个进程 `ERR_MODULE_NOT_FOUND: Cannot find package
+'@deepseek-ai/dsh-llm'`，试次以"模型 broker 起不来"被整轮排除。
+
+### Changed
+
+- **两个独立进程入口改为自带依赖的 bundle**（新增 `scripts/bundle-standalone.mjs`，作为
+  构建链最后一步）：`dist/broker_main.js` 15.8 KiB → 246.3 KiB、`dist/session_reader.js`
+  8.5 KiB → 617.2 KiB，各自内联全部 import，运行时不再解析任何裸包（node 内建除外）。
+  进程隔离的进程持有私有副本正是对的；`dist/index.js` 与 `dist/sandbox_entry.js` 保持原样、
+  继续 import 宿主 peer，所以插件在 DSH 内仍与宿主共享实例。
+  npm tarball 101 kB → 288 kB。
+- **`test` 脚本在最后一步重新 bundle**：原先它末尾又一次 `pull-neutral`，会把 bundle 覆盖
+  回原始文件，而 `prepublishOnly = build && test`，发布物就会静默退回旧行为。
+
+### Added
+
+- 两条新的打包不变量测试（`test/packaging.test.ts`）：「aeval 当独立进程跑的入口运行时不再
+  解析任何裸包」与「进程内入口仍引用宿主 peer（不得出现私有副本）」。
+- `test/neutral-shims.test.ts`：`broker_main` 不再要求 `dist/` 与兄弟构建逐字节相同——改为
+  守卫真正的源 `vendor/neutral/broker_main.js` 不漂移，并保留 `src/*.d.ts` 与其余 neutral
+  模块的逐字节比对。
+
+### 实测
+
+- **隔离副本**（只有 `dist/` + `cordis.patch.yml` + `package.json`，无任何 `node_modules`）：
+  broker 按 aeval 的就绪契约启动、写出 token 文件、干净停止（退出码 0）；读取器正常加载。
+- **hw-lab 全链路**：`dsh plugin --profile market26 add dsh-eval-control-0.2.6.tgz`（pnpm
+  路径，profile 内 `@deepseek-ai` 依赖 **0** 个）→ `controlRoot` 直指那份、工作区不装任何
+  npm 包 → `run run-demo sealed: 3 trial(s) recorded, 89 file(s) attested, recompute passed`，
+  有效分母 3/3、排除率 0.0%。runtime lock digest 随之变为
+  `467f20a3f59be97360893ddac0398121d6a61e0aa0fd4b04f9bc803a9686ec2a`（控制栈文件变了）。
+- `npm test` 193/193 通过。
+
 ## [0.2.5] - 2026-10-11
 
 文档修正版本：**控制栈代码与 0.2.3/0.2.4 完全相同**（`git diff v0.2.3 HEAD -- src/ client/`
@@ -256,7 +295,8 @@ peer。插件行为、配置 schema 与 bundle descriptor 格式均未改动，�
   适配器、官方 session 格式对齐）；升级需与 aeval 同步验证。
 - Node 要求 `^22.19.0 || >=24.0.0`。
 
-[Unreleased]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.2.5...HEAD
+[Unreleased]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.2.6...HEAD
+[0.2.6]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.2.2...v0.2.3
