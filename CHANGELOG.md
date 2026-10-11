@@ -12,6 +12,32 @@ schema、bundle descriptor 格式、bin 协议），每次都会在下方
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-10-11
+
+文档与依赖声明版本：补上"装完插件之后评测怎么才算真的跑起来"的实测步骤，
+并把 devDependencies 升到 DSH 0.2.0-rc.2 宿主、移除已停用的 `dsh-sdk-client`
+peer。插件行为、配置 schema 与 bundle descriptor 格式均未改动，源码零改动。
+
+### Changed
+
+- **devDependencies 升到 DSH 0.2.0-rc.2**：`@deepseek-ai/dsh*` 由
+  `0.1.7-alpha.1` 进位到 `0.2.0-rc.2`，`@deepseek-ai/cordis` 4.0.3 → 4.0.4、
+  `@deepseek-ai/schemastery` 3.18.3 → 3.18.4；`package-lock.json` 随之重算，
+  四个依赖字段与 `package.json` 逐一核对一致。
+- **移除 `@deepseek-ai/dsh-sdk-client` peer 声明**：0.2.0 元包已不再依赖它，
+  继续声明等于要求宿主提供一个不存在的包。其余 peer 窗口沿用 0.2.1 放宽后的
+  写法，未再改动。
+
+### Added
+
+- **README 补「装了插件之后：真正跑一次评测」一节**：说清插件不是评测
+  （standalone 模式什么都不挂，套件、试次、证据门、封存、报告都是 aeval 的
+  职责），给出实测步骤——需要 aeval ≥ 0.3.0，`aeval agents --init` 写声明、
+  最小 broker spec 只需 `controlRoot` 一处（`brokerJs`/`controlDist`/会话读取器
+  都由它推导）、宿主导出上游 key、`aeval run` 后 `aeval report`。附一张失败形态
+  表，逐条对应实测原文，含"宿主少 key 会在沙箱里伪装成 `MISSING_CREDENTIAL`"
+  这类会把人带偏的症状。
+
 ## [0.2.2] - 2026-10-10
 
 客户端修复版本：Web 状态胶囊补上 `locale` 依赖声明，文案注册不再依赖该服务
@@ -177,7 +203,8 @@ schema、bundle descriptor 格式、bin 协议），每次都会在下方
   适配器、官方 session 格式对齐）；升级需与 aeval 同步验证。
 - Node 要求 `^22.19.0 || >=24.0.0`。
 
-[Unreleased]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.1.0...v0.2.0
