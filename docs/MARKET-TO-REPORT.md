@@ -153,6 +153,12 @@ for p in dsh-llm dsh-session schemastery dsh-session-persistence \
 done
 ```
 
+> **B2 不持久，实测结论**：软链能立即生效，但它在 pnpm 眼里是 *extraneous* 目录。
+> 只要插件管理器再动一次这个 profile（装/升/换插件都会跑 `pnpm install`），
+> `dsh-eval-control` 与那 8 条软链会被一并清掉——实测在 profile 副本上
+> `rm -rf node_modules && pnpm install` 之后两者皆无。**要长期稳定就用 B1**（进 lockfile）；
+> B2 只适合"这次先跑起来"。
+
 **B3 把市场那份的 dist 放进 DSH 安装**（aeval 每轮本来就会往那里部署控制栈，路径是它认的）
 
 ```bash
@@ -160,6 +166,9 @@ D=<dsh 安装前缀>/lib/node_modules/@deepseek-ai/dsh/node_modules/aeval-contro
 cp -a "$PROFILE/node_modules/dsh-eval-control/dist/." "$D/dist/"
 # controlRoot 写 "$D"
 ```
+
+> **B3 不要在 macOS 桌面版上用**：那要往 `.app` 包里写文件，而桌面版是签名的
+> （`TeamIdentifier=UM3Z9G5DNH`），改动 sealed resource 有破坏签名的风险。桌面版走 B1/B2。
 
 补完后 `controlRoot` 就写市场那份的落点 `$PROFILE/node_modules/dsh-eval-control`，其余照本文走。
 
@@ -172,9 +181,24 @@ run run-demo sealed: 3 trial(s) recorded, 89 file(s) attested, recompute passed
 
 会话读取器同样不需要工作区那份：aeval 会自己从 DSH profile 里找到
 `~/.dsh/profiles/<profile>/node_modules/dsh-eval-control/dist/session_reader.js`。
+这条在 **macOS + 桌面版**上也实测过：`resolve_session_reader()` 无 env、工作区无任何
+npm 包，直接解析到
+`~/.dsh-beta/profiles/desktop/node_modules/dsh-eval-control/dist/session_reader.js`。
 
-**代价**：B1/B2 会改 DSH 管的 profile（`package.json`/`pnpm-lock.yaml` 多 8 条依赖，
-`dsh plugin` 操作看得见）；B3 往 DSH 安装目录写东西（aeval 每轮也写那里）。
+**桌面版（Electron）三点差异**（实测于 macOS + DSH Desktop Beta）：
+
+1. DSH home 是 `~/.dsh-beta`，profile 叫 `desktop`，落点
+   `~/.dsh-beta/profiles/desktop/node_modules/`（在 `.app` 包**外**，装插件本身不碰签名）。
+2. **`desktop` profile 由 app 独占**：CLI 会拒绝——`profile "desktop" is managed
+   exclusively by the Electron application`。所以装插件只能在 app 的市场里点；
+   而 B1 那 8 条依赖得你自己进 profile 目录 `pnpm add`（桌面版自带的 `@deepseek-ai/*`
+   是 **`0.1.7-rc.1`**，版本要按它钉，别照本文的 `0.2.0-rc.2`）。
+3. 桌面版宿主的包版本可能比 CLI 更旧，所以**路线 B 的版本一定要跟宿主对齐**；
+   混代会出现插件与宿主各持一份 `dsh-session` 的情况。
+
+**代价**：B1/B2 会改 DSH 管的 profile（B1 往 `package.json`/`pnpm-lock.yaml` 里加依赖，
+`dsh plugin` 操作看得见；B2 只是临时目录，见上面的不持久警告）；B3 往 DSH 安装目录写东西
+（aeval 每轮也写那里，但 macOS 桌面版别用）。
 
 ### 2.3 如果你还要在 DSH 里用这个插件（市场安装）
 
