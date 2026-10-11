@@ -12,6 +12,25 @@ schema、bundle descriptor 格式、bin 协议），每次都会在下方
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-10-11
+
+文档修正版本：**控制栈代码与 0.2.3/0.2.4 完全相同**（`git diff v0.2.3 HEAD -- src/ client/`
+为空，只动文档与清单）。补上"不改控制栈、直接用插件市场那份也能跑"的第二条路线。
+
+### Added
+
+- **执行文档 §2.2 增加「路线 B：就用插件市场装的那份」**：写清默认失败的真实原因
+  （pnpm 只装 `dependencies`，13 个 `@deepseek-ai/*` peer 由 DSH 宿主进程提供，而 broker
+  是独立进程），给出 dist 真正 import 的 **8 个包**清单，以及三种补法——`pnpm add` 成真
+  依赖、零网络地从 DSH 安装软链、把 dist 放进 DSH 安装。三种补法都实测可加载；其中第一种
+  端到端跑通：`controlRoot` 直指市场那份、工作区一个 npm 包都没装，3 个试次全部进入判分、
+  封存 `recompute passed`；会话读取器也由 aeval 自己从 DSH profile 发现，无需工作区副本。
+- README 同段落改为"两条路线选一条"，补上路线 B 的实测结果与代价（改了 DSH 管的 profile
+  或 DSH 安装目录）。
+
+### Changed
+
+- README 里写死的版本标识 `v0.2.2` → `v0.2.5`；示例命令版本号统一到 0.2.5。
 ## [0.2.4] - 2026-10-11
 
 文档与实测修正版本：**源码零改动**，插件行为、配置 schema、bundle descriptor
@@ -237,7 +256,8 @@ peer。插件行为、配置 schema 与 bundle descriptor 格式均未改动，�
   适配器、官方 session 格式对齐）；升级需与 aeval 同步验证。
 - Node 要求 `^22.19.0 || >=24.0.0`。
 
-[Unreleased]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.2.4...HEAD
+[Unreleased]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.2.5...HEAD
+[0.2.5]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/xyrrrrr-r/dsh-eval-control/compare/v0.2.1...v0.2.2

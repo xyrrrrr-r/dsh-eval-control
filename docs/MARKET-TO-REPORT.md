@@ -3,7 +3,8 @@
 > 目标读者：拿到 `dsh-eval-control` 之后，想在自己的机器上**真正跑完一轮 DeepSeek Harness 评测并拿到报告**的人。
 > 本文所有命令都在实验机上端到端跑通过，遇到的坑与报错原文一并列出。
 >
-> 版本基线：`aeval-harbor 0.3.0` · `dsh-eval-control 0.2.3` · DSH CLI `0.2.0-rc.2` · Python `3.12` · Node `24`
+> 版本基线：`aeval-harbor 0.3.0` · `dsh-eval-control 0.2.5` · DSH CLI `0.2.0-rc.2` · Python `3.12` · Node `24`
+> （0.2.3–0.2.5 的控制栈代码相同，只动文档；本文命令在 0.2.3 与 0.2.4 上都原样跑过）
 >
 > **本文脚本原样跑出来的结果**（实验机 hw-lab，3 个 terminal-bench 任务）：
 > `run run-demo sealed: 3 trial(s) recorded, 89 file(s) attested, recompute passed`；
@@ -93,29 +94,93 @@ python3 -c "import importlib.metadata as m; print(m.version('aeval-harbor'))"   
 
 > `aeval` 的发布名是 `aeval-harbor`，命令与包名都是 `aeval`。**没有 `aeval --version` 这个选项**，查版本用上面这条。
 
-### 2.2 控制栈：**用 npm 装一份**（关键，别直接用市场那份）
+### 2.2 控制栈：两条路线，选一条
+
+broker 跑在**宿主**上、是一个独立的 Node 进程，它必须自己解析得到 `@deepseek-ai/*`。
+路线 A 在工作区装一份自带依赖的副本；路线 B 继续用插件市场装的那份，把它缺的依赖补上。
+
+**路线 A（默认，最稳）：在工作区装一份**
 
 ```bash
-npm install dsh-eval-control@0.2.3
+npm install dsh-eval-control@0.2.5        # → ./node_modules/dsh-eval-control
 ```
 
-装完控制栈就在 `./node_modules/dsh-eval-control`，后面 spec 的 `controlRoot` 指向它。
+spec 的 `controlRoot` 指 `./node_modules/dsh-eval-control`。这份自带全部 `@deepseek-ai/*`
+依赖，与 DSH 怎么装无关——**机器上没装 DSH 时，这是唯一可行的路线**。
 
-**为什么不能用插件市场装的那份当 `controlRoot`？**
-`dsh plugin add` 走 pnpm 严格布局，插件设计上把 `@deepseek-ai/dsh-*` 这些 peer 交给 **DSH 宿主**提供，所以 profile 里那份**没有这些依赖**（实测 `.pnpm/` 下 0 个 `deepseek` 包）。而 aeval 的 broker 是一个**独立 Node 进程**，它必须自己解析得到依赖，否则一启动就：
+**路线 B：就用插件市场装的那份**
+
+为什么默认不行：`dsh plugin add` 走 pnpm，只装 `dependencies`（就一个
+`@agentclientprotocol/sdk`），另外 13 个 `@deepseek-ai/*` 是 peer，设计上由 **DSH 宿主
+进程**提供——插件在 DSH 里工作正常，安装时那句 `Issues with peer dependencies found`
+是预期现象。但 broker 是独立进程，解析不到就启动失败：
 
 ```
 ERR_MODULE_NOT_FOUND: Cannot find package '@deepseek-ai/dsh-llm'
   imported from .../node_modules/dsh-eval-control/dist/broker_main.js
 ```
 
-于是这个试次会以「模型 broker 起不来」被整轮排除。**结论：在 DSH 里用插件就 `dsh plugin add`，要让 aeval 跑评测就再 `npm install` 一份，两者互不替代。**
+dist 里真实 import 的只有 **8 个包**（不是 13 个），补它们就够：
+
+```
+dsh-llm · dsh-session · schemastery · dsh-session-persistence
+dsh-session-persistence-jsonl · dsh-scope · cordis · dsh-tools
+```
+
+三种补法任选其一（`$PROFILE` = 你装插件的那个 profile 目录；下例宿主版本为 `0.2.0-rc.2`，
+按 `dsh --version` 换成你的——peer 窗口是 `>=0.2.0-0 <0.3.0-0`）：
+
+**B1 用 pnpm 加成真依赖**（联网一次，最正规；后续插件操作不会清掉它）
+
+```bash
+PROFILE=~/.dsh/profiles/<profile>
+cd "$PROFILE"
+pnpm add @deepseek-ai/dsh-llm@0.2.0-rc.2 @deepseek-ai/dsh-session@0.2.0-rc.2 \
+  @deepseek-ai/schemastery@3.18.4 @deepseek-ai/dsh-session-persistence@0.2.0-rc.2 \
+  @deepseek-ai/dsh-session-persistence-jsonl@0.2.0-rc.2 @deepseek-ai/dsh-scope@0.2.0-rc.2 \
+  @deepseek-ai/dsh-tools@0.2.0-rc.2 @deepseek-ai/cordis@4.0.4
+```
+
+**B2 零网络：从 DSH 安装软链**（DSH 安装里这些包本来就是 npm-flat 装好的，软链后
+Node 按 realpath 解析，传递依赖仍在原地齐）
+
+```bash
+DSHD=<dsh 安装前缀>/lib/node_modules/@deepseek-ai/dsh/node_modules/@deepseek-ai
+mkdir -p "$PROFILE/node_modules/@deepseek-ai"
+for p in dsh-llm dsh-session schemastery dsh-session-persistence \
+         dsh-session-persistence-jsonl dsh-scope dsh-tools cordis; do
+  ln -sfn "$DSHD/$p" "$PROFILE/node_modules/@deepseek-ai/$p"
+done
+```
+
+**B3 把市场那份的 dist 放进 DSH 安装**（aeval 每轮本来就会往那里部署控制栈，路径是它认的）
+
+```bash
+D=<dsh 安装前缀>/lib/node_modules/@deepseek-ai/dsh/node_modules/aeval-control
+cp -a "$PROFILE/node_modules/dsh-eval-control/dist/." "$D/dist/"
+# controlRoot 写 "$D"
+```
+
+补完后 `controlRoot` 就写市场那份的落点 `$PROFILE/node_modules/dsh-eval-control`，其余照本文走。
+
+**实测（B1 的效果）**：`controlRoot` 直指市场那份、工作区一个 npm 包都没装——
+
+```
+run run-demo sealed: 3 trial(s) recorded, 89 file(s) attested, recompute passed
+报告：试次 3 · 有效分母 3 · 排除率 0.0% · 通过 2 · 失败 1
+```
+
+会话读取器同样不需要工作区那份：aeval 会自己从 DSH profile 里找到
+`~/.dsh/profiles/<profile>/node_modules/dsh-eval-control/dist/session_reader.js`。
+
+**代价**：B1/B2 会改 DSH 管的 profile（`package.json`/`pnpm-lock.yaml` 多 8 条依赖，
+`dsh plugin` 操作看得见）；B3 往 DSH 安装目录写东西（aeval 每轮也写那里）。
 
 ### 2.3 如果你还要在 DSH 里用这个插件（市场安装）
 
 ```bash
 pnpm -v                              # 没有 pnpm 会直接报：dsh: pnpm was not found
-dsh plugin --profile web add dsh-eval-control@0.2.3
+dsh plugin --profile web add dsh-eval-control@0.2.5
 dsh plugin --profile web list        # 确认装上了
 ```
 
@@ -432,7 +497,7 @@ uv venv --python 3.12 .venv && source .venv/bin/activate
 uv pip install aeval-harbor
 
 # 2) 控制栈（npm 那份供 broker 用）
-npm install dsh-eval-control@0.2.3 --no-audit --no-fund
+npm install dsh-eval-control@0.2.5 --no-audit --no-fund
 
 # 3) 套件（sdist）+ 出处门禁
 curl -sLO https://files.pythonhosted.org/packages/source/a/aeval-harbor/aeval_harbor-0.3.0.tar.gz

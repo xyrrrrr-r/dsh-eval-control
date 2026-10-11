@@ -12,7 +12,7 @@ bundle descriptor。
 
 Host-side Cordis control plugin for [aeval](https://github.com/xyrrrrr-r/aeval):
 one-shot config injection for experiment variables, gateway-lease budgets,
-fork lineage, and bundle descriptors.（experimental · v0.2.2 · Apache-2.0）
+fork lineage, and bundle descriptors.（experimental · v0.2.5 · Apache-2.0）
 
 ## 它解决什么问题
 
@@ -143,18 +143,27 @@ aeval-dsh-control-selfcheck --config /abs/path/control-config.json   # 只读自
 > **完整执行文档：[docs/MARKET-TO-REPORT.md](https://github.com/xyrrrrr-r/dsh-eval-control/blob/main/docs/MARKET-TO-REPORT.md)**
 > ——前置条件、任务镜像、证书、排障表、可整段复制的脚本都在那里；下面是最短路径。
 
-先澄清一件最容易踩的事：**`dsh plugin add` 装的那份不能当 `controlRoot`。**
-插件市场安装走 pnpm 严格布局，`@deepseek-ai/dsh-*` 这些 peer 是留给 **DSH 宿主**
-提供的，所以 profile 里那份**没有这些依赖**；而 aeval 的 broker 是一个独立 Node
-进程，必须自己解析得到依赖，否则启动即
+先澄清一件最容易踩的事：**`dsh plugin add` 装的那份默认不能当 `controlRoot`。**
+插件市场安装走 pnpm，只装 `dependencies`（就一个 `@agentclientprotocol/sdk`），另外
+13 个 `@deepseek-ai/*` 是 peer、留给 **DSH 宿主进程**提供——插件在 DSH 里工作正常，
+但 aeval 的 broker 是独立 Node 进程，必须自己解析依赖，否则启动即
 `ERR_MODULE_NOT_FOUND: Cannot find package '@deepseek-ai/dsh-llm'`，该试次以
-"模型 broker 起不来"被整轮排除。所以：
+"模型 broker 起不来"被整轮排除。两条路选一条：
 
-- 要在 DSH 里用插件 → `dsh plugin add dsh-eval-control@<版本>`（走 pnpm）；
-- 要让 aeval 跑评测 → **再 `npm install dsh-eval-control@<版本>` 一份**，用那份当
-  `controlRoot`。两者互不替代。
+- **路线 A（默认，最稳）**：在工作区 `npm install dsh-eval-control@<版本>` 一份，用它当
+  `controlRoot`。与 DSH 怎么装无关；**机器上没装 DSH 时这是唯一可行的路线**。
+- **路线 B（就用市场那份）**：把 dist 真正 import 的 **8 个**包补进那个 profile——
+  `dsh-llm`、`dsh-session`、`schemastery`、`dsh-session-persistence`、
+  `dsh-session-persistence-jsonl`、`dsh-scope`、`cordis`、`dsh-tools`——然后
+  `controlRoot` 直接写 `~/.dsh/profiles/<profile>/node_modules/dsh-eval-control`。
+  三种补法（`pnpm add` 成真依赖 / 零网络地从 DSH 安装软链 / 把 dist 放进 DSH 安装）
+  见[执行文档 §2.2](https://github.com/xyrrrrr-r/dsh-eval-control/blob/main/docs/MARKET-TO-REPORT.md)。
+  代价是改了 DSH 管的 profile（B1/B2）或 DSH 安装目录（B3）。
 
-以下步骤在 `hw-lab` 上实测通过：pip 安装的 aeval + `npm install` 的控制栈，
+路线 B 实测：`controlRoot` 直指市场那份、工作区一个 npm 包都没装，同样 3 个试次**全部
+进入判分**、封存 `recompute passed`；会话读取器也由 aeval 自己从 DSH profile 里找到。
+
+以下步骤走路线 A，并在 `hw-lab` 上实测通过：pip 安装的 aeval + `npm install` 的控制栈，
 3 个试次**全部进入判分**（有效分母 3/3、排除率 0.0%）、证据覆盖 3/3、封存
 `recompute passed`（89 个封存文件）。
 
@@ -169,7 +178,7 @@ uv venv --python 3.12 && source .venv/bin/activate
 uv pip install aeval-harbor
 
 # 2. 控制栈：broker 宿主侧用这份（不是 dsh plugin add 的那份）
-npm install dsh-eval-control@0.2.3
+npm install dsh-eval-control@0.2.5
 
 # 3. 声明：装出来的 aeval 旁边没有 agents/，这条命令从包内写出起点
 aeval agents --init --agents-dir agents   # _base/ + _runtime/images.yaml + dsh.yaml
