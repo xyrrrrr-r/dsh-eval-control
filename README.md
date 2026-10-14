@@ -28,10 +28,31 @@ fork lineage, and bundle descriptors.（experimental · v0.2.6 · Apache-2.0）
 
 > 🎬 **想先看它跑起来什么样**：两段真实录制（都是实验机实跑，**未做任何拼接**）——
 > [主 demo 4 幕](docs/demo/recording/demo-20261012-134955.typescript)（4.78 min、
-> `3/3 trial(s) scored`，`scriptreplay --divisor 8` 约 36 秒看完）与
+> `3/3 trial(s) scored`，30 秒版实测 40 s）与
 > [市场安装短片](docs/demo/recording/market-install-20261012-140526.typescript)（15.9 s，
-> `dsh plugin add` → `mode: standalone`）。分镜、回放命令与两段各自的边界见
+> `dsh plugin add` → `mode: standalone`）。它们是 `script(1)` **终端录制**（typescript + timing
+> 两个文本文件，**不是视频、双击打不开**），用仓库自带的零依赖播放器回放
+> （`scriptreplay` 属 util-linux、**macOS 不自带**）：
+>
+> ```bash
+> python3 docs/demo/recording/replay-typescript.py --divisor 8 \
+>   docs/demo/recording/demo-20261012-134955.timing \
+>   docs/demo/recording/demo-20261012-134955.typescript
+> ```
+>
+> 分镜、`--verify` 逐字节校验（两个录制都 OK）与两段各自的边界见
 > [docs/demo/STORYBOARD.md](docs/demo/STORYBOARD.md)。
+
+> 🖼 **不想装播放器，就直接看 GIF**（**渲染产物**，不是新录制；真相源仍是上面那对
+> `script(1)` 录制）：
+>
+> ![主 demo 30 秒（8 倍速 ≈36 s）](docs/demo/recording/demo-30s.gif)
+>
+> [主 demo 30 秒](docs/demo/recording/demo-30s.gif)（2.03 MB · 790×694 · 286.8 s 录制按 8 倍速）
+> 与 [市场安装短片](docs/demo/recording/market-install.gif)（0.58 MB · 790×694 · 15.9 s 原速）。
+> **没有目视确认过画面**（本仓库的作者与交付者都无法读图）；确认的是"字体被解析到、CJK 字形确实
+> 由该字体提供"。宽度 80 列的依据、`agg` 在 macOS 上静默渲染成缺字方块的判据，以及渲染命令见
+> [STORYBOARD 的「GIF」一节](docs/demo/STORYBOARD.md)。
 
 > ### 装完就是 `standalone` —— 这是设计，不是故障
 >
@@ -229,8 +250,14 @@ aeval doctor — mode: active
 > （只改速度，不改内容）：
 >
 > ```bash
-> scriptreplay --divisor 8 --timing=docs/demo/recording/demo-20261012-134955.timing \
->              docs/demo/recording/demo-20261012-134955.typescript
+> # 30 秒版（实测 40 s；只改速度，不改内容）——`scriptreplay` 属 util-linux，macOS 没有：
+> python3 docs/demo/recording/replay-typescript.py --divisor 8 \
+>   docs/demo/recording/demo-20261012-134955.timing \
+>   docs/demo/recording/demo-20261012-134955.typescript
+> # 只核对这两个文件配不配对、有没有被截断（逐字节重建比对）：
+> python3 docs/demo/recording/replay-typescript.py --verify \
+>   docs/demo/recording/demo-20261012-134955.timing \
+>   docs/demo/recording/demo-20261012-134955.typescript
 > ```
 
 ### `--backend e2b` 的边界（必须说准）
