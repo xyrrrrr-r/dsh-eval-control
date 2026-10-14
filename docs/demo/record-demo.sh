@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # 演示录制器：把「装控制栈 → 看到 mode → 一条命令 → report.md」这一串**真实命令**
 # 录成可回放的终端会话（asciinema .cast，或 util-linux/BSD 的 typescript + timing）。
+# 回放：typescript 那路用本仓库自带的 `recording/replay-typescript.py`（零依赖、任何平台）；
+# util-linux 的 `scriptreplay` **macOS 不自带**，别把播放端也当成自适应的。
 #
 # 为什么需要它：本机（macOS）与实验机（hw-lab）都没有 asciinema / ffmpeg / agg，
 # 两处只有 `/usr/bin/script`。这个脚本是"能产出成品的唯一被允许路径"——
@@ -188,8 +190,9 @@ else
   # A recorder without a pty writes a 0-byte file and reports success; never
   # let an empty artifact pass for a recording.
   [ -s "$TS" ] || { echo "record-demo: recording is empty ($TS) — no pty available?" >&2; exit 4; }
-  echo "record-demo: done. 回放：scriptreplay --timing=$TIMING $TS"
-  echo "record-demo:       30 秒版：scriptreplay --divisor 8 --timing=$TIMING $TS"
+  echo "record-demo: done. 回放：python3 $HERE/recording/replay-typescript.py $TIMING $TS"
+  echo "record-demo:       30 秒版：python3 $HERE/recording/replay-typescript.py --divisor 8 $TIMING $TS"
+  echo "record-demo:       （scriptreplay 属 util-linux，macOS 不自带；播放器是本仓库自带的，零依赖）"
 fi
 
 echo "record-demo: session script kept at $SESSION (reproducible without the recorder)"
