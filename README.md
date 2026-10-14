@@ -109,6 +109,13 @@ dsh plugin --profile web add dsh-eval-control@0.2.6   # 显式钉版本，原因
 > 本会话验证不了（写不了 `~/.dsh-beta/profiles/desktop`、无浏览器自动化）。
 > 所以本节与首屏表格里的"会出现/点开"写的是**装完应该看到什么**以及它读的那份数据，
 > **不是已截图的 GUI 结果**。
+>
+> **这一项要请有 GUI 的环境执行一遍**（约 1 分钟；本会话做不到：写不了
+> `~/.dsh-beta/profiles/desktop`、无浏览器自动化、GUI 43120 需要启动 URL 里的 token）。四步：
+> ① 全新 profile 上只做一次「添加插件」；② 看侧栏该组合包的**状态胶囊是否可见**、点开是否显示 `mode`；
+> ③ standalone 时给出的"一步指引"（`AEVAL_CONTROL_CONFIG` 或 `cordis.patch.yml` 两行）能不能照抄；
+> ④ peer 失配场景下插件页是否显示 `incompatible-version` 异常标签，且**胶囊不出现**（这是预期行为，
+> 不是 bug）。结论（截图或文字）补到这里即可。
 
 ### 模式（mode）一览
 
