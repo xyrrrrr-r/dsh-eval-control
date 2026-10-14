@@ -38,6 +38,34 @@
 
 ---
 
+## 0.1 更快的一条路：`aeval quickstart`（8 步收成一条命令）
+
+**如果你的目标就是"从装完到一份 report.md"，不需要照本文逐步接线**：`aeval quickstart`
+把上面 **④–⑧** 一条命令跑完（另含 docker 预检、TLS、计数器、密封复算、判分），
+一步一读地在计划里打印出来，`--yes` 才真的执行；**①–③（PyPI 的 aeval、npm 的控制栈、
+sdist 的套件）是它开始前必须成立的前提**，它只校验、缺什么就明确拒绝并给 hint。
+
+```bash
+aeval quickstart --backend docker          # 只打印计划：一个字节都不写（连 workspace 目录都不建）
+aeval quickstart --backend docker --yes    # 执行：证书 / spec / 计数器 / run / 证据链 / 报告 / 复算 / 判分
+aeval doctor                               # 跑之前或跑不动时体检：只读，16 项，[ok|warn|fail] + 可复制 hint
+```
+
+实验机（hw-lab）实测（来源：实验室验收记录 `tools/lab-e2e/evidence-quickstart-acceptance.md`，
+**PASS=19/FAIL=0，6 个用例 A–F**，由验收方用未改动的原始车辆独立复现）：docker 后端退出码 0、产出
+`report.md`、末行 `3/3 trial(s) scored`，同一 workspace 重跑幂等；**跑完但一个试次都没判分时
+退出码是 6**（不是沉默的成功）。其中用例 F 覆盖**真实用户路径**：把仓库自带、job 钉在 e2b 的
+套件交给 quickstart 自己派生成 docker 套件（派生树 provenance 干净、`3/3` 判分）。
+
+本文其余章节仍是权威细节：`quickstart` 不替代它们，只是把它们串起来。要改接线
+（换镜像、换网段、换后端声明）就照 §1–§9 手工走，§10 是可直接整段复制的脚本。
+
+⚠️ **e2b 边界**：`--backend e2b` 已接线，但实验机的 e2b 集群不可达，只验证了
+"缺什么就明确报什么、绝不伪造 report.md"（同上验收记录，用例 E），**没有**端到端跑通。
+要在你自己那套 e2b 上先跑一次，再对用户承诺双后端都能出报告。
+
+---
+
 ## 1. 前置条件（逐条自查）
 
 | 项 | 要求 | 自查命令 |
@@ -220,10 +248,15 @@ dsh plugin --profile web list        # 确认装上了
 两个实测要点：
 
 - **`--profile` 是必填项**（连 `--help` 都要带）。
-- **不带版本号会装到市场目录当前广告的版本，而市场目录会明显滞后于 npm**。实测
-  （2026-10-11）：npm `latest` 已经是 `0.2.6` 时，一个**全新 profile** 不带版本仍解析到
-  `0.2.2`；写成 `dsh-eval-control@0.2.6` 才拿到最新（`dsh plugin --profile <p> list`
-  会显示 `dsh-eval-control@0.2.6`）。**所以务必显式写版本**，并用下面这条确认落点版本：
+- **不带版本号只会拿到"最新一个已满 1 天的版本"**——这是 pnpm ≥11 的供应链策略
+  `minimumReleaseAge`（默认 `1440` 分钟），**不是市场目录滞后、也不是 registry/缓存问题**
+  （[pnpm 文档](https://pnpm.io/supply-chain-security)）。实测 2026-10-11：npm `latest`
+  已是 `0.2.6` 时，一个**全新 profile** 不带版本解析到 `0.2.2`；2026-10-12 复测解析到
+  `0.2.3`（当时 0.2.4/0.2.5/0.2.6 发布都不到 24 小时、0.2.3 刚好超过）；
+  同一台机器上 `pnpm add dsh-eval-control --config.minimumReleaseAge=0` 与
+  `pnpm add dsh-eval-control@0.2.6` 都拿到 `0.2.6`。**所以务必显式写版本**
+  （或在 profile 的 `pnpm-workspace.yaml` 里设 `minimumReleaseAge: 0`），
+  并用下面这条确认落点版本：
 
 ```bash
 node -p "require('./node_modules/dsh-eval-control/package.json').version"          # 工作区这份
@@ -437,7 +470,7 @@ done
 ls runs/trials | wc -l        # 应等于试次数
 ```
 
-> 不链这一步的典型症状：报告里 **`证据覆盖 0/N`**、轨迹指标整节缺失。
+> 不链这一步的典型症状：报告里 **`证据覆盖 0/N`**、轨迹指标整节缺失（报告会写明是哪一种缺失）。
 > 所以规范布局是——**sqlite 与 `trials/` 同级**：
 
 ```
@@ -451,6 +484,12 @@ $WS/
     ├── demo.sqlite3                 --store（与 trials/ 同级）
     └── trials/                      报告读这里
 ```
+
+> 读取端接受**三种布局**：`<store 同级>/trials`（上面这种）、`<store 同级>/runs/trials`
+> （`aeval quickstart` 写的那套，它的 store 在 `<ws>/run.sqlite3`）与 `<store 同级>/run/trials`
+> （`aeval doctor --run-dir <ws>/run` 提示操作者建的那种）。前两者**曾经不一致**，
+> 导致报告读到 0 个试次、整块轨迹度量标"不可用"；修好后的前后对照见
+> `tools/lab-e2e/evidence-trajectory-coverage.md`（该目录不在本包内）。
 
 三个命令 + 一个复核：
 
@@ -473,7 +512,8 @@ aeval recompute  runs/demo                                              # 独立
 | 判定分布 · 排除明细 | `cannot_judge` / `infra_invalid` 各多少 | **排除率 > 5% 报告会自己警告**；100% = 本轮不可用 |
 | 通过 / 失败 | 判分结果 | 与 `harbor/*/result.json` 的 reward 可交叉核对 |
 | 终判来源分解 | 谁把谁否决了（如 `tbench-trajectory@v1` 否决 `tbench-outcome@v1` 的 pass） | 通过数少于 reward 数**通常是这类守卫否决**，不是回归 |
-| 轨迹采集 · 证据覆盖 | 逐试次证据是否齐 | 应 `N/N`；为 0 见 §6 的链证据 |
+| 轨迹采集 · 证据覆盖 | 逐试次证据是否齐 | 应 `N/N`；为 0 时报告会写明是"试次目录缺失（三种子串：一个候选布局都没有／链接指向的目录不存在／发布目录为空）/ 目录里没有 collection_manifest / 清单的 trial_id 对不上 / 轨迹文件不可读"哪一种，先按 §6 查链证据 |
+| 首 token 时延 / 单次通过成本 | 账本里原本就没有这两个量 | 显示"不可用"是**真实状态**（ATIF step 无 `first_token_ms`、`final_metrics.total_cost_usd` 为 `null`），不是这次没算 |
 | 红线状态 | 硬约束检查 | 「全通过」才是可对外引用的前提 |
 | 封存 / `recompute` | 证据是否被改过 | `recompute passed` |
 
@@ -492,10 +532,10 @@ aeval recompute  runs/demo                                              # 独立
 | `broker exited before readiness (code 2): ... upstream API key is not set` | 宿主没导出 key（沙箱里会伪装成 `MISSING_CREDENTIAL`） | `export DEEPSEEK_API_KEY=…` 后再跑 |
 | `ECONNREFUSED 127.0.0.1:8447` / `the trial's agent exposes no DSH session` | 沙箱连不到 broker | docker 后端必须 `listenHost`=宿主机 IP + `listenTls` + `controlCa`（§4.2） |
 | `carries no controlDist and no controlRoot with a built dist/` | spec 没指明控制包 | 写 `controlRoot`（≥0.3.0 会自动取 `<controlRoot>/dist`） |
-| `error: no agent declarations under agents` | 没有声明 | `aeval agents --init --agents-dir agents` |
+| `no agent declaration for 'dsh' under …/agents — declare it in agents/dsh.yaml` | 没有声明 | `aeval agents --init --agents-dir agents` |
 | 套件仓库「有未提交/未跟踪文件」 | 出处门禁 | `git -C suites add -A && git -C suites commit` |
-| 报告 `证据覆盖 0/N` | `trials/` 没链 | 见 §6 的链接循环 |
-| 日志里 `Collect hook ... exited with code 127: ... aeval-collect` | 已知缺陷（verifier 阶段 collect hook），**不是**排除原因 | 忽略；证据由 §6 的试次目录提供 |
+| 报告 `证据覆盖 0/N` | 已发布证据没被读到：`trials/` 没链、链断了、缺 `collection_manifest`、或清单的 `trial_id` 对不上 | 见 §6 的链接循环；报告会写明是上面哪一种 |
+| 日志里 `Collect hook ... exited with code 127: ... aeval-collect` | **独立缺陷**：沙箱侧的采集钩子不存在（写在套件 `task.toml` 的 verifier 行，但不是任何已发布的可执行文件） | 忽略；它**不是**排除原因，也**不是**"证据覆盖 0/N"的原因（后者是读取端路径不一致，已修） |
 | `0/3 trial(s) scored (exclusion rate 100.0%)` | 全被排除，本轮不可用 | 读 `aeval_run_summary.json` 的 `trials[*].infra_invalid_reasons`，对照本表 |
 
 ---
