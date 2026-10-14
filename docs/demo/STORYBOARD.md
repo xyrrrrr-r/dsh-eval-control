@@ -237,11 +237,39 @@ market 最大值 78
 `npm install` 变大；代价是 **npm 只发布白名单内的文件，README 里指向 `docs/` 的相对链接在
 npmjs 上解析不到**（既有问题，不是这次引入的，GIF 只是又一处）。
 
-README 里因此用**相对链接**而不是绝对 GitHub 链接：相对链接在仓库/GitHub 上天然有效，而绝对
-`raw.githubusercontent.com` 链接**现在会 404**——这两个 GIF 还没提交推送，本次核对实测
-`raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/demo/recording/demo-30s.gif`
-→ **HTTP 404**。要让 GIF 在 npmjs 上也显示，得二选一（都属于发布面决定）：把 `docs/` 加进
-`files`，或改用绝对 GitHub 链接**并先把资源推送上去**。
+README 里指向仓库文档的链接用**相对形式**（与其它 `docs/` 引用一致）：资源提交推送后，相对链接
+在仓库/GitHub 上天然有效。**判据只有一句**：
+
+> **只有必须内联渲染的那一张图用绝对 raw 链接；其余一律相对，兜底交给正典地址那一行。**
+
+- **唯一的例外是首屏那张 `![…]`（主 demo 30 秒 GIF）**：相对链接在 npmjs 上**渲染不出来**，
+  而 npmjs 是 README 的发布面——这张图没有替代方案，只能绝对。
+- 同一个 GIF 的**两条文字链接**（L51/L52）**保持相对**：文字链接 404 时读者**至少看得见那是个
+  链接**，而且正典地址就在旁边，不需要为此再硬编码两条。
+- **为什么相对是更稳的默认——fork 正确性**：本包 Apache-2.0、面向社区，**被 fork 是很可能的**；
+  相对链接在 fork 里指向 **forker 自己的仓库**（正确），绝对链接会**指回上游**，forker 的
+  README 会去显示上游的资源。这比"仓库改名"常见得多（而且 GitHub 对改名是**自动重定向**的，
+  所以"绝对链接会腐烂、还不报警"这个说法本身**说过头了**——真正站得住的是 fork 那条）。
+- **自检（可审计、一行）**：`grep -c "raw.githubusercontent.com" dsh-eval-control/README.md`
+  必须**恰好 = 1**（就是那张图）。多于 1 就说明有人又硬编码了一条。
+
+**正典地址已核实**（本次实测）：`api.github.com/repos/xyrrrrr-r/dsh-eval-control` → **HTTP 200**、
+`private: false`、`default_branch: main`——所以那张图的 raw 链接里 `/main/` 段是对的。
+
+**复核（两条独立测量，归属分开写）**：
+
+- **交付者侧**：bash 的 `curl` 在本会话被沙箱拦掉（20 s 超时、`http_code=000`），改用它可用的
+  HTTP 抓取工具请求该 URL → 服务器返回 **`image/gif`**（= 200 + 图片类型，不再是最初测到的 404）。
+- **验收方侧**：在 `curl` 可用的机器上跑
+  `curl -sI https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/demo/recording/demo-30s.gif`，
+  得到 **`HTTP/2 200` + `content-type: image/gif`**。**这一条是验收方跑的，不是交付者跑的。**
+
+> **时间点说明（这句话本身踩过一次坑，留证）**：本节最初写下时这两个 GIF 还没提交，当时实测
+> `raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/demo/recording/demo-30s.gif`
+> → **HTTP 404**，我因此在文里写了"绝对链接现在会 404"。随后资源被提交并推送，**该 URL 现在
+> 可达**（见上面的复核）。所以现在"图片在 npmjs 上显示不出来"只由一件事决定：`files` 白名单
+> 不含 `docs/`。两条出路（都属于发布面决定，本仓库未改 `package.json`）：把 `docs/` 加进
+> `files`，或给图片改用绝对 GitHub 链接——**后者已对首屏那张图采用**。
 
 ---
 

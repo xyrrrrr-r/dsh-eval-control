@@ -46,13 +46,17 @@ fork lineage, and bundle descriptors.（experimental · v0.2.6 · Apache-2.0）
 > 🖼 **不想装播放器，就直接看 GIF**（**渲染产物**，不是新录制；真相源仍是上面那对
 > `script(1)` 录制）：
 >
-> ![主 demo 30 秒（8 倍速 ≈36 s）](docs/demo/recording/demo-30s.gif)
+> ![主 demo 30 秒（8 倍速 ≈36 s）](https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/demo/recording/demo-30s.gif)
 >
 > [主 demo 30 秒](docs/demo/recording/demo-30s.gif)（2.03 MB · 790×694 · 286.8 s 录制按 8 倍速）
 > 与 [市场安装短片](docs/demo/recording/market-install.gif)（0.58 MB · 790×694 · 15.9 s 原速）。
 > **没有目视确认过画面**（本仓库的作者与交付者都无法读图）；确认的是"字体被解析到、CJK 字形确实
 > 由该字体提供"。宽度 80 列的依据、`agg` 在 macOS 上静默渲染成缺字方块的判据，以及渲染命令见
 > [STORYBOARD 的「GIF」一节](docs/demo/STORYBOARD.md)。
+>
+> 📦 **本文里所有 `docs/…` 相对链接都相对仓库根**：
+> <https://github.com/xyrrrrr-r/dsh-eval-control> —— npmjs 上渲染的 README 里这些相对链接解析不到
+> （`package.json` 的 `files` 白名单不含 `docs/`），从 npmjs 过来的读者请直接进仓库。
 
 > ### 装完就是 `standalone` —— 这是设计，不是故障
 >
@@ -195,7 +199,7 @@ nothing was written — re-run with --yes to carry this out
 （实测：不带 `--yes` 时 workspace 目录都不会被创建；`--dry-run` 同理。）
 
 > 上面这份是**全新机器**上的计划（所以第 1 步是 `agents-init`、套件还要派生，共 12 步）；
-> [演示录像](docs/demo/recording/demo-20261012-134955.typescript) 里 agents 已声明、套件已就绪，
+> [演示录制](docs/demo/recording/demo-20261012-134955.typescript) 里 agents 已声明、套件已就绪，
 > 计划是 **10 步**（`docker-preflight` → … → `verdict`）。
 > 计划按**工作区当前状态**裁剪：已完成的写操作（`agents-init`、TLS、计数器、broker spec、
 > `run`）不再列出；仍需**检查或复用**的步骤（`docker-preflight`、套件派生的复用）会列出，
