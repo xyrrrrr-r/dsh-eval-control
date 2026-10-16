@@ -44,6 +44,46 @@
     "evidenceLevel": "derived"
   },
   {
+    "metricId": "compaction.prune_passes",
+    "contractVersion": "1",
+    "subjectId": "s-basic",
+    "status": "available",
+    "value": 1,
+    "unit": "passes",
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-basic",
+        "seq": 10
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "compaction.shadowed_tokens",
+    "contractVersion": "1",
+    "subjectId": "s-basic",
+    "status": "available",
+    "value": 840,
+    "unit": "tokens",
+    "sampleCount": 2,
+    "denominator": 2,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-basic",
+        "seq": 5
+      },
+      {
+        "sessionId": "s-basic",
+        "seq": 8
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
     "metricId": "compaction.summary_cycles",
     "contractVersion": "1",
     "subjectId": "s-basic",

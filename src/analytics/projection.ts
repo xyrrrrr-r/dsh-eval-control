@@ -66,7 +66,7 @@ const turnTrendSchema = z.object({
 
 const eventRefSchema = z.object({ sessionId: z.string().min(1), seq: z.number().int().nonnegative() }).strict();
 const metricResultSchema = z.object({
-  metricId: z.enum(['tool.call_elapsed_ms', 'tool.failure_rate', 'compaction.summary_cycles', 'compaction.elapsed_ms']),
+  metricId: z.enum(['tool.call_elapsed_ms', 'tool.failure_rate', 'compaction.summary_cycles', 'compaction.elapsed_ms', 'compaction.shadowed_tokens', 'compaction.prune_passes']),
   contractVersion: z.literal('1'),
   subjectId: z.string().min(1),
   status: z.enum(['available', 'partial', 'incomplete', 'unavailable']),
@@ -74,7 +74,7 @@ const metricResultSchema = z.object({
     z.number(),
     z.object({ closedCount: z.number().int().nonnegative(), openCount: z.number().int().nonnegative() }).strict(),
   ]).optional(),
-  unit: z.literal('ms').optional(),
+  unit: z.enum(['ms', 'tokens', 'passes']).optional(),
   sampleCount: z.number().int().nonnegative(),
   denominator: z.number().int().nonnegative().optional(),
   evidenceRefs: z.array(eventRefSchema),
@@ -93,6 +93,12 @@ const metricFoldStateSchema = z.object({
   duplicateToolResultIds: z.record(z.string(), z.literal(true)),
   toolResultRefs: z.array(eventRefSchema).max(64),
   toolResultMissingIdCount: z.number().int().nonnegative(),
+  compactionSummaryById: z.record(z.string(), z.number().int().nonnegative().nullable()),
+  duplicateCompactionSummaryIds: z.record(z.string(), z.literal(true)),
+  compactionSummaryRefs: z.array(eventRefSchema).max(64),
+  compactionSummaryMissingIdCount: z.number().int().nonnegative(),
+  prunePassCount: z.number().int().nonnegative(),
+  pruneEventRefs: z.array(eventRefSchema).max(64),
   recentMetricResults: z.array(metricResultSchema).max(64),
 }).strict();
 
@@ -139,7 +145,7 @@ function safeLabel(event: SessionEvent): string | undefined {
 /** Bounded, privacy-conscious first projection for the ordinary-user surface. */
 export const trajectoryAnalyticsProjection = {
   key: 'trajectoryAnalytics',
-  stateVersion: 4,
+  stateVersion: 5,
   stateSchema,
   init: header => {
     const metricState = initialMetricFoldState(header.id);

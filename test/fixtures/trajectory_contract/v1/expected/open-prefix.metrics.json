@@ -19,6 +19,30 @@
     "evidenceLevel": "derived"
   },
   {
+    "metricId": "compaction.prune_passes",
+    "contractVersion": "1",
+    "subjectId": "s-prefix",
+    "status": "unavailable",
+    "unit": "passes",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "compaction.shadowed_tokens",
+    "contractVersion": "1",
+    "subjectId": "s-prefix",
+    "status": "unavailable",
+    "unit": "tokens",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
     "metricId": "compaction.summary_cycles",
     "contractVersion": "1",
     "subjectId": "s-prefix",

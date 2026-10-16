@@ -11,7 +11,7 @@
     {
       "sessionId": "s-basic",
       "complete": true,
-      "observedThroughSeq": 9
+      "observedThroughSeq": 10
     }
   ],
   "entities": [],
@@ -162,6 +162,22 @@
         {
           "sessionId": "s-basic",
           "seq": 9
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-basic:10:prune",
+      "kind": "prune",
+      "domain": "context",
+      "timestampMs": 2500,
+      "attributes": {
+        "shadowedTokenCount": 20
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-basic",
+          "seq": 10
         }
       ],
       "evidenceLevel": "observed"

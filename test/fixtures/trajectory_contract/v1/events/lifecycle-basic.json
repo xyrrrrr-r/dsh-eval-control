@@ -13,7 +13,7 @@
       "id": "s-basic"
     },
     "complete": true,
-    "observedThroughSeq": 9
+    "observedThroughSeq": 10
   },
   "events": [
     {
@@ -131,6 +131,16 @@
       "data": {
         "compactionId": "compact-b",
         "turn": 2
+      }
+    },
+    {
+      "seq": 10,
+      "time": 2500,
+      "type": "compaction/prune",
+      "data": {
+        "shadowedRange": { "start": 1, "end": 1 },
+        "shadowedSeqs": [1],
+        "shadowedTokenCount": 20
       }
     }
   ],

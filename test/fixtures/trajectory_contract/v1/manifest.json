@@ -13,7 +13,7 @@
       "sha256": {
         "events/empty-session.json": "1de13bec3b2ba59b6ec8e7fb2baaef8fe5fd7b95f38a3aaead7026c5a24b2961",
         "expected/empty-session.normalized.json": "d76948a02afd8be35a31289daf3ddf3dd51bbab834c5f9abfc77e37e70cccd05",
-        "expected/empty-session.metrics.json": "7749326573f5d900890988bae8467702cfac0f60eaf0de536cab111d45b60d8f"
+        "expected/empty-session.metrics.json": "2a188340ec869ab6886323037615f13faa90ae43b153f9462bfa51fd949e7769"
       },
       "purpose": "zero lifecycle observations with a complete event window",
       "redaction": "synthetic"
@@ -24,11 +24,11 @@
       "expectedNormalized": "expected/lifecycle-basic.normalized.json",
       "expectedMetrics": "expected/lifecycle-basic.metrics.json",
       "sha256": {
-        "events/lifecycle-basic.json": "8d523618b9323b0fc40b2fc630e01339187fe6e991b26a42821db8cce8f1ef9c",
-        "expected/lifecycle-basic.normalized.json": "402457604e6edc92324c73d99c3a54490a92872c24500617e149762e6effebe0",
-        "expected/lifecycle-basic.metrics.json": "203562253c289e1117d18072c5d62ce074c6698e372b5bc9904406fde37eb5e6"
+        "events/lifecycle-basic.json": "28c4f96f9bf3989c3bca2825dad45a5b29f3bba9ff82d1ce40e0c77ca0367882",
+        "expected/lifecycle-basic.normalized.json": "329ea730359fcddc6f0b744eedf55a93d20e905f85e1c9087ba88ce9126cff09",
+        "expected/lifecycle-basic.metrics.json": "abe12aa4e8549be5826cdefaa52dae8dbf7aa2efa2e7b52d13a16f7f4d119ca6"
       },
-      "purpose": "closed tool call, surface replacement dedupe, and multiple closed compaction cycles",
+      "purpose": "closed tool call, surface replacement dedupe, multiple summary cycles and separate model-free prune pass",
       "redaction": "synthetic"
     },
     {
@@ -39,7 +39,7 @@
       "sha256": {
         "events/open-prefix.json": "5f1b5498f5fc8273d3225d28aa6cc395fdff6743ba83b15c96856832d6ca01fc",
         "expected/open-prefix.normalized.json": "5169fb7b0f5a4c053a668fee9a1b03f88eefb8b3a7c9e2e26c8392494115f876",
-        "expected/open-prefix.metrics.json": "87665aad6e816da57bcd8bacdea38e6f6d5a01ba5c4fa995d3bb00d540174d7f"
+        "expected/open-prefix.metrics.json": "d64ecafdcf530533513b867783b2c6d2e81e17fa0ccee747d506082efdbc71f1"
       },
       "purpose": "incomplete event prefix with open tool and compaction spans",
       "redaction": "synthetic"
@@ -52,11 +52,11 @@
       "sha256": {
         "events/tool-error-basic.json": "e9beb48c7d119c4aae20682f93319ee8f8c2489baa5f975b1a6aced6d365b3b0",
         "expected/tool-error-basic.normalized.json": "75273a2d1fc2d7404ddb331ec9a9ca464d4e7fc612d17ce70ab41c1c060c8784",
-        "expected/tool-error-basic.metrics.json": "a0037d9cbc19fb18e1a2418a61559a282a5225542691bf29cda671c549bee084"
+        "expected/tool-error-basic.metrics.json": "24e400fed7584fe36457d2dd700e60a26787cb958572508d8b602cbe37b36ee7"
       },
       "purpose": "explicit tool error rate with success and surface replacement dedupe",
       "redaction": "synthetic"
     }
   ],
-  "aevalRevision": "69a84bf"
+  "aevalRevision": "0d9f9e8"
 }

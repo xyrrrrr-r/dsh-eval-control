@@ -524,6 +524,8 @@ window.__ModuleLoader__.load({
           ? `${(1000 * cycleCount.closedCount / analytics.inputTokens).toFixed(2)} 次 / 千输入 Token · ${analytics.inputUsageSteps} 步有 usage`
           : '暂无有效输入 Token 样本';
         const failureRate = analytics?.metricResults?.find((item) => item.metricId === 'tool.failure_rate');
+        const shadowedTokens = analytics?.metricResults?.find((item) => item.metricId === 'compaction.shadowed_tokens');
+        const prunePasses = analytics?.metricResults?.find((item) => item.metricId === 'compaction.prune_passes');
         const cards = analytics ? [
           ...(stats ? [
             ['已完成轮次', stats.turns],
@@ -540,8 +542,8 @@ window.__ModuleLoader__.load({
           ['压缩总耗时', `${compactionElapsed} ms`],
           ['压缩频率', compactionFrequency],
           ['本会话输入 Token', `${analytics.inputTokens} · ${analytics.inputUsageSteps} 步有 usage`],
-          ['摘要覆盖历史 Token', analytics.compactionShadowedTokens],
-          ['历史修剪批次', analytics.prunePasses],
+          ['摘要覆盖历史 Token', shadowedTokens?.value ?? '暂无摘要样本'],
+          ['历史修剪批次', prunePasses?.value ?? '暂无修剪样本'],
           ['修剪覆盖 Token', analytics.pruneShadowedTokens],
           ['Team 消息投递', `${analytics.deliveredTeamMessages} / ${analytics.queuedTeamMessages}`],
         ] : [];

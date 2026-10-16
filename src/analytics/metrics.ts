@@ -6,12 +6,12 @@ export interface CanonicalEventRef {
 }
 
 export interface TrajectoryMetricResult {
-  metricId: 'tool.call_elapsed_ms' | 'tool.failure_rate' | 'compaction.summary_cycles' | 'compaction.elapsed_ms';
+  metricId: 'tool.call_elapsed_ms' | 'tool.failure_rate' | 'compaction.summary_cycles' | 'compaction.elapsed_ms' | 'compaction.shadowed_tokens' | 'compaction.prune_passes';
   contractVersion: '1';
   subjectId: string;
   status: 'available' | 'partial' | 'incomplete' | 'unavailable';
   value?: number | { closedCount: number; openCount: number } | undefined;
-  unit?: 'ms' | undefined;
+  unit?: 'ms' | 'tokens' | 'passes' | undefined;
   sampleCount: number;
   denominator?: number | undefined;
   evidenceRefs: CanonicalEventRef[];
@@ -31,6 +31,12 @@ export interface MetricFoldState {
   duplicateToolResultIds: Record<string, true>;
   toolResultRefs: CanonicalEventRef[];
   toolResultMissingIdCount: number;
+  compactionSummaryById: Record<string, number | null>;
+  duplicateCompactionSummaryIds: Record<string, true>;
+  compactionSummaryRefs: CanonicalEventRef[];
+  compactionSummaryMissingIdCount: number;
+  prunePassCount: number;
+  pruneEventRefs: CanonicalEventRef[];
   recentMetricResults: TrajectoryMetricResult[];
 }
 
@@ -54,10 +60,49 @@ export function initialMetricFoldState(sessionId: string): MetricFoldState {
     duplicateToolResultIds: {},
     toolResultRefs: [],
     toolResultMissingIdCount: 0,
+    compactionSummaryById: {},
+    duplicateCompactionSummaryIds: {},
+    compactionSummaryRefs: [],
+    compactionSummaryMissingIdCount: 0,
+    prunePassCount: 0,
+    pruneEventRefs: [],
     recentMetricResults: [],
   };
   state = upsertResult(state, compactionCycleResult(state, sessionId));
-  return upsertResult(state, toolFailureRateResult(state));
+  state = upsertResult(state, toolFailureRateResult(state));
+  state = upsertResult(state, compactionShadowedTokensResult(state));
+  return upsertResult(state, compactionPrunePassesResult(state));
+}
+
+function compactionShadowedTokensResult(state: MetricFoldState): TrajectoryMetricResult {
+  const unique = Object.entries(state.compactionSummaryById).filter(([id]) => !state.duplicateCompactionSummaryIds[id]);
+  const known = unique.filter(([, tokens]) => tokens !== null);
+  const qualityRefs = [
+    ...(Object.keys(state.duplicateCompactionSummaryIds).length ? ['compaction_summary_id_duplicate'] : []),
+    ...(state.compactionSummaryMissingIdCount ? ['compaction_id_missing'] : []),
+    ...(unique.some(([, tokens]) => tokens === null) ? ['shadowed_token_count_missing'] : []),
+  ];
+  const status = known.length === 0 ? 'unavailable'
+    : Object.keys(state.duplicateCompactionSummaryIds).length ? 'incomplete'
+      : qualityRefs.length ? 'partial' : 'available';
+  return {
+    metricId: 'compaction.shadowed_tokens', contractVersion: '1', subjectId: state.sessionId,
+    status, ...(known.length ? { value: known.reduce((sum, [, tokens]) => sum + (tokens ?? 0), 0) } : {}),
+    unit: 'tokens', sampleCount: known.length, denominator: unique.length,
+    evidenceRefs: [...state.compactionSummaryRefs].sort((a, b) => a.sessionId.localeCompare(b.sessionId) || a.seq - b.seq),
+    qualityRefs, evidenceLevel: 'derived',
+  };
+}
+
+function compactionPrunePassesResult(state: MetricFoldState): TrajectoryMetricResult {
+  return {
+    metricId: 'compaction.prune_passes', contractVersion: '1', subjectId: state.sessionId,
+    status: state.prunePassCount ? 'available' : 'unavailable',
+    ...(state.prunePassCount ? { value: state.prunePassCount } : {}),
+    unit: 'passes', sampleCount: state.prunePassCount, denominator: state.prunePassCount,
+    evidenceRefs: [...state.pruneEventRefs].sort((a, b) => a.sessionId.localeCompare(b.sessionId) || a.seq - b.seq),
+    qualityRefs: [], evidenceLevel: 'derived',
+  };
 }
 
 function toolFailureRateResult(state: MetricFoldState): TrajectoryMetricResult {
@@ -220,6 +265,30 @@ export function foldLifecycleMetrics(
       evidenceRefs: [ref], qualityRefs: ['compaction_end_missing'], evidenceLevel: 'derived',
     });
     return upsertResult(state, compactionCycleResult(state, sessionId));
+  }
+
+  if (event.type === 'compaction/summary') {
+    const compactionId = String(event.data.compactionId ?? '');
+    const tokenCount = Number.isSafeInteger(event.data.shadowedTokenCount) ? event.data.shadowedTokenCount : null;
+    state = { ...state, compactionSummaryRefs: [...state.compactionSummaryRefs, ref].slice(-64) };
+    if (!compactionId) {
+      state = { ...state, compactionSummaryMissingIdCount: state.compactionSummaryMissingIdCount + 1 };
+    } else if (state.duplicateCompactionSummaryIds[compactionId]) {
+      // Keep the original diagnostic state and its evidence ring.
+    } else if (Object.hasOwn(state.compactionSummaryById, compactionId)) {
+      const { [compactionId]: _previous, ...compactionSummaryById } = state.compactionSummaryById;
+      state = { ...state, compactionSummaryById, duplicateCompactionSummaryIds: { ...state.duplicateCompactionSummaryIds, [compactionId]: true } };
+    } else {
+      state = { ...state, compactionSummaryById: { ...state.compactionSummaryById, [compactionId]: tokenCount } };
+    }
+    state = upsertResult(state, compactionShadowedTokensResult(state));
+    return upsertResult(state, compactionPrunePassesResult(state));
+  }
+
+  if (event.type === 'compaction/prune') {
+    state = { ...state, prunePassCount: state.prunePassCount + 1, pruneEventRefs: [...state.pruneEventRefs, ref].slice(-64) };
+    state = upsertResult(state, compactionPrunePassesResult(state));
+    return upsertResult(state, compactionShadowedTokensResult(state));
   }
 
   if (event.type === 'compaction/end') {
