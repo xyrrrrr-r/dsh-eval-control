@@ -36,7 +36,7 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 const SUBPROCESS_ENTRIES = ['broker_main.js', 'session_reader.js'];
 
 /** Files the DSH host loads in-process must stay plain (peer-resolving). */
-const IN_PROCESS_ENTRIES = ['index.js', 'sandbox_entry.js'];
+const IN_PROCESS_ENTRIES = ['index.js', 'sandbox_entry.js', 'analytics_entry.js'];
 
 const bareSpecifier = /(?:from|import)\s*\(?\s*['"]([^'"\s]+)['"]/g;
 

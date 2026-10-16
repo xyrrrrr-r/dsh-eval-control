@@ -1,9 +1,9 @@
 # dsh bundle patch: inserts this plugin into a profile's layer stack.
 #
-# The default configuration is STANDALONE: no control configuration is
-# supplied, so the transport publishes `evalControlStatus` and mounts
-# nothing. Activation reports the status instead of failing, and no model
-# call is redirected.
+# The default profile mounts two independent features: the optional eval
+# transport (in inert status mode without aeval config) and realtime analytics.
+# Analytics consumes committed DSH events through sessionProjections; it does
+# not read eval config and does not depend on evalBroker.
 #
 # To mount the full control stack, give the transport a configuration and
 # append the control row AFTER it (order is not cosmetic: the control
@@ -25,4 +25,7 @@
 - insert:
     - id: aeval-broker-transport
       name: './dist/sandbox_entry.js'
+      config: {}
+    - id: dsh-trajectory-analytics
+      name: './dist/analytics_entry.js'
       config: {}
