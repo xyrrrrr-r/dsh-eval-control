@@ -252,10 +252,28 @@ test('the client half registers the dock chip and the plugin-page section', () =
   const { remote } = stubRemote();
   const chip = createChip(remote);
   assert.deepEqual(chip.plugin.inject, ['slots', 'locale']);
-  assert.deepEqual(chip.injected, ['conversation.composer.dock', 'plugins.detail.section']);
-  assert.equal(chip.registrations.length, 2);
-  assert.deepEqual(chip.registrations.map((entry) => entry.options['id']), ['dsh-eval-control', 'dsh-eval-control-status']);
+  assert.deepEqual(chip.injected, ['conversation.composer.dock', 'plugins.detail.section', 'conversation.view']);
+  assert.equal(chip.registrations.length, 3);
+  assert.deepEqual(chip.registrations.map((entry) => entry.options['id']), ['dsh-eval-control', 'dsh-eval-control-status', 'dsh-trajectory-analytics']);
   assert.equal(chip.registrations[1]?.options['locale'], 'dsh.eval-control');
+  const analytics = chip.registrations[2];
+  assert.equal(analytics?.options['order'], 20);
+  let inspected = '';
+  const element = analytics?.component({
+    useProjection: (key: string) => key === 'trajectoryAnalytics' ? {
+      eventsSeen: 2, toolCalls: 1, toolResults: 1, toolErrors: 0, retries: 0,
+      metricResults: [], compactionShadowedTokens: 0, prunePasses: 0, pruneShadowedTokens: 0,
+      deliveredTeamMessages: 0, queuedTeamMessages: 0,
+      recentEvents: [{ seq: 1, time: 1000, type: 'tool/call', label: 'shell', callId: 'call-1' }],
+    } : { turns: 1, steps: 1, llmMs: 3, toolMs: 4, ttftMs: 2, ttftSteps: 1, decodeTokens: 5 },
+    inspectCall: (callId: string) => { inspected = callId; },
+  });
+  assert.match(textOf(element), /轨迹分析/);
+  assert.match(textOf(element), /shell/);
+  const locate = findButtons(element).find((button) => textOf(button).includes('在 Trajectory 定位'));
+  assert.ok(locate);
+  (locate.props['onClick'] as () => void)();
+  assert.equal(inspected, 'call-1');
 });
 
 test('the chip reports active when the control row is live', async () => {

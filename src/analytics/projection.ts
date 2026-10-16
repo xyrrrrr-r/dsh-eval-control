@@ -13,18 +13,21 @@ export interface AnalyticsSummary {
   stepsStarted: number;
   stepsEnded: number;
   toolCalls: number;
+  toolResults: number;
   toolErrors: number;
   retries: number;
   compactionStarts: number;
   compactionSummaries: number;
   compactionEnds: number;
   prunePasses: number;
+  compactionShadowedTokens: number;
+  pruneShadowedTokens: number;
   teamMemberSnapshots: number;
   teamTaskSnapshots: number;
   queuedTeamMessages: number;
   deliveredTeamMessages: number;
   metricResults: TrajectoryMetricResult[];
-  recentEvents: Array<{ seq: number; time: number; type: string; label?: string | undefined }>;
+  recentEvents: Array<{ seq: number; time: number; type: string; label?: string | undefined; callId?: string | undefined }>;
 }
 
 export interface AnalyticsState extends AnalyticsSummary {
@@ -46,6 +49,7 @@ const recentEventSchema = z.object({
   time: z.number().nonnegative(),
   type: z.string(),
   label: z.string().optional(),
+  callId: z.string().optional(),
 }).strict();
 
 const eventRefSchema = z.object({ sessionId: z.string().min(1), seq: z.number().int().nonnegative() }).strict();
@@ -82,12 +86,15 @@ const summarySchema = z.object({
   stepsStarted: z.number().int().nonnegative(),
   stepsEnded: z.number().int().nonnegative(),
   toolCalls: z.number().int().nonnegative(),
+  toolResults: z.number().int().nonnegative(),
   toolErrors: z.number().int().nonnegative(),
   retries: z.number().int().nonnegative(),
   compactionStarts: z.number().int().nonnegative(),
   compactionSummaries: z.number().int().nonnegative(),
   compactionEnds: z.number().int().nonnegative(),
   prunePasses: z.number().int().nonnegative(),
+  compactionShadowedTokens: z.number().int().nonnegative(),
+  pruneShadowedTokens: z.number().int().nonnegative(),
   teamMemberSnapshots: z.number().int().nonnegative(),
   teamTaskSnapshots: z.number().int().nonnegative(),
   queuedTeamMessages: z.number().int().nonnegative(),
@@ -117,8 +124,9 @@ export const trajectoryAnalyticsProjection = {
     const metricState = initialMetricFoldState(header.id);
     return {
       eventsSeen: 0, turnsStarted: 0, turnsEnded: 0, stepsStarted: 0, stepsEnded: 0,
-      toolCalls: 0, toolErrors: 0, retries: 0,
+      toolCalls: 0, toolResults: 0, toolErrors: 0, retries: 0,
       compactionStarts: 0, compactionSummaries: 0, compactionEnds: 0, prunePasses: 0,
+      compactionShadowedTokens: 0, pruneShadowedTokens: 0,
       teamMemberSnapshots: 0, teamTaskSnapshots: 0, queuedTeamMessages: 0, deliveredTeamMessages: 0,
       recentEvents: [], metricState, metricResults: metricState.recentMetricResults,
     };
@@ -138,12 +146,23 @@ export const trajectoryAnalyticsProjection = {
       case 'step/start': next.stepsStarted++; break;
       case 'step/end': next.stepsEnded++; break;
       case 'tool/call': next.toolCalls++; break;
-      case 'tool/result': if (!isToolResultSurfaceReplacement(event) && event.data.message.isError) next.toolErrors++; break;
+      case 'tool/result':
+        if (!isToolResultSurfaceReplacement(event)) {
+          next.toolResults++;
+          if (event.data.message.isError) next.toolErrors++;
+        }
+        break;
       case 'llm/retry': next.retries++; break;
       case 'compaction/start': next.compactionStarts++; break;
-      case 'compaction/summary': next.compactionSummaries++; break;
+      case 'compaction/summary':
+        next.compactionSummaries++;
+        next.compactionShadowedTokens += event.data.shadowedTokenCount;
+        break;
       case 'compaction/end': next.compactionEnds++; break;
-      case 'compaction/prune': next.prunePasses++; break;
+      case 'compaction/prune':
+        next.prunePasses++;
+        next.pruneShadowedTokens += event.data.shadowedTokenCount;
+        break;
       case 'team/member': next.teamMemberSnapshots++; break;
       case 'team/task': next.teamTaskSnapshots++; break;
       case 'team/message/queued': next.queuedTeamMessages++; break;
@@ -157,6 +176,7 @@ export const trajectoryAnalyticsProjection = {
       time: event.time,
       type: event.type,
       ...(label === undefined ? {} : { label }),
+      ...(event.type === 'tool/call' ? { callId: String(event.data.callId) } : {}),
     };
     next.recentEvents = [...state.recentEvents, summary].slice(-MAX_RECENT_EVENTS);
     return next;

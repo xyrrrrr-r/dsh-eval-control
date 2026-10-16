@@ -509,6 +509,64 @@ window.__ModuleLoader__.load({
       };
     }
 
+    function createAnalyticsView() {
+      return function TrajectoryAnalyticsView(props) {
+        const analytics = typeof props.useProjection === 'function'
+          ? props.useProjection('trajectoryAnalytics')
+          : undefined;
+        const stats = typeof props.useProjection === 'function'
+          ? props.useProjection('sessionStats')
+          : undefined;
+        const cards = analytics ? [
+          ...(stats ? [
+            ['已完成轮次', stats.turns],
+            ['已完成步骤', stats.steps],
+            ['模型耗时', `${stats.llmMs} ms`],
+            ['工具耗时', `${stats.toolMs} ms`],
+            ['平均首 Token 等待', stats.ttftSteps ? `${Math.round(stats.ttftMs / stats.ttftSteps)} ms` : '暂无样本'],
+            ['输出 Token', stats.decodeTokens],
+          ] : []),
+          ['工具调用', analytics.toolCalls],
+          ['显式工具错误', `${analytics.toolErrors} / ${analytics.toolResults}`],
+          ['模型重试', analytics.retries],
+          ['摘要压缩周期', `${analytics.metricResults?.find((item) => item.metricId === 'compaction.summary_cycles')?.value?.closedCount ?? 0} 次`],
+          ['摘要覆盖历史 Token', analytics.compactionShadowedTokens],
+          ['历史修剪批次', analytics.prunePasses],
+          ['修剪覆盖 Token', analytics.pruneShadowedTokens],
+          ['Team 消息投递', `${analytics.deliveredTeamMessages} / ${analytics.queuedTeamMessages}`],
+        ] : [];
+        const card = (label, value) => h('div', {
+          key: label,
+          style: { padding: '12px', border: '1px solid color-mix(in srgb, currentColor 18%, transparent)', borderRadius: '8px', minWidth: '130px' },
+        }, [
+          h('div', { key: 'label', style: { opacity: 0.7, fontSize: '12px' } }, label),
+          h('strong', { key: 'value', style: { display: 'block', marginTop: '5px', fontSize: '18px' } }, String(value)),
+        ]);
+        return h('section', { style: { height: '100%', overflow: 'auto', padding: '20px', color: 'var(--foreground, inherit)' } }, [
+          h('h2', { key: 'title', style: { marginTop: 0 } }, '轨迹分析'),
+          !analytics
+            ? h('p', { key: 'empty', role: 'status' }, '当前会话暂无轨迹分析投影。')
+            : h(React.Fragment, { key: 'content' }, [
+              h('div', { key: 'cards', style: { display: 'flex', flexWrap: 'wrap', gap: '10px' } }, cards.map(([label, value]) => card(label, value))),
+              h('p', { key: 'count', style: { opacity: 0.7, fontSize: '12px' } }, `已观测 ${analytics.eventsSeen} 个事件；下方最多显示最近 ${analytics.recentEvents.length} 条安全摘要。`),
+              h('h3', { key: 'events' }, '最近事件'),
+              analytics.recentEvents.length === 0
+                ? h('p', { key: 'no-events' }, '尚无可展示的事件。')
+                : h('ol', { key: 'list', style: { paddingLeft: '1.5em' } }, analytics.recentEvents.slice().reverse().map((event) => h('li', {
+                  key: `${event.seq}:${event.type}`,
+                  style: { margin: '8px 0', fontFamily: 'var(--font-mono, monospace)', fontSize: '12px' },
+                }, [
+                  h('span', { key: 'summary' }, `#${event.seq} · ${new Date(event.time).toLocaleTimeString()} · ${event.type}${event.label ? ` · ${event.label}` : ''}`),
+                  event.callId && typeof props.inspectCall === 'function'
+                    ? h('button', { key: 'inspect', type: 'button', onClick: () => props.inspectCall(event.callId), style: { marginLeft: '8px' } }, '在 Trajectory 定位')
+                    : h('span', { key: 'seq', style: { marginLeft: '8px', opacity: 0.65 } }, '请在 Trajectory 按 seq 查看'),
+                ]))),
+              h('p', { key: 'notice', style: { opacity: 0.65, fontSize: '12px' } }, '轮次、步骤、模型/工具耗时和首 Token 等待来自 DSH sessionStats 投影；本插件指标来自轨迹事件。缺少样本时显示暂无样本。工具参数、消息正文和文件路径不会在此展示。'),
+            ]),
+        ]);
+      };
+    }
+
     return {
       inject: ['slots', 'locale'],
       apply(ctx) {
@@ -563,6 +621,13 @@ window.__ModuleLoader__.load({
           locale: NS,
           order: 10,
         }, Section));
+        const AnalyticsView = createAnalyticsView();
+        ctx.slots.inject('conversation.view', () => ctx.slots.register({
+          name: 'conversation.view',
+          id: 'dsh-trajectory-analytics',
+          order: 20,
+          label: () => '轨迹分析',
+        }, AnalyticsView));
       },
     };
   },
