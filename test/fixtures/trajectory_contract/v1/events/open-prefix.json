@@ -1,0 +1,42 @@
+{
+  "fixtureVersion": 1,
+  "fixtureId": "open-prefix",
+  "source": {
+    "dshVersion": "0.2.0-rc.2",
+    "sessionSchema": "session.v4",
+    "normalizationVersion": "1",
+    "metricContractVersion": "1",
+    "redaction": "synthetic"
+  },
+  "session": {
+    "header": {
+      "id": "s-prefix"
+    },
+    "complete": false,
+    "observedThroughSeq": 2
+  },
+  "events": [
+    {
+      "seq": 1,
+      "time": 4000,
+      "type": "tool/call",
+      "data": {
+        "turn": 1,
+        "step": 1,
+        "callId": "call-open",
+        "name": "shell",
+        "arguments": "{}"
+      }
+    },
+    {
+      "seq": 2,
+      "time": 4100,
+      "type": "compaction/start",
+      "data": {
+        "compactionId": "compact-open",
+        "turn": 1
+      }
+    }
+  ],
+  "options": {}
+}

@@ -233,7 +233,7 @@ aeval/tests/fixtures/trajectory_contract/v1/
 
 本插件仓库中的同名文档是插件开发和设计评审使用的对齐副本，不能作为独立 authority。对齐合入时更新本文并记录对应的 aeval commit 和契约版本；若两侧文档不一致，以 aeval 固定版本的契约为准，并通过同步差异修正插件副本。不得让两端各自维护同名但内容不同的权威样本。
 
-插件测试消费 fixture 的推荐方式是开发/CI 环境按锁定的 aeval git revision 检出或下载 fixture bundle；插件发布包和普通用户安装过程不依赖 aeval，也不携带评测数据。插件侧锁定清单记录 `aevalCommit`, `fixtureManifestSha256`, `normalizationVersion`, `metricContractVersion`, `dshVersion`。升级顺序是：aeval 先更新 schema/fixture 和 hash 并合入；插件再更新 aeval revision pin，实现 adapter 并通过共同 golden；若 CI 无法跨仓库取文件，可由 aeval 在同一 commit 发布带 manifest/hash 的 fixture bundle，插件只锁该 bundle 版本。这里的同步是 aeval → 插件测试环境的消费关系，不是两边复制后各自修改。
+插件测试消费 fixture 的方式是从锁定的 aeval git revision 同步到插件仓库的只读快照，确保 standalone CI 不依赖同级 checkout；该快照不是第二套 authority，expected 不允许在插件侧独立编辑。使用 `npm run sync:trajectory-fixtures -- ../aeval <aeval-commit>` 刷新快照，manifest 写入 `aevalRevision`，测试校验每个输入和 expected 的 SHA-256。插件发布包和普通用户安装过程不依赖 aeval，也不携带 fixture。升级顺序是：aeval 先更新 schema/fixture 和 hash 并合入；插件再同步新 revision、实现 adapter 并通过共同 golden。
 
 aeval 权威 fixture 的建议目录：
 
@@ -257,7 +257,7 @@ aeval/tests/fixtures/trajectory_contract/v1/
 
 `manifest.json` 为每个 fixture 登记 `fixtureId`, `input`, `expectedNormalized`, `expectedMetrics`, `dshVersion`, `metricContractVersion`（首批为 `1`）, `normalizationVersion`, `sha256`, `purpose`, `redaction`。任何 fixture 修改都必须更新 aeval 中的 hash 和期望输出；插件只更新锁定 revision 并验证，不维护第二份 expected。
 
-必须覆盖：
+完整契约必须覆盖（首批 parity gate 先覆盖已落地的空会话、闭合/开放生命周期、多次压缩和 surface replacement；其余逐阶段扩展）：
 
 1. 常规 turn/step/tool 闭合路径；
 2. 多次压缩、summary 缺失、open start、error end、prune 与摘要压缩并存；

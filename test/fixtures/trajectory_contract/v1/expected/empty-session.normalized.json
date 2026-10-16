@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "adapterId": "dsh",
+    "adapterVersion": "1",
+    "sourceVersion": "0.2.0-rc.2",
+    "sourceSchema": "session.v4",
+    "normalizationVersion": "1"
+  },
+  "sessions": [
+    {
+      "sessionId": "s-empty",
+      "complete": true
+    }
+  ],
+  "entities": [],
+  "facts": [],
+  "spans": [],
+  "relations": [],
+  "capabilities": {
+    "tool_call": {
+      "status": "supported_complete"
+    },
+    "tool_result.isError": {
+      "status": "supported_partial",
+      "reason": "DSH records isError on error results; absence does not prove every result carries an explicit boolean"
+    },
+    "context.compaction": {
+      "status": "supported_complete"
+    },
+    "coordination.team": {
+      "status": "supported_partial",
+      "reason": "Team snapshot, task and message facts are mapped, but member-to-session linkage, liveness intervals and terminal coverage are not yet normalized"
+    }
+  },
+  "quality": []
+}

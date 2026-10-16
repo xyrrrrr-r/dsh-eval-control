@@ -1,0 +1,20 @@
+{
+  "fixtureVersion": 1,
+  "fixtureId": "empty-session",
+  "source": {
+    "dshVersion": "0.2.0-rc.2",
+    "sessionSchema": "session.v4",
+    "normalizationVersion": "1",
+    "metricContractVersion": "1",
+    "redaction": "synthetic"
+  },
+  "session": {
+    "header": {
+      "id": "s-empty"
+    },
+    "complete": true,
+    "observedThroughSeq": null
+  },
+  "events": [],
+  "options": {}
+}

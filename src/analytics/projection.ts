@@ -71,6 +71,7 @@ const metricFoldStateSchema = z.object({
   openCompactions: z.record(z.string(), z.object({ timeMs: z.number().nonnegative(), seq: z.number().int().nonnegative() }).strict()),
   compactionStartedCount: z.number().int().nonnegative(),
   compactionClosedCount: z.number().int().nonnegative(),
+  compactionStartRefs: z.array(eventRefSchema).max(64),
   recentMetricResults: z.array(metricResultSchema).max(64),
 }).strict();
 
@@ -112,13 +113,16 @@ export const trajectoryAnalyticsProjection = {
   key: 'trajectoryAnalytics',
   stateVersion: 2,
   stateSchema,
-  init: header => ({
-    eventsSeen: 0, turnsStarted: 0, turnsEnded: 0, stepsStarted: 0, stepsEnded: 0,
-    toolCalls: 0, toolErrors: 0, retries: 0,
-    compactionStarts: 0, compactionSummaries: 0, compactionEnds: 0, prunePasses: 0,
-    teamMemberSnapshots: 0, teamTaskSnapshots: 0, queuedTeamMessages: 0, deliveredTeamMessages: 0,
-    recentEvents: [], metricState: initialMetricFoldState(header.id), metricResults: [],
-  }),
+  init: header => {
+    const metricState = initialMetricFoldState(header.id);
+    return {
+      eventsSeen: 0, turnsStarted: 0, turnsEnded: 0, stepsStarted: 0, stepsEnded: 0,
+      toolCalls: 0, toolErrors: 0, retries: 0,
+      compactionStarts: 0, compactionSummaries: 0, compactionEnds: 0, prunePasses: 0,
+      teamMemberSnapshots: 0, teamTaskSnapshots: 0, queuedTeamMessages: 0, deliveredTeamMessages: 0,
+      recentEvents: [], metricState, metricResults: metricState.recentMetricResults,
+    };
+  },
   apply: (state, event) => {
     const metricState = foldLifecycleMetrics(state.metricState, event);
     const next: AnalyticsState = {

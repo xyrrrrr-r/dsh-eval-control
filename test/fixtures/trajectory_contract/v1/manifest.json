@@ -1,0 +1,49 @@
+{
+  "fixtureVersion": 1,
+  "dshVersion": "0.2.0-rc.2",
+  "sessionSchema": "session.v4",
+  "normalizationVersion": "1",
+  "metricContractVersion": "1",
+  "fixtures": [
+    {
+      "fixtureId": "empty-session",
+      "input": "events/empty-session.json",
+      "expectedNormalized": "expected/empty-session.normalized.json",
+      "expectedMetrics": "expected/empty-session.metrics.json",
+      "sha256": {
+        "events/empty-session.json": "1de13bec3b2ba59b6ec8e7fb2baaef8fe5fd7b95f38a3aaead7026c5a24b2961",
+        "expected/empty-session.normalized.json": "d76948a02afd8be35a31289daf3ddf3dd51bbab834c5f9abfc77e37e70cccd05",
+        "expected/empty-session.metrics.json": "ed828741c2bbe4b3a970ffec53fa03feee7dd4b039f8f1b9c02511586bc16fcf"
+      },
+      "purpose": "zero lifecycle observations with a complete event window",
+      "redaction": "synthetic"
+    },
+    {
+      "fixtureId": "lifecycle-basic",
+      "input": "events/lifecycle-basic.json",
+      "expectedNormalized": "expected/lifecycle-basic.normalized.json",
+      "expectedMetrics": "expected/lifecycle-basic.metrics.json",
+      "sha256": {
+        "events/lifecycle-basic.json": "8d523618b9323b0fc40b2fc630e01339187fe6e991b26a42821db8cce8f1ef9c",
+        "expected/lifecycle-basic.normalized.json": "402457604e6edc92324c73d99c3a54490a92872c24500617e149762e6effebe0",
+        "expected/lifecycle-basic.metrics.json": "33fca119d9d55a12d8efef4df9524d94d36fda30addec0d7ae68ef28f386a0a2"
+      },
+      "purpose": "closed tool call, surface replacement dedupe, and multiple closed compaction cycles",
+      "redaction": "synthetic"
+    },
+    {
+      "fixtureId": "open-prefix",
+      "input": "events/open-prefix.json",
+      "expectedNormalized": "expected/open-prefix.normalized.json",
+      "expectedMetrics": "expected/open-prefix.metrics.json",
+      "sha256": {
+        "events/open-prefix.json": "5f1b5498f5fc8273d3225d28aa6cc395fdff6743ba83b15c96856832d6ca01fc",
+        "expected/open-prefix.normalized.json": "5169fb7b0f5a4c053a668fee9a1b03f88eefb8b3a7c9e2e26c8392494115f876",
+        "expected/open-prefix.metrics.json": "227f2ce60af3d0d596506b310f55a77dea2abce5afe3796d6d51045decb3f8f0"
+      },
+      "purpose": "incomplete event prefix with open tool and compaction spans",
+      "redaction": "synthetic"
+    }
+  ],
+  "aevalRevision": "b115b74"
+}

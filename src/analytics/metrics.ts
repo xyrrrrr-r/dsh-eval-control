@@ -25,6 +25,7 @@ export interface MetricFoldState {
   openCompactions: Record<string, { timeMs: number; seq: number }>;
   compactionStartedCount: number;
   compactionClosedCount: number;
+  compactionStartRefs: CanonicalEventRef[];
   recentMetricResults: TrajectoryMetricResult[];
 }
 
@@ -36,14 +37,16 @@ export function isToolResultSurfaceReplacement(event: SessionEvent): boolean {
 }
 
 export function initialMetricFoldState(sessionId: string): MetricFoldState {
-  return {
+  const state: MetricFoldState = {
     sessionId,
     openToolCalls: {},
     openCompactions: {},
     compactionStartedCount: 0,
     compactionClosedCount: 0,
+    compactionStartRefs: [],
     recentMetricResults: [],
   };
+  return upsertResult(state, compactionCycleResult(state, sessionId));
 }
 
 function upsertResult(
@@ -60,7 +63,6 @@ function upsertResult(
 function compactionCycleResult(
   state: MetricFoldState,
   sessionId: string,
-  ref: CanonicalEventRef,
 ): TrajectoryMetricResult {
   const openCount = Object.keys(state.openCompactions).length;
   const closedCount = state.compactionClosedCount;
@@ -72,7 +74,7 @@ function compactionCycleResult(
     value: { closedCount, openCount },
     sampleCount: state.compactionStartedCount,
     denominator: state.compactionStartedCount,
-    evidenceRefs: [ref],
+    evidenceRefs: [...state.compactionStartRefs].sort((a, b) => a.sessionId.localeCompare(b.sessionId) || a.seq - b.seq),
     qualityRefs: [],
     evidenceLevel: 'derived',
   };
@@ -149,13 +151,14 @@ export function foldLifecycleMetrics(
         [compactionId]: { timeMs: event.time, seq: event.seq },
       },
       compactionStartedCount: state.compactionStartedCount + 1,
+      compactionStartRefs: [...state.compactionStartRefs, ref].slice(-64),
     };
     state = upsertResult(state, {
       metricId: 'compaction.elapsed_ms', contractVersion: '1', subjectId: compactionId,
       status: 'incomplete', unit: 'ms', sampleCount: 0, denominator: 1,
       evidenceRefs: [ref], qualityRefs: ['compaction_end_missing'], evidenceLevel: 'derived',
     });
-    return upsertResult(state, compactionCycleResult(state, sessionId, ref));
+    return upsertResult(state, compactionCycleResult(state, sessionId));
   }
 
   if (event.type === 'compaction/end') {
@@ -178,7 +181,7 @@ export function foldLifecycleMetrics(
       qualityRefs: elapsed >= 0 ? [] : ['compaction_end_precedes_start'],
       evidenceLevel: 'derived',
     });
-    return upsertResult(state, compactionCycleResult(state, sessionId, ref));
+    return upsertResult(state, compactionCycleResult(state, sessionId));
   }
 
   return state;

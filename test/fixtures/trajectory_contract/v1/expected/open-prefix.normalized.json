@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "adapterId": "dsh",
+    "adapterVersion": "1",
+    "sourceVersion": "0.2.0-rc.2",
+    "sourceSchema": "session.v4",
+    "normalizationVersion": "1"
+  },
+  "sessions": [
+    {
+      "sessionId": "s-prefix",
+      "complete": false,
+      "observedThroughSeq": 2
+    }
+  ],
+  "entities": [],
+  "facts": [
+    {
+      "factId": "s-prefix:1:tool_call",
+      "kind": "tool_call",
+      "domain": "tool",
+      "timestampMs": 4000,
+      "subjectId": "call-open",
+      "attributes": {
+        "callId": "call-open",
+        "toolName": "shell",
+        "turn": 1,
+        "step": 1
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-prefix",
+          "seq": 1
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-prefix:2:compaction_start",
+      "kind": "compaction_start",
+      "domain": "context",
+      "timestampMs": 4100,
+      "subjectId": "compact-open",
+      "attributes": {
+        "compactionId": "compact-open",
+        "turn": 1
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-prefix",
+          "seq": 2
+        }
+      ],
+      "evidenceLevel": "observed"
+    }
+  ],
+  "spans": [
+    {
+      "spanId": "tool:s-prefix:call-open",
+      "sessionId": "s-prefix",
+      "domain": "tool",
+      "kind": "tool_call",
+      "key": "call-open",
+      "startRef": {
+        "sessionId": "s-prefix",
+        "seq": 1
+      },
+      "startTimeMs": 4000,
+      "status": "open",
+      "evidenceLevel": "derived"
+    },
+    {
+      "spanId": "compaction:s-prefix:compact-open",
+      "sessionId": "s-prefix",
+      "domain": "context",
+      "kind": "compaction",
+      "key": "compact-open",
+      "startRef": {
+        "sessionId": "s-prefix",
+        "seq": 2
+      },
+      "startTimeMs": 4100,
+      "status": "open",
+      "evidenceLevel": "derived"
+    }
+  ],
+  "relations": [],
+  "capabilities": {
+    "tool_call": {
+      "status": "supported_complete"
+    },
+    "tool_result.isError": {
+      "status": "supported_partial",
+      "reason": "DSH records isError on error results; absence does not prove every result carries an explicit boolean"
+    },
+    "context.compaction": {
+      "status": "supported_complete"
+    },
+    "coordination.team": {
+      "status": "supported_partial",
+      "reason": "Team snapshot, task and message facts are mapped, but member-to-session linkage, liveness intervals and terminal coverage are not yet normalized"
+    }
+  },
+  "quality": []
+}

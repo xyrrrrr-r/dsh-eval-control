@@ -59,6 +59,7 @@
   ],
   "scripts": {
     "pull-neutral": "node scripts/pull-neutral.mjs",
+    "sync:trajectory-fixtures": "node scripts/sync-trajectory-fixtures.mjs",
     "vendor:neutral": "node scripts/pull-neutral.mjs --refresh-vendor",
     "typecheck": "tsc --noEmit",
     "build": "npm run pull-neutral && tsc -p tsconfig.build.json && npm run bundle:standalone",

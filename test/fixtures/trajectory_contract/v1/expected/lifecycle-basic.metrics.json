@@ -1,0 +1,92 @@
+[
+  {
+    "metricId": "compaction.elapsed_ms",
+    "contractVersion": "1",
+    "subjectId": "compact-a",
+    "status": "available",
+    "value": 250,
+    "unit": "ms",
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-basic",
+        "seq": 4
+      },
+      {
+        "sessionId": "s-basic",
+        "seq": 6
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "compaction.elapsed_ms",
+    "contractVersion": "1",
+    "subjectId": "compact-b",
+    "status": "available",
+    "value": 120,
+    "unit": "ms",
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-basic",
+        "seq": 7
+      },
+      {
+        "sessionId": "s-basic",
+        "seq": 9
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "compaction.summary_cycles",
+    "contractVersion": "1",
+    "subjectId": "s-basic",
+    "status": "available",
+    "value": {
+      "closedCount": 2,
+      "openCount": 0
+    },
+    "sampleCount": 2,
+    "denominator": 2,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-basic",
+        "seq": 4
+      },
+      {
+        "sessionId": "s-basic",
+        "seq": 7
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "tool.call_elapsed_ms",
+    "contractVersion": "1",
+    "subjectId": "call-a",
+    "status": "available",
+    "value": 650,
+    "unit": "ms",
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-basic",
+        "seq": 1
+      },
+      {
+        "sessionId": "s-basic",
+        "seq": 2
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  }
+]

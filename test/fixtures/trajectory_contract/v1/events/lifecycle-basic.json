@@ -1,0 +1,138 @@
+{
+  "fixtureVersion": 1,
+  "fixtureId": "lifecycle-basic",
+  "source": {
+    "dshVersion": "0.2.0-rc.2",
+    "sessionSchema": "session.v4",
+    "normalizationVersion": "1",
+    "metricContractVersion": "1",
+    "redaction": "synthetic"
+  },
+  "session": {
+    "header": {
+      "id": "s-basic"
+    },
+    "complete": true,
+    "observedThroughSeq": 9
+  },
+  "events": [
+    {
+      "seq": 1,
+      "time": 1000,
+      "type": "tool/call",
+      "data": {
+        "turn": 1,
+        "step": 1,
+        "callId": "call-a",
+        "name": "shell",
+        "arguments": "{\"command\":\"synthetic\"}"
+      }
+    },
+    {
+      "seq": 2,
+      "time": 1650,
+      "type": "tool/result",
+      "surfaceOp": "append",
+      "data": {
+        "turn": 1,
+        "step": 1,
+        "message": {
+          "toolCallId": "call-a",
+          "source": {
+            "kind": "tool",
+            "callId": "call-a"
+          },
+          "isError": false,
+          "content": []
+        }
+      }
+    },
+    {
+      "seq": 3,
+      "time": 1700,
+      "type": "tool/result",
+      "surfaceOp": {
+        "op": "replace",
+        "startSeq": 2,
+        "endSeq": 2
+      },
+      "sourceEventSeqs": [
+        2
+      ],
+      "data": {
+        "turn": 1,
+        "step": 1,
+        "message": {
+          "toolCallId": "call-a",
+          "source": {
+            "kind": "tool",
+            "callId": "call-a"
+          },
+          "isError": false,
+          "content": []
+        }
+      }
+    },
+    {
+      "seq": 4,
+      "time": 2000,
+      "type": "compaction/start",
+      "data": {
+        "compactionId": "compact-a",
+        "turn": 1
+      }
+    },
+    {
+      "seq": 5,
+      "time": 2100,
+      "type": "compaction/summary",
+      "data": {
+        "compactionId": "compact-a",
+        "shadowedTokenCount": 720,
+        "usage": {
+          "inputTokens": 100
+        }
+      }
+    },
+    {
+      "seq": 6,
+      "time": 2250,
+      "type": "compaction/end",
+      "data": {
+        "compactionId": "compact-a",
+        "turn": 1
+      }
+    },
+    {
+      "seq": 7,
+      "time": 2300,
+      "type": "compaction/start",
+      "data": {
+        "compactionId": "compact-b",
+        "turn": 2
+      }
+    },
+    {
+      "seq": 8,
+      "time": 2360,
+      "type": "compaction/summary",
+      "data": {
+        "compactionId": "compact-b",
+        "shadowedTokenCount": 120,
+        "usage": {
+          "inputTokens": 50
+        }
+      }
+    },
+    {
+      "seq": 9,
+      "time": 2420,
+      "type": "compaction/end",
+      "data": {
+        "compactionId": "compact-b",
+        "turn": 2
+      }
+    }
+  ],
+  "options": {}
+}

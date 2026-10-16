@@ -1,0 +1,60 @@
+[
+  {
+    "metricId": "compaction.elapsed_ms",
+    "contractVersion": "1",
+    "subjectId": "compact-open",
+    "status": "incomplete",
+    "unit": "ms",
+    "sampleCount": 0,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-prefix",
+        "seq": 2
+      }
+    ],
+    "qualityRefs": [
+      "compaction_end_missing"
+    ],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "compaction.summary_cycles",
+    "contractVersion": "1",
+    "subjectId": "s-prefix",
+    "status": "partial",
+    "value": {
+      "closedCount": 0,
+      "openCount": 1
+    },
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-prefix",
+        "seq": 2
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "tool.call_elapsed_ms",
+    "contractVersion": "1",
+    "subjectId": "call-open",
+    "status": "incomplete",
+    "unit": "ms",
+    "sampleCount": 0,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-prefix",
+        "seq": 1
+      }
+    ],
+    "qualityRefs": [
+      "tool_call_result_missing"
+    ],
+    "evidenceLevel": "derived"
+  }
+]

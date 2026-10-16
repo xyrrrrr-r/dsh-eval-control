@@ -1,0 +1,17 @@
+[
+  {
+    "metricId": "compaction.summary_cycles",
+    "contractVersion": "1",
+    "subjectId": "s-empty",
+    "status": "available",
+    "value": {
+      "closedCount": 0,
+      "openCount": 0
+    },
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  }
+]

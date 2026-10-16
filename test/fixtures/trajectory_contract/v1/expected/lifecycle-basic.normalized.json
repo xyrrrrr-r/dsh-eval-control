@@ -1,0 +1,247 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "adapterId": "dsh",
+    "adapterVersion": "1",
+    "sourceVersion": "0.2.0-rc.2",
+    "sourceSchema": "session.v4",
+    "normalizationVersion": "1"
+  },
+  "sessions": [
+    {
+      "sessionId": "s-basic",
+      "complete": true,
+      "observedThroughSeq": 9
+    }
+  ],
+  "entities": [],
+  "facts": [
+    {
+      "factId": "s-basic:1:tool_call",
+      "kind": "tool_call",
+      "domain": "tool",
+      "timestampMs": 1000,
+      "subjectId": "call-a",
+      "attributes": {
+        "callId": "call-a",
+        "toolName": "shell",
+        "turn": 1,
+        "step": 1
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-basic",
+          "seq": 1
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-basic:2:tool_result",
+      "kind": "tool_result",
+      "domain": "tool",
+      "timestampMs": 1650,
+      "subjectId": "call-a",
+      "attributes": {
+        "callId": "call-a",
+        "isError": false,
+        "turn": 1,
+        "step": 1
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-basic",
+          "seq": 2
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-basic:4:compaction_start",
+      "kind": "compaction_start",
+      "domain": "context",
+      "timestampMs": 2000,
+      "subjectId": "compact-a",
+      "attributes": {
+        "compactionId": "compact-a",
+        "turn": 1
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-basic",
+          "seq": 4
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-basic:5:compaction_summary",
+      "kind": "compaction_summary",
+      "domain": "context",
+      "timestampMs": 2100,
+      "subjectId": "compact-a",
+      "attributes": {
+        "compactionId": "compact-a",
+        "shadowedTokenCount": 720,
+        "inputTokens": 100
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-basic",
+          "seq": 5
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-basic:6:compaction_end",
+      "kind": "compaction_end",
+      "domain": "context",
+      "timestampMs": 2250,
+      "subjectId": "compact-a",
+      "attributes": {
+        "compactionId": "compact-a",
+        "errorPresent": false
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-basic",
+          "seq": 6
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-basic:7:compaction_start",
+      "kind": "compaction_start",
+      "domain": "context",
+      "timestampMs": 2300,
+      "subjectId": "compact-b",
+      "attributes": {
+        "compactionId": "compact-b",
+        "turn": 2
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-basic",
+          "seq": 7
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-basic:8:compaction_summary",
+      "kind": "compaction_summary",
+      "domain": "context",
+      "timestampMs": 2360,
+      "subjectId": "compact-b",
+      "attributes": {
+        "compactionId": "compact-b",
+        "shadowedTokenCount": 120,
+        "inputTokens": 50
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-basic",
+          "seq": 8
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-basic:9:compaction_end",
+      "kind": "compaction_end",
+      "domain": "context",
+      "timestampMs": 2420,
+      "subjectId": "compact-b",
+      "attributes": {
+        "compactionId": "compact-b",
+        "errorPresent": false
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-basic",
+          "seq": 9
+        }
+      ],
+      "evidenceLevel": "observed"
+    }
+  ],
+  "spans": [
+    {
+      "spanId": "tool:s-basic:call-a",
+      "sessionId": "s-basic",
+      "domain": "tool",
+      "kind": "tool_call",
+      "key": "call-a",
+      "startRef": {
+        "sessionId": "s-basic",
+        "seq": 1
+      },
+      "startTimeMs": 1000,
+      "status": "closed",
+      "endRef": {
+        "sessionId": "s-basic",
+        "seq": 2
+      },
+      "endTimeMs": 1650,
+      "evidenceLevel": "derived"
+    },
+    {
+      "spanId": "compaction:s-basic:compact-a",
+      "sessionId": "s-basic",
+      "domain": "context",
+      "kind": "compaction",
+      "key": "compact-a",
+      "startRef": {
+        "sessionId": "s-basic",
+        "seq": 4
+      },
+      "startTimeMs": 2000,
+      "status": "closed",
+      "endRef": {
+        "sessionId": "s-basic",
+        "seq": 6
+      },
+      "endTimeMs": 2250,
+      "evidenceLevel": "derived"
+    },
+    {
+      "spanId": "compaction:s-basic:compact-b",
+      "sessionId": "s-basic",
+      "domain": "context",
+      "kind": "compaction",
+      "key": "compact-b",
+      "startRef": {
+        "sessionId": "s-basic",
+        "seq": 7
+      },
+      "startTimeMs": 2300,
+      "status": "closed",
+      "endRef": {
+        "sessionId": "s-basic",
+        "seq": 9
+      },
+      "endTimeMs": 2420,
+      "evidenceLevel": "derived"
+    }
+  ],
+  "relations": [],
+  "capabilities": {
+    "tool_call": {
+      "status": "supported_complete"
+    },
+    "tool_result.isError": {
+      "status": "supported_partial",
+      "reason": "DSH records isError on error results; absence does not prove every result carries an explicit boolean"
+    },
+    "context.compaction": {
+      "status": "supported_complete"
+    },
+    "coordination.team": {
+      "status": "supported_partial",
+      "reason": "Team snapshot, task and message facts are mapped, but member-to-session linkage, liveness intervals and terminal coverage are not yet normalized"
+    }
+  },
+  "quality": []
+}

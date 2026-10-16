@@ -11,8 +11,8 @@
 
 | 阶段 | 目标 | 验收门槛 | 状态 |
 | --- | --- | --- | --- |
-| S0 计划与边界冻结 | 按 §5/§6 定义本轮顺序；确认单会话、跨会话、UI 三类交付边界 | 计划可逐项勾选；每阶段有可验证产物 | 进行中 |
-| S1 共同语义与 parity gate | aeval fixture 为权威；插件能消费同一 fixture，对实时前缀输出与 Python 期望逐字段比较；覆盖空会话、闭合/开放、surface replacement、重复/孤立端点 | 自动差异报告覆盖 value/unit/status/分母/evidence/quality；来源 revision 与 manifest hash 被记录 | 待开始 |
+| S0 计划与边界冻结 | 按 §5/§6 定义本轮顺序；确认单会话、跨会话、UI 三类交付边界 | 计划可逐项勾选；每阶段有可验证产物 | **完成**：`f537c23` 已推送 |
+| S1 共同语义与 parity gate | aeval fixture 为权威；插件能消费同一 fixture，对实时前缀输出与 Python 期望逐字段比较；覆盖空会话、闭合/开放、surface replacement；重复/孤立端点后续补充 | 自动比较 value/unit/status/分母/evidence/quality；来源 revision 与 manifest hash 被记录 | **首批完成**：待阶段提交；重复/孤立端点仍是明确缺口 |
 | S2 单会话事件指标 | 在 projection 上增量提供工具错误/重试/重复、压缩规模/频率/时间、模型重试与流式边界、inbox/工具 overlap、计划变化、长间隔及覆盖质量 | 指标契约中每个 DSH 0.2.0-rc.2 可支持指标有实时值、状态、证据引用；缺证据指标明确 unavailable；checkpoint/reload 不重复计数 | 待开始 |
 | S3 Team 子树聚合 | 发现授权子 session 并聚合成员 busy/idle/unknown、并发、投递、阻塞时长、首活动间隔、完成跨度和显式依赖关键链 | 使用多层子树 fixture；跨 session 每项共同指标逐字段通过 S1；订阅/授权/卸载生命周期有确定行为 | 待开始 |
 | S4 普通用户分析页 | 在官方 Trajectory 并列入口；计数/趋势首页；点击指标展开白名单事件明细并跳转/降级定位 | 普通 profile 无 aeval broker 可见；工具名/任务标题可读；敏感载荷默认不出 projection；每种证据落点有验证矩阵 | 待开始 |
@@ -160,6 +160,7 @@ aeval 是共同指标语义、规范化模型和 golden fixture 的唯一权威�
 - 已在默认 Cordis patch 中新增独立 `analytics_entry.js`，用 `sessionProjections` 注册 `trajectoryAnalytics`；当前提供有界事件计数和 64 条安全摘要环，尚未实现个人分析 UI、跨 session 子树聚合、完整指标计算或 TS/Python 对齐。
 - aeval 已实现 aeval-owned `CanonicalTrajectory` v1：`CanonicalTranscript` 可选读写 `extra.aeval.trajectory`，DSH 离线映射已输出 allowlisted 工具、压缩、模型重试和 Team 快照/消息事实；工具耗时与压缩耗时/周期 reducer 已实现，权威 fixture 首批覆盖闭合、open prefix、surface replacement 与空 session。
 - DSH projection 已有对应生命周期 fold 和最近 64 条结果视图，状态版本升至 2；但 TS 输出尚未由共享 fixture 自动逐字段比较，重复边界等全部负例仍未覆盖。
+- 插件已有 aeval `b115b74` lifecycle goldens 的只读快照与 SHA-256 校验；`test/analytics_parity.test.ts` 已对首批三个共同指标逐字段比对，并验证每个事件前缀增量 fold 等于重放结果。覆盖范围尚不含重复/孤立端点，也没有完整指标或 Team/UI。
 - aeval 生成的 sandbox patch 仍独立挂载 eval transport/control，不会自动带入上述 analytics 入口。
 - 下一步先把 aeval lifecycle goldens 接入 TS/Python 对齐闸门并修正差异，再扩展重复/孤立边界 fixtures；之后补齐成员—子 session 关联与存活事实，推进 Team reducer、子树聚合和分析页。当前骨架不得作为 release-ready 功能或指标契约实现完成的证据。
 
