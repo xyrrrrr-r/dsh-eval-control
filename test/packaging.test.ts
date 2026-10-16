@@ -78,7 +78,7 @@ test('the icon and locales satisfy the display-metadata contract', () => {
   }
 });
 
-test('runtime peers are ranged while build-time pins stay exact', () => {
+test('runtime peers use ranges except for feature-critical DSH contracts pinned at build time', () => {
   const harness = (deps: Record<string, string>) =>
     Object.keys(deps).filter((name) => name.startsWith('@deepseek-ai/') && name !== '@deepseek-ai/dsh-ptc-runtime');
 
@@ -87,8 +87,18 @@ test('runtime peers are ranged while build-time pins stay exact', () => {
   // never reach a consumer.
   assert.deepEqual(harness(manifest.dependencies), [], 'Harness packages must not be install-time dependencies');
   assert.ok(Object.keys(manifest.peerDependencies).length > 0);
+  const exactContractPeers = new Set([
+    '@deepseek-ai/dsh-compaction',
+    '@deepseek-ai/dsh-experimental-agent-team',
+    '@deepseek-ai/dsh-llm-retry',
+    '@deepseek-ai/dsh-session-projection',
+  ]);
   for (const [name, range] of Object.entries(manifest.peerDependencies)) {
-    assert.ok(/[\^~]|>=/.test(range), `${name} must carry a version range, not a pin`);
+    if (exactContractPeers.has(name)) {
+      assert.equal(range, '0.2.0-rc.2', `${name} carries event/projection contracts verified against the pinned DSH release`);
+    } else {
+      assert.ok(/[\^~]|>=/.test(range), `${name} must carry a compatibility range`);
+    }
   }
   for (const name of harness(manifest.peerDependencies)) {
     assert.ok(name in manifest.devDependencies, `${name} must keep an exact build-time pin`);
