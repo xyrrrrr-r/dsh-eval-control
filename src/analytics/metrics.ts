@@ -30,6 +30,11 @@ export interface MetricFoldState {
 
 export const MAX_METRIC_RESULTS = 64;
 
+export function isToolResultSurfaceReplacement(event: SessionEvent): boolean {
+  if (event.type !== 'tool/result') return false;
+  return typeof event.surfaceOp === 'object' && event.surfaceOp.op === 'replace';
+}
+
 export function initialMetricFoldState(sessionId: string): MetricFoldState {
   return {
     sessionId,
@@ -104,6 +109,7 @@ export function foldLifecycleMetrics(
   }
 
   if (event.type === 'tool/result') {
+    if (isToolResultSurfaceReplacement(event)) return state;
     const message = event.data.message;
     const callId = message.source?.callId ?? message.toolCallId;
     if (callId) {

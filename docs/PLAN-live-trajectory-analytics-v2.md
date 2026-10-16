@@ -1,6 +1,6 @@
 # DSH 实时轨迹分析：可执行计划 v2
 
-> 状态：**执行中；Canonical Trajectory v1 envelope 与 DSH 离线归一化已接入 aeval，权威指标目录 v1 已冻结；本轮开始实现共同 reducer。实时 TS adapter、golden fixture、Team 子树投影与分析 UI 尚未落地。**
+> 状态：**执行中；Canonical Trajectory v1、DSH 离线归一化与首批工具/压缩 reducer 已落地；aeval 已生成 3 组生命周期 golden。DSH projection 已增量计算对应指标，但 fixture parity gate、完整 Team 子树投影和分析 UI 尚未落地。**
 > 目标用户：安装 `dsh-eval-control` 的普通 DSH 用户；无需安装 aeval 或配置 broker。
 > 共享指标语义、规范化模型和 golden fixture 的权威归属在 aeval；插件侧设计/接入说明见 [`trajectory-metrics-contract.md`](trajectory-metrics-contract.md)、[`trajectory-normalization-fixture-contract.md`](trajectory-normalization-fixture-contract.md)，DSH 原始字段映射见 [`trajectory-field-metric-span-map.md`](trajectory-field-metric-span-map.md)。如插件副本与 aeval 正式契约不一致，以锁定的 aeval commit 为准。
 > 本文替代旧计划作为后续实施入口。旧文件保留作侦察与设计历史，不再作为验收标准。
@@ -143,9 +143,10 @@ aeval 是共同指标语义、规范化模型和 golden fixture 的唯一权威�
 
 - 已补齐 Harbor sandbox → DSH 官方 session → aeval 官方 reader → canonical transcript → SHA-256 artifact/manifest 的证据流说明，并明确它与普通用户实时分析分离。
 - 已在默认 Cordis patch 中新增独立 `analytics_entry.js`，用 `sessionProjections` 注册 `trajectoryAnalytics`；当前提供有界事件计数和 64 条安全摘要环，尚未实现个人分析 UI、跨 session 子树聚合、完整指标计算或 TS/Python 对齐。
-- aeval 已开始实现 aeval-owned `CanonicalTrajectory` v1：`CanonicalTranscript` 可选读写 `extra.aeval.trajectory`，DSH 离线映射已输出 allowlisted 工具、压缩、模型重试和 Team 快照/消息事实；尚无共同 golden fixtures、TS adapter 或共享 reducer，不能据此宣称指标完成。
+- aeval 已实现 aeval-owned `CanonicalTrajectory` v1：`CanonicalTranscript` 可选读写 `extra.aeval.trajectory`，DSH 离线映射已输出 allowlisted 工具、压缩、模型重试和 Team 快照/消息事实；工具耗时与压缩耗时/周期 reducer 已实现，权威 fixture 首批覆盖闭合、open prefix、surface replacement 与空 session。
+- DSH projection 已有对应生命周期 fold 和最近 64 条结果视图，状态版本升至 2；但 TS 输出尚未由共享 fixture 自动逐字段比较，重复边界等全部负例仍未覆盖。
 - aeval 生成的 sandbox patch 仍独立挂载 eval transport/control，不会自动带入上述 analytics 入口。
-- 下一步由 aeval 冻结 fact vocabulary 和 Team/指标 ID，建立 golden fixtures 并锁定 revision；随后插件消费该契约完成 TS adapter/指标 fold，再实现跨会话聚合和分析页。当前骨架不得作为 release-ready 功能或指标契约实现完成的证据。
+- 下一步先把 aeval lifecycle goldens 接入 TS/Python 对齐闸门并修正差异，再扩展重复/孤立边界 fixtures；之后补齐成员—子 session 关联与存活事实，推进 Team reducer、子树聚合和分析页。当前骨架不得作为 release-ready 功能或指标契约实现完成的证据。
 
 | 阶段 | 工作内容 | 验收产物 |
 | --- | --- | --- |

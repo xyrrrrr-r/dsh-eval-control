@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { ProjectionDefinition } from '@deepseek-ai/dsh-session-projection';
 import type { SessionEvent } from '@deepseek-ai/dsh-session';
-import { foldLifecycleMetrics, initialMetricFoldState, type MetricFoldState, type TrajectoryMetricResult } from './metrics.js';
+import { foldLifecycleMetrics, initialMetricFoldState, isToolResultSurfaceReplacement, type MetricFoldState, type TrajectoryMetricResult } from './metrics.js';
 import '@deepseek-ai/dsh-compaction/types';
 import '@deepseek-ai/dsh-llm-retry/types';
 import '@deepseek-ai/dsh-experimental-agent-team/types';
@@ -134,7 +134,7 @@ export const trajectoryAnalyticsProjection = {
       case 'step/start': next.stepsStarted++; break;
       case 'step/end': next.stepsEnded++; break;
       case 'tool/call': next.toolCalls++; break;
-      case 'tool/result': if (event.data.message.isError) next.toolErrors++; break;
+      case 'tool/result': if (!isToolResultSurfaceReplacement(event) && event.data.message.isError) next.toolErrors++; break;
       case 'llm/retry': next.retries++; break;
       case 'compaction/start': next.compactionStarts++; break;
       case 'compaction/summary': next.compactionSummaries++; break;

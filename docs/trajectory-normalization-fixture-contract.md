@@ -1,7 +1,7 @@
 # 轨迹规范化与跨实现 Fixture 契约 v1
 
 > 目的：规定 DSH 实时分析（TypeScript）与 aeval 离线复算（Python）共用的数据模型、转换边界、fixture 组织方式和逐字段一致性规则。本文是插件侧的设计/接入说明；共享契约的正式维护归属在 aeval。
-> 指标 ID、公式、用户解释及证据边界以 [`trajectory-metrics-contract.md`](trajectory-metrics-contract.md) 为唯一语义来源；本文件规定两端如何把 DSH 事实转换成可复算输入和输出。
+> 指标 ID、公式、用户解释及证据边界以 aeval [Trajectory Metric Catalog v1](../../aeval/docs/internal/TRAJECTORY-METRIC-CATALOG-v1.md) 为准；本文件是插件侧副本，规定两端如何把 DSH 事实转换成可复算输入和输出。
 > 目标运行时：DSH `0.2.0-rc.2`。本契约不把该版本的字段形状外推到其他版本。
 
 ## 1. 两端共同遵循的转换流程
@@ -37,7 +37,7 @@ Fixture 的顶层结构固定为：
   "source": {
     "dshVersion": "0.2.0-rc.2",
     "sessionSchema": "session.v4",
-    "metricContractVersion": "1.1",
+    "metricContractVersion": "1",
     "normalizationVersion": "1",
     "redaction": "synthetic"
   },
@@ -176,34 +176,35 @@ Session 记录包含 `sessionId`, `parentSessionId?`, `agentId?`, `teamId?`, `co
 
 ## 4. 指标结果 envelope
 
-每个指标每个分析对象输出一个统一 envelope：
+每项结果必须匹配 aeval `TrajectoryMetricResult` v1 的统一 envelope：
 
 ```json
 {
   "metricId": "tool.call_elapsed_ms",
-  "subject": { "sessionId": "s-root" },
+  "contractVersion": "1",
+  "subjectId": "call-1",
   "status": "available",
-  "value": { "count": 1, "total": 1200, "unit": "ms", "samples": [1200] },
-  "coverage": { "observed": 1, "expected": 1, "ratio": 1.0 },
-  "denominator": { "value": 1, "unit": "calls" },
+  "value": 1200,
+  "unit": "ms",
+  "sampleCount": 1,
+  "denominator": 1,
   "evidenceRefs": [{ "sessionId": "s-root", "seq": 1 }, { "sessionId": "s-root", "seq": 2 }],
   "qualityRefs": [],
-  "evidenceLevel": "derived",
-  "contractVersion": "1.1"
+  "evidenceLevel": "derived"
 }
 ```
 
-固定字段为 `metricId`, `subject`, `status`, `value`, `coverage`, `denominator`, `evidenceRefs`, `qualityRefs`, `evidenceLevel`, `contractVersion`。无适用分母时 `denominator` 仍输出 `{ "value": null, "unit": "..." }`；value 不可用时 `value: null`，不得用 0 代替。
+固定字段为 `metricId`, `contractVersion`, `subjectId?`, `status`, `value?`, `unit?`, `sampleCount`, `denominator?`, `evidenceRefs`, `qualityRefs`, `evidenceLevel`。Python 使用 camelCase alias 与 `exclude_none=true` 序列化；TS 输出同一字段集。结果按 `(metricId, subjectId)` 排序；每条结果最多保留按 `(sessionId, seq)` 排序的最近 64 个证据引用。`unavailable`/`unsupported` 不输出 value；未闭合调用/压缩周期的耗时状态为 `incomplete`，不伪造耗时。
 
 `status` 枚举：
 
 | 状态 | 含义 |
 | --- | --- |
 | `available` | 输入完整到足以按契约计算；0 是有效测量值 |
-| `partial` | 有部分有效样本，但覆盖不完整；必须带 coverage 和质量引用 |
+| `partial` | 当前观察到部分有效生命周期，仍有 open 周期；必须带质量引用 |
 | `incomplete` | 指标受 open/incomplete span 或缺失生命周期边界影响，不能当完整结果解释 |
-| `unavailable` | 版本/字段/证据不足，无法计算；value 为 null 并给出原因 |
-| `unsupported` | 当前规范化器明确不支持该 DSH 版本或事件语义；value 为 null |
+| `unavailable` | 版本/字段/证据不足，无法计算；省略 value 并给出质量原因 |
+| `unsupported` | 当前规范化器明确不支持该 DSH 版本或事件语义；省略 value |
 
 数值约定：计数和毫秒为整数；比例/率内部以十进制值计算，序列化为最多 6 位小数并去掉末尾零；NaN/Infinity 禁止。数组的排序规则由指标定义固定，缺省按引用 `(sessionId, seq)` 排序。不得比较语言自带浮点打印结果。
 
@@ -223,7 +224,7 @@ aeval 是评测底座和共同规范化轨迹语义的所有者。跨后端的�
 正式文件位置约定为 aeval 仓库：
 
 ```text
-aeval/docs/internal/trajectory-normalization-fixture-contract.md
+aeval/docs/internal/TRAJECTORY-NORMALIZATION-FIXTURE-CONTRACT-v1.md
 aeval/tests/fixtures/trajectory_contract/v1/
   manifest.json
   events/...
@@ -254,7 +255,7 @@ aeval/tests/fixtures/trajectory_contract/v1/
     <fixture-id>.metrics.json
 ```
 
-`manifest.json` 为每个 fixture 登记 `fixtureId`, `input`, `expectedNormalized`, `expectedMetrics`, `dshVersion`, `metricContractVersion`, `normalizationVersion`, `sha256`, `purpose`, `redaction`。任何 fixture 修改都必须更新 aeval 中的 hash 和期望输出；插件只更新锁定 revision 并验证，不维护第二份 expected。
+`manifest.json` 为每个 fixture 登记 `fixtureId`, `input`, `expectedNormalized`, `expectedMetrics`, `dshVersion`, `metricContractVersion`（首批为 `1`）, `normalizationVersion`, `sha256`, `purpose`, `redaction`。任何 fixture 修改都必须更新 aeval 中的 hash 和期望输出；插件只更新锁定 revision 并验证，不维护第二份 expected。
 
 必须覆盖：
 
