@@ -523,6 +523,7 @@ window.__ModuleLoader__.load({
         const compactionFrequency = analytics?.inputTokens
           ? `${(1000 * cycleCount.closedCount / analytics.inputTokens).toFixed(2)} 次 / 千输入 Token · ${analytics.inputUsageSteps} 步有 usage`
           : '暂无有效输入 Token 样本';
+        const failureRate = analytics?.metricResults?.find((item) => item.metricId === 'tool.failure_rate');
         const cards = analytics ? [
           ...(stats ? [
             ['已完成轮次', stats.turns],
@@ -533,7 +534,7 @@ window.__ModuleLoader__.load({
             ['输出 Token', stats.decodeTokens],
           ] : []),
           ['工具调用', analytics.toolCalls],
-          ['显式工具错误率', analytics.toolResults ? `${(100 * analytics.toolErrors / analytics.toolResults).toFixed(1)}% (${analytics.toolErrors}/${analytics.toolResults})` : '暂无结果样本'],
+          ['显式工具错误率', failureRate?.value !== undefined ? `${(100 * failureRate.value).toFixed(1)}% · n=${failureRate.denominator}` : '暂无有效结果样本'],
           ['模型重试', analytics.retries],
           ['摘要压缩周期', `${cycleCount.closedCount} 次 · ${cycleCount.openCount} 次进行中`],
           ['压缩总耗时', `${compactionElapsed} ms`],

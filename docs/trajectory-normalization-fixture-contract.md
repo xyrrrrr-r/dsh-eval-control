@@ -257,7 +257,7 @@ aeval/tests/fixtures/trajectory_contract/v1/
 
 `manifest.json` 为每个 fixture 登记 `fixtureId`, `input`, `expectedNormalized`, `expectedMetrics`, `dshVersion`, `metricContractVersion`（首批为 `1`）, `normalizationVersion`, `sha256`, `purpose`, `redaction`。任何 fixture 修改都必须更新 aeval 中的 hash 和期望输出；插件只更新锁定 revision 并验证，不维护第二份 expected。
 
-完整契约必须覆盖（首批 parity gate 先覆盖已落地的空会话、闭合/开放生命周期、多次压缩和 surface replacement；其余逐阶段扩展）：
+完整契约必须覆盖（当前 parity gate 已覆盖空会话、闭合/开放生命周期、多次压缩、surface replacement、显式工具失败率；错误恢复/循环、Team 与异常边界继续逐阶段扩展）：
 
 1. 常规 turn/step/tool 闭合路径；
 2. 多次压缩、summary 缺失、open start、error end、prune 与摘要压缩并存；

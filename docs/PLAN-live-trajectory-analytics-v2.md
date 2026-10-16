@@ -12,8 +12,8 @@
 | 阶段 | 目标 | 验收门槛 | 状态 |
 | --- | --- | --- | --- |
 | S0 计划与边界冻结 | 按 §5/§6 定义本轮顺序；确认单会话、跨会话、UI 三类交付边界 | 计划可逐项勾选；每阶段有可验证产物 | **完成**：`f537c23` 已推送 |
-| S1 共同语义与 parity gate | aeval fixture 为权威；插件能消费同一 fixture，对实时前缀输出与 Python 期望逐字段比较；覆盖空会话、闭合/开放、surface replacement；重复/孤立端点后续补充 | 自动比较 value/unit/status/分母/evidence/quality；来源 revision 与 manifest hash 被记录 | **首批完成**：待阶段提交；重复/孤立端点仍是明确缺口 |
-| S2 单会话事件指标 | 在 projection 上增量提供工具错误/重试/重复、压缩规模/频率/时间、模型重试与流式边界、inbox/工具 overlap、计划变化、长间隔及覆盖质量 | 指标契约中每个 DSH 0.2.0-rc.2 可支持指标有实时值、状态、证据引用；缺证据指标明确 unavailable；checkpoint/reload 不重复计数 | **进行中**：工具/压缩生命周期、计数、按 turn 趋势和部分比率已落地；error recovery、loop、inbox、计划与覆盖诊断尚未实现/对齐 |
+| S1 共同语义与 parity gate | aeval fixture 为权威；插件能消费同一 fixture，对实时前缀输出与 Python 期望逐字段比较；覆盖空会话、闭合/开放、surface replacement；重复/孤立端点后续补充 | 自动比较 value/unit/status/分母/evidence/quality；来源 revision 与 manifest hash 被记录 | **首批完成**：`cffc827` 已推送；fixture 更新到 aeval `69a84bf`，含显式错误率；重复/孤立端点仍是明确缺口 |
+| S2 单会话事件指标 | 在 projection 上增量提供工具错误/重试/重复、压缩规模/频率/时间、模型重试与流式边界、inbox/工具 overlap、计划变化、长间隔及覆盖质量 | 指标契约中每个 DSH 0.2.0-rc.2 可支持指标有实时值、状态、证据引用；缺证据指标明确 unavailable；checkpoint/reload 不重复计数 | **进行中**：工具/压缩生命周期、显式工具错误率共同 reducer/fixture、计数、按 turn 趋势和部分比率已落地；error recovery、loop、inbox、计划与覆盖诊断尚未实现/对齐 |
 | S3 Team 子树聚合 | 发现授权子 session 并聚合成员 busy/idle/unknown、并发、投递、阻塞时长、首活动间隔、完成跨度和显式依赖关键链 | 使用多层子树 fixture；跨 session 每项共同指标逐字段通过 S1；订阅/授权/卸载生命周期有确定行为 | 待开始 |
 | S4 普通用户分析页 | 在官方 Trajectory 并列入口；计数/趋势首页；点击指标展开白名单事件明细并跳转/降级定位 | 普通 profile 无 aeval broker 可见；工具名/任务标题可读；敏感载荷默认不出 projection；每种证据落点有验证矩阵 | **骨架完成**：客户端注册并列 view、显示 sessionStats/插件摘要、工具调用可调用 inspectCall；非工具证据降级为 seq。尚未实机验收和做趋势/指标详情卡 |
 | S5 发布验收 | 精确 pin DSH 0.2.0-rc.2；跑 TS/Python parity、静态检查、插件构建和必要回归；更新文档/changelog | 本计划 §10 验收项通过；按阶段提交推送，最终摘要列出未支持项和 commit | 待开始 |
@@ -160,7 +160,7 @@ aeval 是共同指标语义、规范化模型和 golden fixture 的唯一权威�
 - 已在默认 Cordis patch 中新增独立 `analytics_entry.js`，用 `sessionProjections` 注册 `trajectoryAnalytics`；当前提供有界事件计数和 64 条安全摘要环，尚未实现个人分析 UI、跨 session 子树聚合、完整指标计算或 TS/Python 对齐。
 - aeval 已实现 aeval-owned `CanonicalTrajectory` v1：`CanonicalTranscript` 可选读写 `extra.aeval.trajectory`，DSH 离线映射已输出 allowlisted 工具、压缩、模型重试和 Team 快照/消息事实；工具耗时与压缩耗时/周期 reducer 已实现，权威 fixture 首批覆盖闭合、open prefix、surface replacement 与空 session。
 - DSH projection 已有对应生命周期 fold 和最近 64 条结果视图；当前状态版本为 3，包含周期证据引用、耗时累计及 usage 覆盖计数。首批 TS/aeval golden 已对齐；重复边界等负例仍未覆盖。
-- 插件已有 aeval `b115b74` lifecycle goldens 的只读快照与 SHA-256 校验；`test/analytics_parity.test.ts` 已对首批三个共同指标逐字段比对，并验证每个事件前缀增量 fold 等于重放结果。覆盖范围尚不含重复/孤立端点，也没有完整指标或 Team/UI。
+- 插件已有 aeval `69a84bf` goldens 的只读快照与 SHA-256 校验；`test/analytics_parity.test.ts` 对 `tool.call_elapsed_ms`、`tool.failure_rate`、`compaction.summary_cycles` 和 `compaction.elapsed_ms` 逐字段比对，并验证每个事件前缀增量 fold 等于重放结果。覆盖范围尚不含重复/孤立端点，也没有完整指标或 Team 子树聚合。
 - 普通用户 view 已在 `conversation.view` 注册，加入 DSH 0.2.0-rc.2 的客户端依赖注入；面板显示内建 `sessionStats`、工具/错误/重试/压缩/修剪计数、部分比率、最近 turn 趋势和安全摘要，并可将工具调用交给 `inspectCall`。有单测验证注册、趋势折叠、白名单摘要和工具定位回调，但尚未实机确认 UI 视觉与 view focus。
 - aeval 生成的 sandbox patch 仍独立挂载 eval transport/control，不会自动带入上述 analytics 入口。
 - 下一步先把 aeval lifecycle goldens 接入 TS/Python 对齐闸门并修正差异，再扩展重复/孤立边界 fixtures；之后补齐成员—子 session 关联与存活事实，推进 Team reducer、子树聚合和分析页。当前骨架不得作为 release-ready 功能或指标契约实现完成的证据。

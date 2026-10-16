@@ -66,10 +66,10 @@ const turnTrendSchema = z.object({
 
 const eventRefSchema = z.object({ sessionId: z.string().min(1), seq: z.number().int().nonnegative() }).strict();
 const metricResultSchema = z.object({
-  metricId: z.enum(['tool.call_elapsed_ms', 'compaction.summary_cycles', 'compaction.elapsed_ms']),
+  metricId: z.enum(['tool.call_elapsed_ms', 'tool.failure_rate', 'compaction.summary_cycles', 'compaction.elapsed_ms']),
   contractVersion: z.literal('1'),
   subjectId: z.string().min(1),
-  status: z.enum(['available', 'partial', 'incomplete']),
+  status: z.enum(['available', 'partial', 'incomplete', 'unavailable']),
   value: z.union([
     z.number(),
     z.object({ closedCount: z.number().int().nonnegative(), openCount: z.number().int().nonnegative() }).strict(),
@@ -89,6 +89,10 @@ const metricFoldStateSchema = z.object({
   compactionClosedCount: z.number().int().nonnegative(),
   compactionElapsedMs: z.number().nonnegative(),
   compactionStartRefs: z.array(eventRefSchema).max(64),
+  toolResultByCallId: z.record(z.string(), z.boolean().nullable()),
+  duplicateToolResultIds: z.record(z.string(), z.literal(true)),
+  toolResultRefs: z.array(eventRefSchema).max(64),
+  toolResultMissingIdCount: z.number().int().nonnegative(),
   recentMetricResults: z.array(metricResultSchema).max(64),
 }).strict();
 
@@ -135,7 +139,7 @@ function safeLabel(event: SessionEvent): string | undefined {
 /** Bounded, privacy-conscious first projection for the ordinary-user surface. */
 export const trajectoryAnalyticsProjection = {
   key: 'trajectoryAnalytics',
-  stateVersion: 3,
+  stateVersion: 4,
   stateSchema,
   init: header => {
     const metricState = initialMetricFoldState(header.id);

@@ -13,5 +13,16 @@
     "evidenceRefs": [],
     "qualityRefs": [],
     "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "tool.failure_rate",
+    "contractVersion": "1",
+    "subjectId": "s-empty",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
   }
 ]

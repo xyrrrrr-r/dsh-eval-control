@@ -1,0 +1,82 @@
+[
+  {
+    "metricId": "compaction.summary_cycles",
+    "contractVersion": "1",
+    "subjectId": "s-errors",
+    "status": "available",
+    "value": {
+      "closedCount": 0,
+      "openCount": 0
+    },
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "tool.call_elapsed_ms",
+    "contractVersion": "1",
+    "subjectId": "err-1",
+    "status": "available",
+    "value": 100,
+    "unit": "ms",
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-errors",
+        "seq": 1
+      },
+      {
+        "sessionId": "s-errors",
+        "seq": 2
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "tool.call_elapsed_ms",
+    "contractVersion": "1",
+    "subjectId": "ok-1",
+    "status": "available",
+    "value": 100,
+    "unit": "ms",
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-errors",
+        "seq": 3
+      },
+      {
+        "sessionId": "s-errors",
+        "seq": 4
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "tool.failure_rate",
+    "contractVersion": "1",
+    "subjectId": "s-errors",
+    "status": "available",
+    "value": 0.5,
+    "sampleCount": 2,
+    "denominator": 2,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-errors",
+        "seq": 2
+      },
+      {
+        "sessionId": "s-errors",
+        "seq": 4
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  }
+]

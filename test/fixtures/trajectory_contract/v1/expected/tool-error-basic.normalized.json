@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "adapterId": "dsh",
+    "adapterVersion": "1",
+    "sourceVersion": "0.2.0-rc.2",
+    "sourceSchema": "session.v4",
+    "normalizationVersion": "1"
+  },
+  "sessions": [
+    {
+      "sessionId": "s-errors",
+      "complete": true,
+      "observedThroughSeq": 5
+    }
+  ],
+  "entities": [],
+  "facts": [
+    {
+      "factId": "s-errors:1:tool_call",
+      "kind": "tool_call",
+      "domain": "tool",
+      "timestampMs": 1000,
+      "subjectId": "err-1",
+      "attributes": {
+        "callId": "err-1",
+        "toolName": "shell",
+        "turn": 1,
+        "step": 1
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-errors",
+          "seq": 1
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-errors:2:tool_result",
+      "kind": "tool_result",
+      "domain": "tool",
+      "timestampMs": 1100,
+      "subjectId": "err-1",
+      "attributes": {
+        "callId": "err-1",
+        "isError": true,
+        "turn": 1,
+        "step": 1
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-errors",
+          "seq": 2
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-errors:3:tool_call",
+      "kind": "tool_call",
+      "domain": "tool",
+      "timestampMs": 1200,
+      "subjectId": "ok-1",
+      "attributes": {
+        "callId": "ok-1",
+        "toolName": "read",
+        "turn": 1,
+        "step": 2
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-errors",
+          "seq": 3
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-errors:4:tool_result",
+      "kind": "tool_result",
+      "domain": "tool",
+      "timestampMs": 1300,
+      "subjectId": "ok-1",
+      "attributes": {
+        "callId": "ok-1",
+        "isError": false,
+        "turn": 1,
+        "step": 2
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-errors",
+          "seq": 4
+        }
+      ],
+      "evidenceLevel": "observed"
+    }
+  ],
+  "spans": [
+    {
+      "spanId": "tool:s-errors:err-1",
+      "sessionId": "s-errors",
+      "domain": "tool",
+      "kind": "tool_call",
+      "key": "err-1",
+      "startRef": {
+        "sessionId": "s-errors",
+        "seq": 1
+      },
+      "startTimeMs": 1000,
+      "status": "closed",
+      "endRef": {
+        "sessionId": "s-errors",
+        "seq": 2
+      },
+      "endTimeMs": 1100,
+      "evidenceLevel": "derived"
+    },
+    {
+      "spanId": "tool:s-errors:ok-1",
+      "sessionId": "s-errors",
+      "domain": "tool",
+      "kind": "tool_call",
+      "key": "ok-1",
+      "startRef": {
+        "sessionId": "s-errors",
+        "seq": 3
+      },
+      "startTimeMs": 1200,
+      "status": "closed",
+      "endRef": {
+        "sessionId": "s-errors",
+        "seq": 4
+      },
+      "endTimeMs": 1300,
+      "evidenceLevel": "derived"
+    }
+  ],
+  "relations": [],
+  "capabilities": {
+    "tool_call": {
+      "status": "supported_complete"
+    },
+    "tool_result.isError": {
+      "status": "supported_partial",
+      "reason": "DSH records isError on error results; absence does not prove every result carries an explicit boolean"
+    },
+    "context.compaction": {
+      "status": "supported_complete"
+    },
+    "coordination.team": {
+      "status": "supported_partial",
+      "reason": "Team snapshot, task and message facts are mapped, but member-to-session linkage, liveness intervals and terminal coverage are not yet normalized"
+    }
+  },
+  "quality": []
+}

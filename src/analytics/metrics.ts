@@ -6,10 +6,10 @@ export interface CanonicalEventRef {
 }
 
 export interface TrajectoryMetricResult {
-  metricId: 'tool.call_elapsed_ms' | 'compaction.summary_cycles' | 'compaction.elapsed_ms';
+  metricId: 'tool.call_elapsed_ms' | 'tool.failure_rate' | 'compaction.summary_cycles' | 'compaction.elapsed_ms';
   contractVersion: '1';
   subjectId: string;
-  status: 'available' | 'partial' | 'incomplete';
+  status: 'available' | 'partial' | 'incomplete' | 'unavailable';
   value?: number | { closedCount: number; openCount: number } | undefined;
   unit?: 'ms' | undefined;
   sampleCount: number;
@@ -27,6 +27,10 @@ export interface MetricFoldState {
   compactionClosedCount: number;
   compactionElapsedMs: number;
   compactionStartRefs: CanonicalEventRef[];
+  toolResultByCallId: Record<string, boolean | null>;
+  duplicateToolResultIds: Record<string, true>;
+  toolResultRefs: CanonicalEventRef[];
+  toolResultMissingIdCount: number;
   recentMetricResults: TrajectoryMetricResult[];
 }
 
@@ -38,7 +42,7 @@ export function isToolResultSurfaceReplacement(event: SessionEvent): boolean {
 }
 
 export function initialMetricFoldState(sessionId: string): MetricFoldState {
-  const state: MetricFoldState = {
+  let state: MetricFoldState = {
     sessionId,
     openToolCalls: {},
     openCompactions: {},
@@ -46,9 +50,38 @@ export function initialMetricFoldState(sessionId: string): MetricFoldState {
     compactionClosedCount: 0,
     compactionElapsedMs: 0,
     compactionStartRefs: [],
+    toolResultByCallId: {},
+    duplicateToolResultIds: {},
+    toolResultRefs: [],
+    toolResultMissingIdCount: 0,
     recentMetricResults: [],
   };
-  return upsertResult(state, compactionCycleResult(state, sessionId));
+  state = upsertResult(state, compactionCycleResult(state, sessionId));
+  return upsertResult(state, toolFailureRateResult(state));
+}
+
+function toolFailureRateResult(state: MetricFoldState): TrajectoryMetricResult {
+  const unique = Object.entries(state.toolResultByCallId).filter(([id]) => !state.duplicateToolResultIds[id]);
+  const known = unique.filter(([, isError]) => isError !== null);
+  const failures = known.filter(([, isError]) => isError === true).length;
+  const qualityRefs = [
+    ...(Object.keys(state.duplicateToolResultIds).length ? ['tool_result_duplicate'] : []),
+    ...(state.toolResultMissingIdCount ? ['tool_result_call_id_missing'] : []),
+    ...(unique.some(([, isError]) => isError === null) ? ['tool_result_error_flag_missing'] : []),
+  ];
+  const status = known.length === 0
+    ? 'unavailable'
+    : Object.keys(state.duplicateToolResultIds).length
+      ? 'incomplete'
+      : qualityRefs.length ? 'partial' : 'available';
+  return {
+    metricId: 'tool.failure_rate', contractVersion: '1', subjectId: state.sessionId,
+    status,
+    ...(known.length ? { value: failures / known.length } : {}),
+    sampleCount: known.length, denominator: known.length,
+    evidenceRefs: [...state.toolResultRefs].sort((a, b) => a.sessionId.localeCompare(b.sessionId) || a.seq - b.seq),
+    qualityRefs, evidenceLevel: 'derived',
+  };
 }
 
 function upsertResult(
@@ -116,14 +149,39 @@ export function foldLifecycleMetrics(
     if (isToolResultSurfaceReplacement(event)) return state;
     const message = event.data.message;
     const callId = message.source?.callId ?? message.toolCallId;
-    if (callId) {
-      const start = state.openToolCalls[String(callId)];
+    const normalizedCallId = callId === undefined ? undefined : String(callId);
+    const isError = typeof message.isError === 'boolean' ? message.isError : null;
+    if (normalizedCallId) {
+      if (state.duplicateToolResultIds[normalizedCallId]) {
+        state = { ...state, toolResultRefs: [...state.toolResultRefs, ref].slice(-64) };
+        return upsertResult(state, toolFailureRateResult(state));
+      }
+      if (Object.hasOwn(state.toolResultByCallId, normalizedCallId)) {
+        const { [normalizedCallId]: _previous, ...toolResultByCallId } = state.toolResultByCallId;
+        state = {
+          ...state,
+          toolResultByCallId,
+          duplicateToolResultIds: { ...state.duplicateToolResultIds, [normalizedCallId]: true },
+          toolResultRefs: [...state.toolResultRefs, ref].slice(-64),
+        };
+        return upsertResult(state, toolFailureRateResult(state));
+      }
+      state = {
+        ...state,
+        toolResultByCallId: { ...state.toolResultByCallId, [normalizedCallId]: isError },
+        toolResultRefs: [...state.toolResultRefs, ref].slice(-64),
+      };
+    } else {
+      state = { ...state, toolResultMissingIdCount: state.toolResultMissingIdCount + 1, toolResultRefs: [...state.toolResultRefs, ref].slice(-64) };
+    }
+    if (normalizedCallId) {
+      const start = state.openToolCalls[normalizedCallId];
       if (start) {
         const elapsed = event.time - start.timeMs;
-        const { [String(callId)]: _removed, ...openToolCalls } = state.openToolCalls;
+        const { [normalizedCallId]: _removed, ...openToolCalls } = state.openToolCalls;
         state = { ...state, openToolCalls };
-        return upsertResult(state, {
-          metricId: 'tool.call_elapsed_ms', contractVersion: '1', subjectId: String(callId),
+        state = upsertResult(state, {
+          metricId: 'tool.call_elapsed_ms', contractVersion: '1', subjectId: normalizedCallId,
           status: elapsed >= 0 ? 'available' : 'incomplete',
           ...(elapsed >= 0 ? { value: elapsed } : {}), unit: 'ms',
           sampleCount: elapsed >= 0 ? 1 : 0, denominator: 1,
@@ -131,9 +189,10 @@ export function foldLifecycleMetrics(
           qualityRefs: elapsed >= 0 ? [] : ['tool_result_precedes_call'],
           evidenceLevel: 'derived',
         });
+        return upsertResult(state, toolFailureRateResult(state));
       }
     }
-    return state;
+    return upsertResult(state, toolFailureRateResult(state));
   }
 
   if (event.type === 'compaction/start') {

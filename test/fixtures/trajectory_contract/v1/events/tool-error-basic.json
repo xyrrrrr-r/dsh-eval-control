@@ -1,0 +1,24 @@
+{
+  "fixtureVersion": 1,
+  "fixtureId": "tool-error-basic",
+  "source": {
+    "dshVersion": "0.2.0-rc.2",
+    "sessionSchema": "session.v4",
+    "normalizationVersion": "1",
+    "metricContractVersion": "1",
+    "redaction": "synthetic"
+  },
+  "session": {
+    "header": { "id": "s-errors" },
+    "complete": true,
+    "observedThroughSeq": 5
+  },
+  "events": [
+    { "seq": 1, "time": 1000, "type": "tool/call", "data": { "turn": 1, "step": 1, "callId": "err-1", "name": "shell", "arguments": "{}" } },
+    { "seq": 2, "time": 1100, "type": "tool/result", "surfaceOp": "append", "data": { "turn": 1, "step": 1, "message": { "toolCallId": "err-1", "source": { "kind": "tool", "callId": "err-1" }, "isError": true, "content": [] } } },
+    { "seq": 3, "time": 1200, "type": "tool/call", "data": { "turn": 1, "step": 2, "callId": "ok-1", "name": "read", "arguments": "{}" } },
+    { "seq": 4, "time": 1300, "type": "tool/result", "surfaceOp": "append", "data": { "turn": 1, "step": 2, "message": { "toolCallId": "ok-1", "source": { "kind": "tool", "callId": "ok-1" }, "isError": false, "content": [] } } },
+    { "seq": 5, "time": 1310, "type": "tool/result", "surfaceOp": { "op": "replace", "startSeq": 4, "endSeq": 4 }, "sourceEventSeqs": [4], "data": { "turn": 1, "step": 2, "message": { "toolCallId": "ok-1", "source": { "kind": "tool", "callId": "ok-1" }, "isError": false, "content": [] } } }
+  ],
+  "options": {}
+}

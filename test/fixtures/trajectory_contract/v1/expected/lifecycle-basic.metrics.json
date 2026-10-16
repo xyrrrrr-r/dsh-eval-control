@@ -88,5 +88,22 @@
     ],
     "qualityRefs": [],
     "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "tool.failure_rate",
+    "contractVersion": "1",
+    "subjectId": "s-basic",
+    "status": "available",
+    "value": 0.0,
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-basic",
+        "seq": 2
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
   }
 ]
