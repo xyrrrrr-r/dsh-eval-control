@@ -517,6 +517,12 @@ window.__ModuleLoader__.load({
         const stats = typeof props.useProjection === 'function'
           ? props.useProjection('sessionStats')
           : undefined;
+        const cycles = analytics?.metricResults?.find((item) => item.metricId === 'compaction.summary_cycles')?.value;
+        const cycleCount = cycles && typeof cycles === 'object' ? cycles : { closedCount: 0, openCount: 0 };
+        const compactionElapsed = analytics?.compactionElapsedMs ?? 0;
+        const compactionFrequency = analytics?.inputTokens
+          ? `${(1000 * cycleCount.closedCount / analytics.inputTokens).toFixed(2)} 次 / 千输入 Token · ${analytics.inputUsageSteps} 步有 usage`
+          : '暂无有效输入 Token 样本';
         const cards = analytics ? [
           ...(stats ? [
             ['已完成轮次', stats.turns],
@@ -527,9 +533,12 @@ window.__ModuleLoader__.load({
             ['输出 Token', stats.decodeTokens],
           ] : []),
           ['工具调用', analytics.toolCalls],
-          ['显式工具错误', `${analytics.toolErrors} / ${analytics.toolResults}`],
+          ['显式工具错误率', analytics.toolResults ? `${(100 * analytics.toolErrors / analytics.toolResults).toFixed(1)}% (${analytics.toolErrors}/${analytics.toolResults})` : '暂无结果样本'],
           ['模型重试', analytics.retries],
-          ['摘要压缩周期', `${analytics.metricResults?.find((item) => item.metricId === 'compaction.summary_cycles')?.value?.closedCount ?? 0} 次`],
+          ['摘要压缩周期', `${cycleCount.closedCount} 次 · ${cycleCount.openCount} 次进行中`],
+          ['压缩总耗时', `${compactionElapsed} ms`],
+          ['压缩频率', compactionFrequency],
+          ['本会话输入 Token', `${analytics.inputTokens} · ${analytics.inputUsageSteps} 步有 usage`],
           ['摘要覆盖历史 Token', analytics.compactionShadowedTokens],
           ['历史修剪批次', analytics.prunePasses],
           ['修剪覆盖 Token', analytics.pruneShadowedTokens],
@@ -561,7 +570,7 @@ window.__ModuleLoader__.load({
                     ? h('button', { key: 'inspect', type: 'button', onClick: () => props.inspectCall(event.callId), style: { marginLeft: '8px' } }, '在 Trajectory 定位')
                     : h('span', { key: 'seq', style: { marginLeft: '8px', opacity: 0.65 } }, '请在 Trajectory 按 seq 查看'),
                 ]))),
-              h('p', { key: 'notice', style: { opacity: 0.65, fontSize: '12px' } }, '轮次、步骤、模型/工具耗时和首 Token 等待来自 DSH sessionStats 投影；本插件指标来自轨迹事件。缺少样本时显示暂无样本。工具参数、消息正文和文件路径不会在此展示。'),
+              h('p', { key: 'notice', style: { opacity: 0.65, fontSize: '12px' } }, '轮次、步骤、模型/工具耗时和首 Token 等待来自 DSH sessionStats 投影；工具错误依据显式 isError，压缩按已闭合周期归一到输入 Token。缺少样本时显示暂无样本。工具参数、消息正文和文件路径不会在此展示。'),
             ]),
         ]);
       };

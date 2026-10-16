@@ -25,6 +25,7 @@ export interface MetricFoldState {
   openCompactions: Record<string, { timeMs: number; seq: number }>;
   compactionStartedCount: number;
   compactionClosedCount: number;
+  compactionElapsedMs: number;
   compactionStartRefs: CanonicalEventRef[];
   recentMetricResults: TrajectoryMetricResult[];
 }
@@ -43,6 +44,7 @@ export function initialMetricFoldState(sessionId: string): MetricFoldState {
     openCompactions: {},
     compactionStartedCount: 0,
     compactionClosedCount: 0,
+    compactionElapsedMs: 0,
     compactionStartRefs: [],
     recentMetricResults: [],
   };
@@ -171,6 +173,7 @@ export function foldLifecycleMetrics(
       ...state,
       openCompactions,
       compactionClosedCount: state.compactionClosedCount + (elapsed >= 0 ? 1 : 0),
+      compactionElapsedMs: state.compactionElapsedMs + (elapsed >= 0 ? elapsed : 0),
     };
     state = upsertResult(state, {
       metricId: 'compaction.elapsed_ms', contractVersion: '1', subjectId: compactionId,

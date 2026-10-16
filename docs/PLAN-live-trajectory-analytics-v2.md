@@ -159,7 +159,7 @@ aeval 是共同指标语义、规范化模型和 golden fixture 的唯一权威�
 - 已补齐 Harbor sandbox → DSH 官方 session → aeval 官方 reader → canonical transcript → SHA-256 artifact/manifest 的证据流说明，并明确它与普通用户实时分析分离。
 - 已在默认 Cordis patch 中新增独立 `analytics_entry.js`，用 `sessionProjections` 注册 `trajectoryAnalytics`；当前提供有界事件计数和 64 条安全摘要环，尚未实现个人分析 UI、跨 session 子树聚合、完整指标计算或 TS/Python 对齐。
 - aeval 已实现 aeval-owned `CanonicalTrajectory` v1：`CanonicalTranscript` 可选读写 `extra.aeval.trajectory`，DSH 离线映射已输出 allowlisted 工具、压缩、模型重试和 Team 快照/消息事实；工具耗时与压缩耗时/周期 reducer 已实现，权威 fixture 首批覆盖闭合、open prefix、surface replacement 与空 session。
-- DSH projection 已有对应生命周期 fold 和最近 64 条结果视图，状态版本升至 2；但 TS 输出尚未由共享 fixture 自动逐字段比较，重复边界等全部负例仍未覆盖。
+- DSH projection 已有对应生命周期 fold 和最近 64 条结果视图；当前状态版本为 3，包含周期证据引用、耗时累计及 usage 覆盖计数。首批 TS/aeval golden 已对齐；重复边界等负例仍未覆盖。
 - 插件已有 aeval `b115b74` lifecycle goldens 的只读快照与 SHA-256 校验；`test/analytics_parity.test.ts` 已对首批三个共同指标逐字段比对，并验证每个事件前缀增量 fold 等于重放结果。覆盖范围尚不含重复/孤立端点，也没有完整指标或 Team/UI。
 - 普通用户 view 已在 `conversation.view` 注册，加入 DSH 0.2.0-rc.2 的客户端依赖注入；面板显示内建 `sessionStats`、工具/错误/重试/压缩/修剪计数和安全摘要，并可将工具调用交给 `inspectCall`。有单测验证注册、白名单摘要和工具定位回调，但尚未实机确认 UI 视觉与 view focus。
 - aeval 生成的 sandbox patch 仍独立挂载 eval transport/control，不会自动带入上述 analytics 入口。

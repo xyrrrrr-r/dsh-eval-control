@@ -15,6 +15,8 @@ export interface AnalyticsSummary {
   toolCalls: number;
   toolResults: number;
   toolErrors: number;
+  inputTokens: number;
+  inputUsageSteps: number;
   retries: number;
   compactionStarts: number;
   compactionSummaries: number;
@@ -22,6 +24,7 @@ export interface AnalyticsSummary {
   prunePasses: number;
   compactionShadowedTokens: number;
   pruneShadowedTokens: number;
+  compactionElapsedMs: number;
   teamMemberSnapshots: number;
   teamTaskSnapshots: number;
   queuedTeamMessages: number;
@@ -75,6 +78,7 @@ const metricFoldStateSchema = z.object({
   openCompactions: z.record(z.string(), z.object({ timeMs: z.number().nonnegative(), seq: z.number().int().nonnegative() }).strict()),
   compactionStartedCount: z.number().int().nonnegative(),
   compactionClosedCount: z.number().int().nonnegative(),
+  compactionElapsedMs: z.number().nonnegative(),
   compactionStartRefs: z.array(eventRefSchema).max(64),
   recentMetricResults: z.array(metricResultSchema).max(64),
 }).strict();
@@ -88,6 +92,8 @@ const summarySchema = z.object({
   toolCalls: z.number().int().nonnegative(),
   toolResults: z.number().int().nonnegative(),
   toolErrors: z.number().int().nonnegative(),
+  inputTokens: z.number().int().nonnegative(),
+  inputUsageSteps: z.number().int().nonnegative(),
   retries: z.number().int().nonnegative(),
   compactionStarts: z.number().int().nonnegative(),
   compactionSummaries: z.number().int().nonnegative(),
@@ -95,6 +101,7 @@ const summarySchema = z.object({
   prunePasses: z.number().int().nonnegative(),
   compactionShadowedTokens: z.number().int().nonnegative(),
   pruneShadowedTokens: z.number().int().nonnegative(),
+  compactionElapsedMs: z.number().nonnegative(),
   teamMemberSnapshots: z.number().int().nonnegative(),
   teamTaskSnapshots: z.number().int().nonnegative(),
   queuedTeamMessages: z.number().int().nonnegative(),
@@ -118,15 +125,15 @@ function safeLabel(event: SessionEvent): string | undefined {
 /** Bounded, privacy-conscious first projection for the ordinary-user surface. */
 export const trajectoryAnalyticsProjection = {
   key: 'trajectoryAnalytics',
-  stateVersion: 2,
+  stateVersion: 3,
   stateSchema,
   init: header => {
     const metricState = initialMetricFoldState(header.id);
     return {
       eventsSeen: 0, turnsStarted: 0, turnsEnded: 0, stepsStarted: 0, stepsEnded: 0,
-      toolCalls: 0, toolResults: 0, toolErrors: 0, retries: 0,
+      toolCalls: 0, toolResults: 0, toolErrors: 0, inputTokens: 0, inputUsageSteps: 0, retries: 0,
       compactionStarts: 0, compactionSummaries: 0, compactionEnds: 0, prunePasses: 0,
-      compactionShadowedTokens: 0, pruneShadowedTokens: 0,
+      compactionShadowedTokens: 0, pruneShadowedTokens: 0, compactionElapsedMs: 0,
       teamMemberSnapshots: 0, teamTaskSnapshots: 0, queuedTeamMessages: 0, deliveredTeamMessages: 0,
       recentEvents: [], metricState, metricResults: metricState.recentMetricResults,
     };
@@ -138,6 +145,7 @@ export const trajectoryAnalyticsProjection = {
       eventsSeen: state.eventsSeen + 1,
       metricState,
       metricResults: metricState.recentMetricResults,
+      compactionElapsedMs: metricState.compactionElapsedMs,
     };
     let relevant = true;
     switch (event.type) {
@@ -150,6 +158,12 @@ export const trajectoryAnalyticsProjection = {
         if (!isToolResultSurfaceReplacement(event)) {
           next.toolResults++;
           if (event.data.message.isError) next.toolErrors++;
+        }
+        break;
+      case 'assistant/message':
+        if (event.data.usage?.inputTokens !== undefined) {
+          next.inputTokens += event.data.usage.inputTokens;
+          next.inputUsageSteps++;
         }
         break;
       case 'llm/retry': next.retries++; break;
