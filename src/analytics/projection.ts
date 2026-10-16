@@ -30,6 +30,7 @@ export interface AnalyticsSummary {
   queuedTeamMessages: number;
   deliveredTeamMessages: number;
   metricResults: TrajectoryMetricResult[];
+  turnTrend: Array<{ turn: number; toolCalls: number; toolErrors: number; retries: number; compactionStarts: number; inputTokens: number }>;
   recentEvents: Array<{ seq: number; time: number; type: string; label?: string | undefined; callId?: string | undefined }>;
 }
 
@@ -53,6 +54,14 @@ const recentEventSchema = z.object({
   type: z.string(),
   label: z.string().optional(),
   callId: z.string().optional(),
+}).strict();
+const turnTrendSchema = z.object({
+  turn: z.number().int().nonnegative(),
+  toolCalls: z.number().int().nonnegative(),
+  toolErrors: z.number().int().nonnegative(),
+  retries: z.number().int().nonnegative(),
+  compactionStarts: z.number().int().nonnegative(),
+  inputTokens: z.number().int().nonnegative(),
 }).strict();
 
 const eventRefSchema = z.object({ sessionId: z.string().min(1), seq: z.number().int().nonnegative() }).strict();
@@ -107,6 +116,7 @@ const summarySchema = z.object({
   queuedTeamMessages: z.number().int().nonnegative(),
   deliveredTeamMessages: z.number().int().nonnegative(),
   metricResults: z.array(metricResultSchema).max(64),
+  turnTrend: z.array(turnTrendSchema).max(32),
   recentEvents: z.array(recentEventSchema).max(64),
 }).strict();
 
@@ -135,7 +145,7 @@ export const trajectoryAnalyticsProjection = {
       compactionStarts: 0, compactionSummaries: 0, compactionEnds: 0, prunePasses: 0,
       compactionShadowedTokens: 0, pruneShadowedTokens: 0, compactionElapsedMs: 0,
       teamMemberSnapshots: 0, teamTaskSnapshots: 0, queuedTeamMessages: 0, deliveredTeamMessages: 0,
-      recentEvents: [], metricState, metricResults: metricState.recentMetricResults,
+      recentEvents: [], metricState, metricResults: metricState.recentMetricResults, turnTrend: [],
     };
   },
   apply: (state, event) => {
@@ -193,6 +203,8 @@ export const trajectoryAnalyticsProjection = {
       ...(event.type === 'tool/call' ? { callId: String(event.data.callId) } : {}),
     };
     next.recentEvents = [...state.recentEvents, summary].slice(-MAX_RECENT_EVENTS);
+    const turn = turnOf(event);
+    if (turn !== undefined) next.turnTrend = foldTurnTrend(state.turnTrend, turn, event);
     return next;
   },
   wire: {
@@ -200,3 +212,45 @@ export const trajectoryAnalyticsProjection = {
     view: ({ metricState: _metricState, ...summary }) => summary,
   },
 } satisfies ProjectionDefinition<'trajectoryAnalytics'> & { wire: NonNullable<ProjectionDefinition<'trajectoryAnalytics'>['wire']> };
+
+function turnOf(event: SessionEvent): number | undefined {
+  switch (event.type) {
+    case 'turn/start': case 'turn/end': case 'step/start': case 'step/end': case 'tool/call': case 'tool/result':
+    case 'assistant/message': case 'assistant/attempt': case 'llm/retry': case 'llm/retry-started':
+      return event.data.turn;
+    case 'compaction/start': case 'compaction/end':
+      return event.data.turn ?? undefined;
+    default: return undefined;
+  }
+}
+
+function foldTurnTrend(
+  previous: AnalyticsSummary['turnTrend'],
+  turn: number,
+  event: SessionEvent,
+): AnalyticsSummary['turnTrend'] {
+  const items = [...previous];
+  let index = items.findIndex(item => item.turn === turn);
+  if (index < 0) {
+    items.push({ turn, toolCalls: 0, toolErrors: 0, retries: 0, compactionStarts: 0, inputTokens: 0 });
+    index = items.length - 1;
+  }
+  const current = items[index]!;
+  let delta: Partial<AnalyticsSummary['turnTrend'][number]> = {};
+  switch (event.type) {
+    case 'tool/call': delta = { toolCalls: 1 }; break;
+    case 'tool/result': if (!isToolResultSurfaceReplacement(event) && event.data.message.isError) delta = { toolErrors: 1 }; break;
+    case 'llm/retry': delta = { retries: 1 }; break;
+    case 'compaction/start': delta = { compactionStarts: 1 }; break;
+    case 'assistant/message': delta = { inputTokens: event.data.usage?.inputTokens ?? 0 }; break;
+  }
+  items[index] = {
+    ...current,
+    toolCalls: current.toolCalls + (delta.toolCalls ?? 0),
+    toolErrors: current.toolErrors + (delta.toolErrors ?? 0),
+    retries: current.retries + (delta.retries ?? 0),
+    compactionStarts: current.compactionStarts + (delta.compactionStarts ?? 0),
+    inputTokens: current.inputTokens + (delta.inputTokens ?? 0),
+  };
+  return items.slice(-32);
+}

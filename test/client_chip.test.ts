@@ -264,6 +264,7 @@ test('the client half registers the dock chip and the plugin-page section', () =
       eventsSeen: 2, toolCalls: 1, toolResults: 1, toolErrors: 0, inputTokens: 100, inputUsageSteps: 1, retries: 0,
       metricResults: [], compactionShadowedTokens: 0, prunePasses: 0, pruneShadowedTokens: 0,
       compactionElapsedMs: 0,
+      turnTrend: [{ turn: 1, toolCalls: 1, toolErrors: 0, retries: 0, compactionStarts: 0, inputTokens: 100 }],
       deliveredTeamMessages: 0, queuedTeamMessages: 0,
       recentEvents: [{ seq: 1, time: 1000, type: 'tool/call', label: 'shell', callId: 'call-1' }],
     } : { turns: 1, steps: 1, llmMs: 3, toolMs: 4, ttftMs: 2, ttftSteps: 1, decodeTokens: 5 },

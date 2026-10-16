@@ -558,6 +558,13 @@ window.__ModuleLoader__.load({
             : h(React.Fragment, { key: 'content' }, [
               h('div', { key: 'cards', style: { display: 'flex', flexWrap: 'wrap', gap: '10px' } }, cards.map(([label, value]) => card(label, value))),
               h('p', { key: 'count', style: { opacity: 0.7, fontSize: '12px' } }, `已观测 ${analytics.eventsSeen} 个事件；下方最多显示最近 ${analytics.recentEvents.length} 条安全摘要。`),
+              h('h3', { key: 'trend-title' }, '按轮次趋势'),
+              analytics.turnTrend?.length
+                ? h('ol', { key: 'trend', style: { paddingLeft: '1.5em' } }, analytics.turnTrend.map((turn) => h('li', {
+                  key: turn.turn,
+                  style: { margin: '6px 0', fontSize: '12px' },
+                }, `Turn ${turn.turn}: 工具 ${turn.toolCalls} · 显式错误 ${turn.toolErrors} · 重试 ${turn.retries} · 压缩 ${turn.compactionStarts} · 输入 ${turn.inputTokens} Token`)))
+                : h('p', { key: 'no-trend' }, '尚无可按轮次归属的事件。'),
               h('h3', { key: 'events' }, '最近事件'),
               analytics.recentEvents.length === 0
                 ? h('p', { key: 'no-events' }, '尚无可展示的事件。')
