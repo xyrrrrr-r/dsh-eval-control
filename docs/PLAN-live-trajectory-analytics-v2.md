@@ -5,6 +5,21 @@
 > 共享指标语义、规范化模型和 golden fixture 的权威归属在 aeval；插件侧设计/接入说明见 [`trajectory-metrics-contract.md`](trajectory-metrics-contract.md)、[`trajectory-normalization-fixture-contract.md`](trajectory-normalization-fixture-contract.md)，DSH 原始字段映射见 [`trajectory-field-metric-span-map.md`](trajectory-field-metric-span-map.md)。如插件副本与 aeval 正式契约不一致，以锁定的 aeval commit 为准。
 > 本文替代旧计划作为后续实施入口。旧文件保留作侦察与设计历史，不再作为验收标准。
 
+## 执行清单（按提交顺序）
+
+本清单是本轮“完成 DSH 侧个人轨迹分析”的具体执行顺序。每阶段先完成实现与验收，再分别提交并推送 aeval/插件仓库中属于该阶段的改动；若某阶段依赖 DSH 0.2.0-rc.2 未提供的运行时事实，必须将该指标实现为明确 `unavailable` 并附数据质量原因，不得伪造值。
+
+| 阶段 | 目标 | 验收门槛 | 状态 |
+| --- | --- | --- | --- |
+| S0 计划与边界冻结 | 按 §5/§6 定义本轮顺序；确认单会话、跨会话、UI 三类交付边界 | 计划可逐项勾选；每阶段有可验证产物 | 进行中 |
+| S1 共同语义与 parity gate | aeval fixture 为权威；插件能消费同一 fixture，对实时前缀输出与 Python 期望逐字段比较；覆盖空会话、闭合/开放、surface replacement、重复/孤立端点 | 自动差异报告覆盖 value/unit/status/分母/evidence/quality；来源 revision 与 manifest hash 被记录 | 待开始 |
+| S2 单会话事件指标 | 在 projection 上增量提供工具错误/重试/重复、压缩规模/频率/时间、模型重试与流式边界、inbox/工具 overlap、计划变化、长间隔及覆盖质量 | 指标契约中每个 DSH 0.2.0-rc.2 可支持指标有实时值、状态、证据引用；缺证据指标明确 unavailable；checkpoint/reload 不重复计数 | 待开始 |
+| S3 Team 子树聚合 | 发现授权子 session 并聚合成员 busy/idle/unknown、并发、投递、阻塞时长、首活动间隔、完成跨度和显式依赖关键链 | 使用多层子树 fixture；跨 session 每项共同指标逐字段通过 S1；订阅/授权/卸载生命周期有确定行为 | 待开始 |
+| S4 普通用户分析页 | 在官方 Trajectory 并列入口；计数/趋势首页；点击指标展开白名单事件明细并跳转/降级定位 | 普通 profile 无 aeval broker 可见；工具名/任务标题可读；敏感载荷默认不出 projection；每种证据落点有验证矩阵 | 待开始 |
+| S5 发布验收 | 精确 pin DSH 0.2.0-rc.2；跑 TS/Python parity、静态检查、插件构建和必要回归；更新文档/changelog | 本计划 §10 验收项通过；按阶段提交推送，最终摘要列出未支持项和 commit | 待开始 |
+
+执行约束：阶段提交应聚焦单一交付面；提交后立即推送对应仓库，并记录远端分支/commit。任何依赖 UI 宿主 API 或 DSH runtime API 的实现先从锁定版本源码/类型确认能力，不以猜测接口代替验收。
+
 ## 1. 目标与范围
 
 为普通 DSH 用户提供一个与官方 Trajectory 并列的会话分析页：会话进行时显示计数和趋势；用户点击某个指标后查看有限、可核查的事件明细，并尽可能跳到官方 Trajectory 定位原始调用。分析范围是当前会话及其沿 DSH 父子血缘派生、且当前用户有权访问的子会话。
