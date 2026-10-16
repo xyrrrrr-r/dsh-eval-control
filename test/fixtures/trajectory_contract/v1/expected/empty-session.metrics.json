@@ -39,6 +39,18 @@
     "evidenceLevel": "derived"
   },
   {
+    "metricId": "context.compaction_frequency_per_1k_input_tokens",
+    "contractVersion": "1",
+    "subjectId": "s-empty",
+    "status": "unavailable",
+    "unit": "cycles/1k_input_tokens",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
     "metricId": "tool.failure_rate",
     "contractVersion": "1",
     "subjectId": "s-empty",

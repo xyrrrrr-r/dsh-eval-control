@@ -5,13 +5,13 @@
     "adapterVersion": "1",
     "sourceVersion": "0.2.0-rc.2",
     "sourceSchema": "session.v4",
-    "normalizationVersion": "1"
+    "normalizationVersion": "2"
   },
   "sessions": [
     {
       "sessionId": "s-basic",
       "complete": true,
-      "observedThroughSeq": 10
+      "observedThroughSeq": 12
     }
   ],
   "entities": [],
@@ -178,6 +178,44 @@
         {
           "sessionId": "s-basic",
           "seq": 10
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-basic:11:model_usage",
+      "kind": "model_usage",
+      "domain": "model",
+      "timestampMs": 2600,
+      "attributes": {
+        "turn": 2,
+        "step": 2,
+        "inputTokens": 1000,
+        "outputTokens": 10
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-basic",
+          "seq": 11
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-basic:12:model_usage",
+      "kind": "model_usage",
+      "domain": "model",
+      "timestampMs": 2700,
+      "attributes": {
+        "turn": 3,
+        "step": 1,
+        "inputTokens": 500,
+        "outputTokens": 10
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-basic",
+          "seq": 12
         }
       ],
       "evidenceLevel": "observed"

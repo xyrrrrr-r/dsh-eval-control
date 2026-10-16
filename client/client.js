@@ -520,8 +520,9 @@ window.__ModuleLoader__.load({
         const cycles = analytics?.metricResults?.find((item) => item.metricId === 'compaction.summary_cycles')?.value;
         const cycleCount = cycles && typeof cycles === 'object' ? cycles : { closedCount: 0, openCount: 0 };
         const compactionElapsed = analytics?.compactionElapsedMs ?? 0;
-        const compactionFrequency = analytics?.inputTokens
-          ? `${(1000 * cycleCount.closedCount / analytics.inputTokens).toFixed(2)} 次 / 千输入 Token · ${analytics.inputUsageSteps} 步有 usage`
+        const compactionFrequencyResult = analytics?.metricResults?.find((item) => item.metricId === 'context.compaction_frequency_per_1k_input_tokens');
+        const compactionFrequency = compactionFrequencyResult?.value !== undefined
+          ? `${compactionFrequencyResult.value.toFixed(2)} 次 / 千输入 Token · ${compactionFrequencyResult.status} · n=${compactionFrequencyResult.denominator}`
           : '暂无有效输入 Token 样本';
         const failureRate = analytics?.metricResults?.find((item) => item.metricId === 'tool.failure_rate');
         const shadowedTokens = analytics?.metricResults?.find((item) => item.metricId === 'compaction.shadowed_tokens');

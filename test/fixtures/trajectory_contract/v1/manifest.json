@@ -2,7 +2,7 @@
   "fixtureVersion": 1,
   "dshVersion": "0.2.0-rc.2",
   "sessionSchema": "session.v4",
-  "normalizationVersion": "1",
+  "normalizationVersion": "2",
   "metricContractVersion": "1",
   "fixtures": [
     {
@@ -11,9 +11,9 @@
       "expectedNormalized": "expected/empty-session.normalized.json",
       "expectedMetrics": "expected/empty-session.metrics.json",
       "sha256": {
-        "events/empty-session.json": "1de13bec3b2ba59b6ec8e7fb2baaef8fe5fd7b95f38a3aaead7026c5a24b2961",
-        "expected/empty-session.normalized.json": "d76948a02afd8be35a31289daf3ddf3dd51bbab834c5f9abfc77e37e70cccd05",
-        "expected/empty-session.metrics.json": "2a188340ec869ab6886323037615f13faa90ae43b153f9462bfa51fd949e7769"
+        "events/empty-session.json": "db664eb8d90aebc67d02ad54e99ae8ab2bb58fb70eafc62c99c2247937fe221d",
+        "expected/empty-session.normalized.json": "df5f2b3c6a0e775da4149e5c58561c9cca7a1d9b955d9e5e518a009e871ce7d2",
+        "expected/empty-session.metrics.json": "2d27cb1f767062693d76704082bfbe4b02cbd9fd98a8af17bfed5072b1fd1d3e"
       },
       "purpose": "zero lifecycle observations with a complete event window",
       "redaction": "synthetic"
@@ -24,9 +24,9 @@
       "expectedNormalized": "expected/lifecycle-basic.normalized.json",
       "expectedMetrics": "expected/lifecycle-basic.metrics.json",
       "sha256": {
-        "events/lifecycle-basic.json": "28c4f96f9bf3989c3bca2825dad45a5b29f3bba9ff82d1ce40e0c77ca0367882",
-        "expected/lifecycle-basic.normalized.json": "329ea730359fcddc6f0b744eedf55a93d20e905f85e1c9087ba88ce9126cff09",
-        "expected/lifecycle-basic.metrics.json": "abe12aa4e8549be5826cdefaa52dae8dbf7aa2efa2e7b52d13a16f7f4d119ca6"
+        "events/lifecycle-basic.json": "e79387d2d349a27765c31f7af4452356d48f9612a3598262fab70962bf8e9fa6",
+        "expected/lifecycle-basic.normalized.json": "cf3052d91450e7b8ba181e859414551a995e68e7144735deb2987571b6fe010e",
+        "expected/lifecycle-basic.metrics.json": "cc881ba3bebb90204cc1513dc235661cb8c3aaad3169caba8d18cb8cb3a853da"
       },
       "purpose": "closed tool call, surface replacement dedupe, multiple summary cycles and separate model-free prune pass",
       "redaction": "synthetic"
@@ -37,9 +37,9 @@
       "expectedNormalized": "expected/open-prefix.normalized.json",
       "expectedMetrics": "expected/open-prefix.metrics.json",
       "sha256": {
-        "events/open-prefix.json": "5f1b5498f5fc8273d3225d28aa6cc395fdff6743ba83b15c96856832d6ca01fc",
-        "expected/open-prefix.normalized.json": "5169fb7b0f5a4c053a668fee9a1b03f88eefb8b3a7c9e2e26c8392494115f876",
-        "expected/open-prefix.metrics.json": "d64ecafdcf530533513b867783b2c6d2e81e17fa0ccee747d506082efdbc71f1"
+        "events/open-prefix.json": "a24a88126caa47e71a83ce32102f42591542513c47bd879c37f28e83e1643032",
+        "expected/open-prefix.normalized.json": "c26dd9b5acacd86fbf2ba1d176a0ac915b689dff8adbc84953a06887f84e1b4f",
+        "expected/open-prefix.metrics.json": "0aa7e5c91692e1c171db51461635b307a9c5a878ddba496326d4dcd42ea9b0df"
       },
       "purpose": "incomplete event prefix with open tool and compaction spans",
       "redaction": "synthetic"
@@ -50,13 +50,13 @@
       "expectedNormalized": "expected/tool-error-basic.normalized.json",
       "expectedMetrics": "expected/tool-error-basic.metrics.json",
       "sha256": {
-        "events/tool-error-basic.json": "e9beb48c7d119c4aae20682f93319ee8f8c2489baa5f975b1a6aced6d365b3b0",
-        "expected/tool-error-basic.normalized.json": "75273a2d1fc2d7404ddb331ec9a9ca464d4e7fc612d17ce70ab41c1c060c8784",
-        "expected/tool-error-basic.metrics.json": "24e400fed7584fe36457d2dd700e60a26787cb958572508d8b602cbe37b36ee7"
+        "events/tool-error-basic.json": "60eda2e9a42ba450a515f626c1c6d2f4fcdea7cd69bd32ac3177764602ca8931",
+        "expected/tool-error-basic.normalized.json": "359af82ef5d86e1a2c6d6c4848c3f2dc7dc9413a786a468b1167cc879c48ed84",
+        "expected/tool-error-basic.metrics.json": "a8d57ee412c97009e8a8d21b336e9190e324542a31c979e417963e1534ed5a0a"
       },
       "purpose": "explicit tool error rate with success and surface replacement dedupe",
       "redaction": "synthetic"
     }
   ],
-  "aevalRevision": "0d9f9e8"
+  "aevalRevision": "a576dcd"
 }

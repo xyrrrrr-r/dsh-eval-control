@@ -38,7 +38,7 @@ Fixture 的顶层结构固定为：
     "dshVersion": "0.2.0-rc.2",
     "sessionSchema": "session.v4",
     "metricContractVersion": "1",
-    "normalizationVersion": "1",
+    "normalizationVersion": "2",
     "redaction": "synthetic"
   },
   "sessions": [
@@ -80,7 +80,7 @@ Fixture 的顶层结构固定为：
     "adapterVersion": "1",
     "sourceVersion": "0.2.0-rc.2",
     "sourceSchema": "session.v4",
-    "normalizationVersion": "1"
+    "normalizationVersion": "2"
   },
   "sessions": [],
   "entities": [],
@@ -119,6 +119,7 @@ Session 记录包含 `sessionId`, `parentSessionId?`, `agentId?`, `teamId?`, `co
 | `compaction_end` | `compactionId`, `errorPresent` | `compaction/end`; 只记是否有 error，不保留原始错误文本 |
 | `prune` | `shadowedTokenCount?` | `compaction/prune`; 与摘要压缩分开统计 |
 | `model_retry` | `retryId`, `turn`, `step`, `retryNumber?`, `delayMs?` | `llm/retry*`; failure message 仅按契约需要转成白名单类别 |
+| `model_usage` | `turn?`, `step?`, `inputTokens?`, `outputTokens?` | `assistant/message.usage`; 缺失 usage 仍保留 step fact 以报告覆盖率 |
 | `team_member_snapshot` | `teamId`, `memberId`, `memberName?`, `phase?` | `team/member`; 保存 whole-state 快照，按版本化 reducer 产生变化 |
 | `team_task_snapshot` | `teamId`, `taskId`, `subject?`, `status?`, `blockedBy[]` | `team/task`; subject 属允许的 UI 摘要，不能从文本推依赖 |
 | `team_message_queued` | `messageId`, `senderId?`, `targetId?` | `team/message/queued`; message body 不复制 |

@@ -6,12 +6,12 @@ export interface CanonicalEventRef {
 }
 
 export interface TrajectoryMetricResult {
-  metricId: 'tool.call_elapsed_ms' | 'tool.failure_rate' | 'compaction.summary_cycles' | 'compaction.elapsed_ms' | 'compaction.shadowed_tokens' | 'compaction.prune_passes';
+  metricId: 'tool.call_elapsed_ms' | 'tool.failure_rate' | 'compaction.summary_cycles' | 'compaction.elapsed_ms' | 'compaction.shadowed_tokens' | 'compaction.prune_passes' | 'context.compaction_frequency_per_1k_input_tokens';
   contractVersion: '1';
   subjectId: string;
   status: 'available' | 'partial' | 'incomplete' | 'unavailable';
   value?: number | { closedCount: number; openCount: number } | undefined;
-  unit?: 'ms' | 'tokens' | 'passes' | undefined;
+  unit?: 'ms' | 'tokens' | 'passes' | 'cycles/1k_input_tokens' | undefined;
   sampleCount: number;
   denominator?: number | undefined;
   evidenceRefs: CanonicalEventRef[];
@@ -37,6 +37,10 @@ export interface MetricFoldState {
   compactionSummaryMissingIdCount: number;
   prunePassCount: number;
   pruneEventRefs: CanonicalEventRef[];
+  compactionClosedCycleRefs: CanonicalEventRef[];
+  modelUsageInputTokens: number;
+  modelUsageMissingCount: number;
+  modelUsageRefs: CanonicalEventRef[];
   recentMetricResults: TrajectoryMetricResult[];
 }
 
@@ -66,12 +70,37 @@ export function initialMetricFoldState(sessionId: string): MetricFoldState {
     compactionSummaryMissingIdCount: 0,
     prunePassCount: 0,
     pruneEventRefs: [],
+    compactionClosedCycleRefs: [],
+    modelUsageInputTokens: 0,
+    modelUsageMissingCount: 0,
+    modelUsageRefs: [],
     recentMetricResults: [],
   };
   state = upsertResult(state, compactionCycleResult(state, sessionId));
   state = upsertResult(state, toolFailureRateResult(state));
   state = upsertResult(state, compactionShadowedTokensResult(state));
-  return upsertResult(state, compactionPrunePassesResult(state));
+  state = upsertResult(state, compactionPrunePassesResult(state));
+  return upsertResult(state, compactionFrequencyResult(state));
+}
+
+function compactionFrequencyResult(state: MetricFoldState): TrajectoryMetricResult {
+  const missingOrOpen = state.modelUsageMissingCount > 0 || Object.keys(state.openCompactions).length > 0;
+  const status = state.modelUsageInputTokens <= 0 ? 'unavailable' : missingOrOpen ? 'partial' : 'available';
+  const evidenceRefs = [...state.compactionClosedCycleRefs, ...state.modelUsageRefs]
+    .sort((a, b) => a.sessionId.localeCompare(b.sessionId) || a.seq - b.seq).slice(-64);
+  return {
+    metricId: 'context.compaction_frequency_per_1k_input_tokens', contractVersion: '1', subjectId: state.sessionId,
+    status,
+    ...(state.modelUsageInputTokens > 0 ? { value: 1000 * state.compactionClosedCount / state.modelUsageInputTokens } : {}),
+    unit: 'cycles/1k_input_tokens', sampleCount: state.compactionClosedCount,
+    denominator: state.modelUsageInputTokens,
+    evidenceRefs,
+    qualityRefs: [
+      ...(state.modelUsageMissingCount ? ['model_input_usage_missing'] : []),
+      ...(Object.keys(state.openCompactions).length ? ['compaction_cycle_open'] : []),
+    ],
+    evidenceLevel: 'derived',
+  };
 }
 
 function compactionShadowedTokensResult(state: MetricFoldState): TrajectoryMetricResult {
@@ -240,6 +269,18 @@ export function foldLifecycleMetrics(
     return upsertResult(state, toolFailureRateResult(state));
   }
 
+  if (event.type === 'assistant/message') {
+    const inputTokens = event.data.usage?.inputTokens;
+    const known = Number.isSafeInteger(inputTokens) && inputTokens! >= 0;
+    state = {
+      ...state,
+      modelUsageInputTokens: state.modelUsageInputTokens + (known ? inputTokens! : 0),
+      modelUsageMissingCount: state.modelUsageMissingCount + (known ? 0 : 1),
+      modelUsageRefs: [...state.modelUsageRefs, ref].slice(-64),
+    };
+    return upsertResult(state, compactionFrequencyResult(state));
+  }
+
   if (event.type === 'compaction/start') {
     const compactionId = String(event.data.compactionId);
     if (state.openCompactions[compactionId]) {
@@ -264,7 +305,8 @@ export function foldLifecycleMetrics(
       status: 'incomplete', unit: 'ms', sampleCount: 0, denominator: 1,
       evidenceRefs: [ref], qualityRefs: ['compaction_end_missing'], evidenceLevel: 'derived',
     });
-    return upsertResult(state, compactionCycleResult(state, sessionId));
+    state = upsertResult(state, compactionCycleResult(state, sessionId));
+    return upsertResult(state, compactionFrequencyResult(state));
   }
 
   if (event.type === 'compaction/summary') {
@@ -302,6 +344,9 @@ export function foldLifecycleMetrics(
       openCompactions,
       compactionClosedCount: state.compactionClosedCount + (elapsed >= 0 ? 1 : 0),
       compactionElapsedMs: state.compactionElapsedMs + (elapsed >= 0 ? elapsed : 0),
+      compactionClosedCycleRefs: elapsed >= 0
+        ? [...state.compactionClosedCycleRefs, { sessionId, seq: start.seq }, ref].slice(-64)
+        : state.compactionClosedCycleRefs,
     };
     state = upsertResult(state, {
       metricId: 'compaction.elapsed_ms', contractVersion: '1', subjectId: compactionId,
@@ -312,7 +357,8 @@ export function foldLifecycleMetrics(
       qualityRefs: elapsed >= 0 ? [] : ['compaction_end_precedes_start'],
       evidenceLevel: 'derived',
     });
-    return upsertResult(state, compactionCycleResult(state, sessionId));
+    state = upsertResult(state, compactionCycleResult(state, sessionId));
+    return upsertResult(state, compactionFrequencyResult(state));
   }
 
   return state;

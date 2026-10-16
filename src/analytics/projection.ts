@@ -66,7 +66,7 @@ const turnTrendSchema = z.object({
 
 const eventRefSchema = z.object({ sessionId: z.string().min(1), seq: z.number().int().nonnegative() }).strict();
 const metricResultSchema = z.object({
-  metricId: z.enum(['tool.call_elapsed_ms', 'tool.failure_rate', 'compaction.summary_cycles', 'compaction.elapsed_ms', 'compaction.shadowed_tokens', 'compaction.prune_passes']),
+  metricId: z.enum(['tool.call_elapsed_ms', 'tool.failure_rate', 'compaction.summary_cycles', 'compaction.elapsed_ms', 'compaction.shadowed_tokens', 'compaction.prune_passes', 'context.compaction_frequency_per_1k_input_tokens']),
   contractVersion: z.literal('1'),
   subjectId: z.string().min(1),
   status: z.enum(['available', 'partial', 'incomplete', 'unavailable']),
@@ -74,7 +74,7 @@ const metricResultSchema = z.object({
     z.number(),
     z.object({ closedCount: z.number().int().nonnegative(), openCount: z.number().int().nonnegative() }).strict(),
   ]).optional(),
-  unit: z.enum(['ms', 'tokens', 'passes']).optional(),
+  unit: z.enum(['ms', 'tokens', 'passes', 'cycles/1k_input_tokens']).optional(),
   sampleCount: z.number().int().nonnegative(),
   denominator: z.number().int().nonnegative().optional(),
   evidenceRefs: z.array(eventRefSchema),
@@ -99,6 +99,10 @@ const metricFoldStateSchema = z.object({
   compactionSummaryMissingIdCount: z.number().int().nonnegative(),
   prunePassCount: z.number().int().nonnegative(),
   pruneEventRefs: z.array(eventRefSchema).max(64),
+  compactionClosedCycleRefs: z.array(eventRefSchema).max(64),
+  modelUsageInputTokens: z.number().int().nonnegative(),
+  modelUsageMissingCount: z.number().int().nonnegative(),
+  modelUsageRefs: z.array(eventRefSchema).max(64),
   recentMetricResults: z.array(metricResultSchema).max(64),
 }).strict();
 
@@ -145,7 +149,7 @@ function safeLabel(event: SessionEvent): string | undefined {
 /** Bounded, privacy-conscious first projection for the ordinary-user surface. */
 export const trajectoryAnalyticsProjection = {
   key: 'trajectoryAnalytics',
-  stateVersion: 5,
+  stateVersion: 6,
   stateSchema,
   init: header => {
     const metricState = initialMetricFoldState(header.id);

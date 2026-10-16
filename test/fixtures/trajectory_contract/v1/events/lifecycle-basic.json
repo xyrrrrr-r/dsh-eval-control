@@ -4,7 +4,7 @@
   "source": {
     "dshVersion": "0.2.0-rc.2",
     "sessionSchema": "session.v4",
-    "normalizationVersion": "1",
+    "normalizationVersion": "2",
     "metricContractVersion": "1",
     "redaction": "synthetic"
   },
@@ -13,7 +13,7 @@
       "id": "s-basic"
     },
     "complete": true,
-    "observedThroughSeq": 10
+    "observedThroughSeq": 12
   },
   "events": [
     {
@@ -138,9 +138,52 @@
       "time": 2500,
       "type": "compaction/prune",
       "data": {
-        "shadowedRange": { "start": 1, "end": 1 },
-        "shadowedSeqs": [1],
+        "shadowedRange": {
+          "start": 1,
+          "end": 1
+        },
+        "shadowedSeqs": [
+          1
+        ],
         "shadowedTokenCount": 20
+      }
+    },
+    {
+      "seq": 11,
+      "time": 2600,
+      "type": "assistant/message",
+      "surfaceOp": "append",
+      "data": {
+        "turn": 2,
+        "step": 2,
+        "message": {
+          "role": "assistant",
+          "content": []
+        },
+        "stream": [],
+        "usage": {
+          "inputTokens": 1000,
+          "outputTokens": 10
+        }
+      }
+    },
+    {
+      "seq": 12,
+      "time": 2700,
+      "type": "assistant/message",
+      "surfaceOp": "append",
+      "data": {
+        "turn": 3,
+        "step": 1,
+        "message": {
+          "role": "assistant",
+          "content": []
+        },
+        "stream": [],
+        "usage": {
+          "inputTokens": 500,
+          "outputTokens": 10
+        }
       }
     }
   ],

@@ -63,6 +63,20 @@
     "evidenceLevel": "derived"
   },
   {
+    "metricId": "context.compaction_frequency_per_1k_input_tokens",
+    "contractVersion": "1",
+    "subjectId": "s-prefix",
+    "status": "unavailable",
+    "unit": "cycles/1k_input_tokens",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [
+      "compaction_cycle_open"
+    ],
+    "evidenceLevel": "derived"
+  },
+  {
     "metricId": "tool.call_elapsed_ms",
     "contractVersion": "1",
     "subjectId": "call-open",

@@ -108,6 +108,44 @@
     "evidenceLevel": "derived"
   },
   {
+    "metricId": "context.compaction_frequency_per_1k_input_tokens",
+    "contractVersion": "1",
+    "subjectId": "s-basic",
+    "status": "available",
+    "value": 1.3333333333333333,
+    "unit": "cycles/1k_input_tokens",
+    "sampleCount": 2,
+    "denominator": 1500,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-basic",
+        "seq": 4
+      },
+      {
+        "sessionId": "s-basic",
+        "seq": 6
+      },
+      {
+        "sessionId": "s-basic",
+        "seq": 7
+      },
+      {
+        "sessionId": "s-basic",
+        "seq": 9
+      },
+      {
+        "sessionId": "s-basic",
+        "seq": 11
+      },
+      {
+        "sessionId": "s-basic",
+        "seq": 12
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
     "metricId": "tool.call_elapsed_ms",
     "contractVersion": "1",
     "subjectId": "call-a",

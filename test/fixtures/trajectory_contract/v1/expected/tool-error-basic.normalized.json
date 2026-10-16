@@ -5,7 +5,7 @@
     "adapterVersion": "1",
     "sourceVersion": "0.2.0-rc.2",
     "sourceSchema": "session.v4",
-    "normalizationVersion": "1"
+    "normalizationVersion": "2"
   },
   "sessions": [
     {
