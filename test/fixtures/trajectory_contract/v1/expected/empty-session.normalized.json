@@ -5,11 +5,12 @@
     "adapterVersion": "1",
     "sourceVersion": "0.2.0-rc.2",
     "sourceSchema": "session.v4",
-    "normalizationVersion": "2"
+    "normalizationVersion": "3"
   },
   "sessions": [
     {
       "sessionId": "s-empty",
+      "agentId": "s-empty",
       "complete": true
     }
   ],
@@ -28,9 +29,21 @@
     "context.compaction": {
       "status": "supported_complete"
     },
+    "model.stream": {
+      "status": "supported_partial",
+      "reason": "Stream bounds come from compact stream records; absent streams and zero-width spans stay unusable, never zero"
+    },
+    "planning.todo": {
+      "status": "supported_partial",
+      "reason": "Todo matching uses truncated content digests; status transitions are observed, content identity is derived"
+    },
     "coordination.team": {
       "status": "supported_partial",
-      "reason": "Team snapshot, task and message facts are mapped, but member-to-session linkage, liveness intervals and terminal coverage are not yet normalized"
+      "reason": "Team snapshot, task, message and member-session linkage facts are mapped; member liveness intervals and terminal coverage are not observable from committed events"
+    },
+    "member_liveness": {
+      "status": "unsupported",
+      "reason": "DSH 0.2.0-rc.2 committed events carry no member liveness intervals; idle duration cannot be replayed offline"
     }
   },
   "quality": []

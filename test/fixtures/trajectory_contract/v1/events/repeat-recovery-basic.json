@@ -1,0 +1,60 @@
+{
+  "fixtureVersion": 1,
+  "fixtureId": "repeat-recovery-basic",
+  "source": {
+    "dshVersion": "0.2.0-rc.2",
+    "sessionSchema": "session.v4",
+    "normalizationVersion": "3",
+    "metricContractVersion": "1",
+    "redaction": "synthetic"
+  },
+  "session": {
+    "header": { "id": "s-repeat", "delegationDepth": 0 },
+    "complete": true,
+    "observedThroughSeq": 24
+  },
+  "events": [
+    { "seq": 1, "time": 1000, "type": "turn/start", "data": { "turn": 1 } },
+    { "seq": 2, "time": 1010, "type": "request/header", "data": { "header": { "config": { "provider": "deepseek", "model": "test-model-a" } } } },
+    { "seq": 3, "time": 1020, "type": "request/context", "data": { "provider": "deepseek", "model": "test-model-a", "contextWindow": 16384 } },
+    { "seq": 4, "time": 1030, "type": "todo/write", "data": { "todos": [
+      { "content": "inspect the database schema", "status": "pending" },
+      { "content": "truncate the audit table", "status": "pending" },
+      { "content": "verify row counts", "status": "pending" }
+    ] } },
+    { "seq": 5, "time": 1100, "type": "step/start", "data": { "turn": 1, "step": 1 } },
+    { "seq": 6, "time": 1110, "type": "tool/call", "data": { "callId": "call-read-1", "name": "read_file", "arguments": "{\"path\":\"db/schema.sql\"}", "turn": 1, "step": 1 } },
+    { "seq": 7, "time": 1200, "type": "tool/result", "data": { "message": { "source": { "kind": "tool", "callId": "call-read-1" }, "isError": false } } },
+    { "seq": 8, "time": 1250, "type": "tool/call", "data": { "callId": "call-read-2", "name": "read_file", "arguments": "{\"path\":\"db/schema.sql\"}", "turn": 1, "step": 1 } },
+    { "seq": 9, "time": 1300, "type": "tool/result", "data": { "message": { "source": { "kind": "tool", "callId": "call-read-2" }, "isError": false } } },
+    { "seq": 10, "time": 1350, "type": "tool/call", "data": { "callId": "call-read-3", "name": "read_file", "arguments": "{\"path\":\"db/schema.sql\"}", "turn": 1, "step": 1 } },
+    { "seq": 11, "time": 1400, "type": "tool/result", "data": { "message": { "source": { "kind": "tool", "callId": "call-read-3" }, "isError": false } } },
+    { "seq": 12, "time": 1500, "type": "tool/call", "data": { "callId": "call-sql-1", "name": "sqlite_exec", "arguments": "{\"sql\":\"TRUNCATE audit\"}", "turn": 1, "step": 2 } },
+    { "seq": 13, "time": 1620, "type": "tool/result", "data": { "message": { "source": { "kind": "tool", "callId": "call-sql-1" }, "isError": true } } },
+    { "seq": 14, "time": 1700, "type": "tool/call", "data": { "callId": "call-sql-2", "name": "sqlite_exec", "arguments": "{\"sql\":\"TRUNCATE audit\"}", "turn": 1, "step": 2 } },
+    { "seq": 15, "time": 1810, "type": "tool/result", "data": { "message": { "source": { "kind": "tool", "callId": "call-sql-2" }, "isError": false } } },
+    { "seq": 16, "time": 1900, "type": "step/end", "data": { "turn": 1, "step": 2 } },
+    { "seq": 17, "time": 2000, "type": "llm/retry", "data": { "retryId": "retry-1", "retry": 1, "maxRetries": 3, "delayMs": 250, "turn": 1, "step": 3, "failure": { "code": "rate_limited" } } },
+    { "seq": 18, "time": 2010, "type": "llm/retry-started", "data": { "retryId": "retry-1", "retry": 1, "turn": 1, "step": 3 } },
+    { "seq": 19, "time": 2300, "type": "assistant/message", "data": { "turn": 1, "step": 3, "stream": [{ "type": "text-chunks", "time0": 2250, "index": 0, "dt": [40], "texts": ["do", "ne"] }], "usage": { "inputTokens": 2400, "outputTokens": 60, "totalTokens": 2460 } } },
+    { "seq": 20, "time": 2320, "type": "todo/write", "data": { "todos": [
+      { "content": "inspect the database schema", "status": "completed" },
+      { "content": "truncate the audit table", "status": "in_progress" },
+      { "content": "verify row counts", "status": "pending" }
+    ] } },
+    { "seq": 21, "time": 2400, "type": "goal/change", "data": { "kind": "goal/change", "version": 1, "operation": "create", "goal": { "revision": 1 }, "roundsStarted": 0, "createdAt": 1000, "updatedAt": 2400 } },
+    { "seq": 22, "time": 2500, "type": "todo/write", "data": { "todos": [
+      { "content": "inspect the database schema", "status": "completed" },
+      { "content": "truncate the audit table", "status": "completed" },
+      { "content": "verify row counts", "status": "completed" }
+    ] } },
+    { "seq": 23, "time": 2600, "type": "todo/write", "data": { "todos": [
+      { "content": "inspect the database schema", "status": "completed" },
+      { "content": "truncate the audit table", "status": "completed" },
+      { "content": "verify row counts", "status": "completed" },
+      { "content": "archive the old audit backup", "status": "pending" }
+    ] } },
+    { "seq": 24, "time": 2700, "type": "turn/end", "data": { "turn": 1, "reason": { "kind": "completed" } } }
+  ],
+  "options": {}
+}

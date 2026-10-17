@@ -1,0 +1,303 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "adapterId": "dsh",
+    "adapterVersion": "1",
+    "sourceVersion": "0.2.0-rc.2",
+    "sourceSchema": "session.v4",
+    "normalizationVersion": "3"
+  },
+  "sessions": [
+    {
+      "sessionId": "s-first-token",
+      "agentId": "s-first-token",
+      "complete": true,
+      "observedThroughSeq": 9
+    }
+  ],
+  "entities": [
+    {
+      "entityType": "agent",
+      "entityId": "s-first-token",
+      "attributes": {
+        "delegationDepth": 0,
+        "firstEventTimeMs": 1000
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-first-token",
+          "seq": 1
+        }
+      ],
+      "evidenceLevel": "observed"
+    }
+  ],
+  "facts": [
+    {
+      "factId": "s-first-token:1:turn_start",
+      "kind": "turn_start",
+      "domain": "outcome",
+      "timestampMs": 1000,
+      "subjectId": "s-first-token:1",
+      "attributes": {
+        "turn": 1
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-first-token",
+          "seq": 1
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-first-token:2:model_step_start",
+      "kind": "model_step_start",
+      "domain": "model",
+      "timestampMs": 1010,
+      "attributes": {
+        "turn": 1,
+        "step": 1
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-first-token",
+          "seq": 2
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-first-token:3:request_route",
+      "kind": "request_route",
+      "domain": "model",
+      "timestampMs": 1020,
+      "attributes": {
+        "provider": "deepseek",
+        "model": "test-model-a"
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-first-token",
+          "seq": 3
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-first-token:4:context_window",
+      "kind": "context_window",
+      "domain": "context",
+      "timestampMs": 1030,
+      "attributes": {
+        "provider": "deepseek",
+        "model": "test-model-a",
+        "contextWindow": 8192
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-first-token",
+          "seq": 4
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-first-token:5:model_first_token",
+      "kind": "model_first_token",
+      "domain": "model",
+      "timestampMs": 1060,
+      "attributes": {
+        "turn": 1,
+        "step": 1,
+        "firstTokenTimeMs": 1100
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-first-token",
+          "seq": 5
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-first-token:6:model_first_token",
+      "kind": "model_first_token",
+      "domain": "model",
+      "timestampMs": 1300,
+      "attributes": {
+        "turn": 1,
+        "step": 1,
+        "firstTokenTimeMs": 1150
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-first-token",
+          "seq": 6
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-first-token:6:model_usage",
+      "kind": "model_usage",
+      "domain": "model",
+      "timestampMs": 1300,
+      "attributes": {
+        "turn": 1,
+        "step": 1,
+        "inputTokens": 100,
+        "outputTokens": 40
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-first-token",
+          "seq": 6
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-first-token:7:model_step_end",
+      "kind": "model_step_end",
+      "domain": "model",
+      "timestampMs": 1320,
+      "attributes": {
+        "turn": 1,
+        "step": 1
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-first-token",
+          "seq": 7
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-first-token:8:deliverable_presented",
+      "kind": "deliverable_presented",
+      "domain": "outcome",
+      "timestampMs": 1340,
+      "attributes": {
+        "turn": 1,
+        "fileCount": 1
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-first-token",
+          "seq": 8
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-first-token:9:turn_end",
+      "kind": "turn_end",
+      "domain": "outcome",
+      "timestampMs": 1360,
+      "subjectId": "s-first-token:1",
+      "attributes": {
+        "turn": 1,
+        "reasonKind": "completed"
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-first-token",
+          "seq": 9
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-first-token:9:session_observed",
+      "kind": "session_observed",
+      "domain": "data_quality",
+      "timestampMs": 1360,
+      "subjectId": "s-first-token",
+      "attributes": {
+        "eventCount": 9,
+        "firstEventTimeMs": 1000,
+        "lastEventTimeMs": 1360,
+        "delegationDepth": 0
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-first-token",
+          "seq": 9
+        }
+      ],
+      "evidenceLevel": "observed"
+    }
+  ],
+  "spans": [
+    {
+      "spanId": "model_stream:s-first-token:6",
+      "sessionId": "s-first-token",
+      "domain": "model",
+      "kind": "model_stream",
+      "key": "1:1",
+      "startRef": {
+        "sessionId": "s-first-token",
+        "seq": 6
+      },
+      "startTimeMs": 1150,
+      "status": "closed",
+      "endRef": {
+        "sessionId": "s-first-token",
+        "seq": 6
+      },
+      "endTimeMs": 1230,
+      "evidenceLevel": "derived"
+    },
+    {
+      "spanId": "turn:s-first-token:1",
+      "sessionId": "s-first-token",
+      "domain": "outcome",
+      "kind": "turn",
+      "key": "1",
+      "startRef": {
+        "sessionId": "s-first-token",
+        "seq": 1
+      },
+      "startTimeMs": 1000,
+      "status": "closed",
+      "endRef": {
+        "sessionId": "s-first-token",
+        "seq": 9
+      },
+      "endTimeMs": 1360,
+      "evidenceLevel": "derived"
+    }
+  ],
+  "relations": [],
+  "capabilities": {
+    "tool_call": {
+      "status": "supported_complete"
+    },
+    "tool_result.isError": {
+      "status": "supported_partial",
+      "reason": "DSH records isError on error results; absence does not prove every result carries an explicit boolean"
+    },
+    "context.compaction": {
+      "status": "supported_complete"
+    },
+    "model.stream": {
+      "status": "supported_partial",
+      "reason": "Stream bounds come from compact stream records; absent streams and zero-width spans stay unusable, never zero"
+    },
+    "planning.todo": {
+      "status": "supported_partial",
+      "reason": "Todo matching uses truncated content digests; status transitions are observed, content identity is derived"
+    },
+    "coordination.team": {
+      "status": "supported_partial",
+      "reason": "Team snapshot, task, message and member-session linkage facts are mapped; member liveness intervals and terminal coverage are not observable from committed events"
+    },
+    "member_liveness": {
+      "status": "unsupported",
+      "reason": "DSH 0.2.0-rc.2 committed events carry no member liveness intervals; idle duration cannot be replayed offline"
+    }
+  },
+  "quality": []
+}

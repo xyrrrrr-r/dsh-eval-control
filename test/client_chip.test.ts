@@ -251,7 +251,7 @@ function open(chip: Harness, view: UiElement): UiElement {
 test('the client half registers the dock chip and the plugin-page section', () => {
   const { remote } = stubRemote();
   const chip = createChip(remote);
-  assert.deepEqual(chip.plugin.inject, ['slots', 'locale']);
+  assert.deepEqual(chip.plugin.inject, ['slots', 'locale', 'remote', 'remote.pluginInventory', 'remote.pluginManager', 'sessions']);
   assert.deepEqual(chip.injected, ['conversation.composer.dock', 'plugins.detail.section', 'conversation.view']);
   assert.equal(chip.registrations.length, 3);
   assert.deepEqual(chip.registrations.map((entry) => entry.options['id']), ['dsh-eval-control', 'dsh-eval-control-status', 'dsh-trajectory-analytics']);
@@ -262,8 +262,25 @@ test('the client half registers the dock chip and the plugin-page section', () =
   const element = analytics?.component({
     useProjection: (key: string) => key === 'trajectoryAnalytics' ? {
       eventsSeen: 2, toolCalls: 1, toolResults: 1, toolErrors: 0, inputTokens: 100, inputUsageSteps: 1, retries: 0,
-      metricResults: [], compactionShadowedTokens: 0, prunePasses: 0, pruneShadowedTokens: 0,
+      metricResults: [
+        {
+          metricId: 'coordination.delegation_depth', contractVersion: '1', subjectId: 's-team', status: 'available',
+          value: 0, sampleCount: 1, denominator: 1, evidenceRefs: [], qualityRefs: [], evidenceLevel: 'observed',
+        },
+        {
+          metricId: 'data_quality.trajectory_coverage', contractVersion: '1', subjectId: 's-team', status: 'available',
+          value: { unknownEventTypes: 0, unpairedToolResults: 0, openSpans: 1, qualityIssueCount: 1, qualityCodes: ['turn_end_without_start'] },
+          sampleCount: 2, denominator: 2, evidenceRefs: [], qualityRefs: [], evidenceLevel: 'derived',
+        },
+      ], compactionShadowedTokens: 0, prunePasses: 0, pruneShadowedTokens: 0,
       compactionElapsedMs: 0,
+      teamInput: {
+        sessionId: 's-team', hasEvents: true, firstEventTimeMs: 1000, lastEventRef: { sessionId: 's-team', seq: 2 },
+        eventCount: 2, factTimeMax: 2000, turnIntervals: [], memberIds: ['m-alpha', 'm-beta'],
+        teamMemberSnapshotRefs: [], memberLastRefs: {}, subagentChildren: [], childLastRefs: {},
+        taskSnapshots: [], teamMemberSnapshots: [], qualityItems: [], unpairedToolResultRefs: [],
+        unknownEventTypes: 0, openSpans: 1,
+      },
       turnTrend: [{ turn: 1, toolCalls: 1, toolErrors: 0, retries: 0, compactionStarts: 0, inputTokens: 100 }],
       deliveredTeamMessages: 0, queuedTeamMessages: 0,
       recentEvents: [{ seq: 1, time: 1000, type: 'tool/call', label: 'shell', callId: 'call-1' }],
@@ -272,6 +289,12 @@ test('the client half registers the dock chip and the plugin-page section', () =
   });
   assert.match(textOf(element), /轨迹分析/);
   assert.match(textOf(element), /shell/);
+  // The Team section names the observed members and the detail table carries
+  // the contract's status/value/quality vocabulary.
+  assert.match(textOf(element), /成员 2 名/);
+  assert.match(textOf(element), /指标明细/);
+  assert.match(textOf(element), /turn_end_without_start/);
+  assert.match(textOf(element), /数据质量/);
   const locate = findButtons(element).find((button) => textOf(button).includes('在 Trajectory 定位'));
   assert.ok(locate);
   (locate.props['onClick'] as () => void)();

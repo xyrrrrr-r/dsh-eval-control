@@ -1,0 +1,1277 @@
+[
+  {
+    "metricId": "compaction.prune_passes",
+    "contractVersion": "1",
+    "subjectId": "m-alpha",
+    "status": "unavailable",
+    "unit": "passes",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "compaction.prune_passes",
+    "contractVersion": "1",
+    "subjectId": "m-beta",
+    "status": "unavailable",
+    "unit": "passes",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "compaction.prune_passes",
+    "contractVersion": "1",
+    "subjectId": "s-team",
+    "status": "unavailable",
+    "unit": "passes",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "compaction.shadowed_tokens",
+    "contractVersion": "1",
+    "subjectId": "m-alpha",
+    "status": "unavailable",
+    "unit": "tokens",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "compaction.shadowed_tokens",
+    "contractVersion": "1",
+    "subjectId": "m-beta",
+    "status": "unavailable",
+    "unit": "tokens",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "compaction.shadowed_tokens",
+    "contractVersion": "1",
+    "subjectId": "s-team",
+    "status": "unavailable",
+    "unit": "tokens",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "compaction.summary_cycles",
+    "contractVersion": "1",
+    "subjectId": "m-alpha",
+    "status": "available",
+    "value": {
+      "closedCount": 0,
+      "openCount": 0
+    },
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "compaction.summary_cycles",
+    "contractVersion": "1",
+    "subjectId": "m-beta",
+    "status": "available",
+    "value": {
+      "closedCount": 0,
+      "openCount": 0
+    },
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "compaction.summary_cycles",
+    "contractVersion": "1",
+    "subjectId": "s-team",
+    "status": "available",
+    "value": {
+      "closedCount": 0,
+      "openCount": 0
+    },
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "context.compaction_frequency_per_1k_input_tokens",
+    "contractVersion": "1",
+    "subjectId": "m-alpha",
+    "status": "available",
+    "value": 0.0,
+    "unit": "cycles/1k_input_tokens",
+    "sampleCount": 0,
+    "denominator": 860,
+    "evidenceRefs": [
+      {
+        "sessionId": "m-alpha",
+        "seq": 3
+      },
+      {
+        "sessionId": "m-alpha",
+        "seq": 6
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "context.compaction_frequency_per_1k_input_tokens",
+    "contractVersion": "1",
+    "subjectId": "m-beta",
+    "status": "available",
+    "value": 0.0,
+    "unit": "cycles/1k_input_tokens",
+    "sampleCount": 0,
+    "denominator": 350,
+    "evidenceRefs": [
+      {
+        "sessionId": "m-beta",
+        "seq": 3
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "context.compaction_frequency_per_1k_input_tokens",
+    "contractVersion": "1",
+    "subjectId": "s-team",
+    "status": "available",
+    "value": 0.0,
+    "unit": "cycles/1k_input_tokens",
+    "sampleCount": 0,
+    "denominator": 900,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-team",
+        "seq": 14
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "context.compaction_time_share",
+    "contractVersion": "1",
+    "subjectId": "m-alpha",
+    "status": "available",
+    "value": 0.0,
+    "unit": "share",
+    "sampleCount": 0,
+    "denominator": 2400,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "context.compaction_time_share",
+    "contractVersion": "1",
+    "subjectId": "m-beta",
+    "status": "available",
+    "value": 0.0,
+    "unit": "share",
+    "sampleCount": 0,
+    "denominator": 1000,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "context.compaction_time_share",
+    "contractVersion": "1",
+    "subjectId": "s-team",
+    "status": "available",
+    "value": 0.0,
+    "unit": "share",
+    "sampleCount": 0,
+    "denominator": 4200,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "context.input_window_utilization",
+    "contractVersion": "1",
+    "subjectId": "m-alpha:3",
+    "status": "unavailable",
+    "unit": "share",
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "m-alpha",
+        "seq": 2
+      },
+      {
+        "sessionId": "m-alpha",
+        "seq": 3
+      }
+    ],
+    "qualityRefs": [
+      "context_window_missing"
+    ],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "context.input_window_utilization",
+    "contractVersion": "1",
+    "subjectId": "m-alpha:6",
+    "status": "unavailable",
+    "unit": "share",
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "m-alpha",
+        "seq": 2
+      },
+      {
+        "sessionId": "m-alpha",
+        "seq": 6
+      }
+    ],
+    "qualityRefs": [
+      "context_window_missing"
+    ],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "context.input_window_utilization",
+    "contractVersion": "1",
+    "subjectId": "m-beta:3",
+    "status": "unavailable",
+    "unit": "share",
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "m-beta",
+        "seq": 2
+      },
+      {
+        "sessionId": "m-beta",
+        "seq": 3
+      }
+    ],
+    "qualityRefs": [
+      "context_window_missing"
+    ],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "context.input_window_utilization",
+    "contractVersion": "1",
+    "subjectId": "s-team:14",
+    "status": "unavailable",
+    "unit": "share",
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-team",
+        "seq": 2
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 14
+      }
+    ],
+    "qualityRefs": [
+      "context_window_missing"
+    ],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.active_members_now",
+    "contractVersion": "1",
+    "subjectId": "s-team",
+    "status": "available",
+    "value": 0,
+    "sampleCount": 2,
+    "denominator": 2,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-team",
+        "seq": 5
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 6
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.branch_first_activity_ms",
+    "contractVersion": "1",
+    "subjectId": "m-alpha",
+    "status": "available",
+    "value": 200,
+    "unit": "ms",
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "m-alpha",
+        "seq": 7
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 3
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.branch_first_activity_ms",
+    "contractVersion": "1",
+    "subjectId": "m-beta",
+    "status": "available",
+    "value": 200,
+    "unit": "ms",
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "m-beta",
+        "seq": 4
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 4
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.delegation_depth",
+    "contractVersion": "1",
+    "subjectId": "m-alpha",
+    "status": "available",
+    "value": 1,
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "m-alpha",
+        "seq": 7
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "observed"
+  },
+  {
+    "metricId": "coordination.delegation_depth",
+    "contractVersion": "1",
+    "subjectId": "m-beta",
+    "status": "available",
+    "value": 1,
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "m-beta",
+        "seq": 4
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "observed"
+  },
+  {
+    "metricId": "coordination.delegation_depth",
+    "contractVersion": "1",
+    "subjectId": "s-team",
+    "status": "available",
+    "value": 0,
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-team",
+        "seq": 16
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "observed"
+  },
+  {
+    "metricId": "coordination.fan_out_width",
+    "contractVersion": "1",
+    "subjectId": "s-team",
+    "status": "available",
+    "value": 2,
+    "sampleCount": 2,
+    "denominator": 2,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-team",
+        "seq": 5
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 6
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.inbox_tool_overlap_share",
+    "contractVersion": "1",
+    "subjectId": "m-alpha",
+    "status": "unavailable",
+    "unit": "share",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.inbox_tool_overlap_share",
+    "contractVersion": "1",
+    "subjectId": "m-beta",
+    "status": "unavailable",
+    "unit": "share",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.inbox_tool_overlap_share",
+    "contractVersion": "1",
+    "subjectId": "s-team",
+    "status": "unavailable",
+    "unit": "share",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.member_busy_ms",
+    "contractVersion": "1",
+    "subjectId": "m-alpha",
+    "status": "available",
+    "value": 2200,
+    "unit": "ms",
+    "sampleCount": 2,
+    "denominator": 2,
+    "evidenceRefs": [
+      {
+        "sessionId": "m-alpha",
+        "seq": 1
+      },
+      {
+        "sessionId": "m-alpha",
+        "seq": 4
+      },
+      {
+        "sessionId": "m-alpha",
+        "seq": 5
+      },
+      {
+        "sessionId": "m-alpha",
+        "seq": 7
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.member_busy_ms",
+    "contractVersion": "1",
+    "subjectId": "m-beta",
+    "status": "available",
+    "value": 1000,
+    "unit": "ms",
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "m-beta",
+        "seq": 1
+      },
+      {
+        "sessionId": "m-beta",
+        "seq": 4
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.member_idle_ms",
+    "contractVersion": "1",
+    "subjectId": "s-team",
+    "status": "unavailable",
+    "unit": "ms",
+    "sampleCount": 2,
+    "denominator": 2,
+    "evidenceRefs": [],
+    "qualityRefs": [
+      "member_liveness_unsupported"
+    ],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.peak_concurrent_members",
+    "contractVersion": "1",
+    "subjectId": "s-team",
+    "status": "available",
+    "value": 2,
+    "sampleCount": 2,
+    "denominator": 2,
+    "evidenceRefs": [
+      {
+        "sessionId": "m-alpha",
+        "seq": 1
+      },
+      {
+        "sessionId": "m-alpha",
+        "seq": 4
+      },
+      {
+        "sessionId": "m-alpha",
+        "seq": 5
+      },
+      {
+        "sessionId": "m-alpha",
+        "seq": 7
+      },
+      {
+        "sessionId": "m-beta",
+        "seq": 1
+      },
+      {
+        "sessionId": "m-beta",
+        "seq": 4
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.task_blocked_duration",
+    "contractVersion": "1",
+    "subjectId": "task-a",
+    "status": "unavailable",
+    "unit": "ms",
+    "sampleCount": 0,
+    "denominator": 2,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.task_blocked_duration",
+    "contractVersion": "1",
+    "subjectId": "task-b",
+    "status": "available",
+    "value": 3030,
+    "unit": "ms",
+    "sampleCount": 1,
+    "denominator": 3,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-team",
+        "seq": 8
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 12
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 13
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.team_completion_wall_ms",
+    "contractVersion": "1",
+    "subjectId": "s-team",
+    "status": "available",
+    "value": 3740,
+    "unit": "ms",
+    "sampleCount": 2,
+    "denominator": 2,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-team",
+        "seq": 3
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 4
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 7
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 8
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 11
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 12
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 13
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.team_delivery_ms",
+    "contractVersion": "1",
+    "subjectId": "msg-1",
+    "status": "available",
+    "value": 100,
+    "unit": "ms",
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-team",
+        "seq": 9
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 10
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.team_path_critical_segments",
+    "contractVersion": "1",
+    "subjectId": "s-team",
+    "status": "available",
+    "value": {
+      "segments": [
+        "task-b",
+        "task-a"
+      ],
+      "observedDurationMs": 3640
+    },
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-team",
+        "seq": 8
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "data_quality.trajectory_coverage",
+    "contractVersion": "1",
+    "subjectId": "m-alpha",
+    "status": "available",
+    "value": {
+      "unknownEventTypes": 0,
+      "unpairedToolResults": 0,
+      "openSpans": 0,
+      "qualityIssueCount": 0,
+      "qualityCodes": []
+    },
+    "sampleCount": 7,
+    "denominator": 7,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "data_quality.trajectory_coverage",
+    "contractVersion": "1",
+    "subjectId": "m-beta",
+    "status": "available",
+    "value": {
+      "unknownEventTypes": 0,
+      "unpairedToolResults": 0,
+      "openSpans": 0,
+      "qualityIssueCount": 0,
+      "qualityCodes": []
+    },
+    "sampleCount": 4,
+    "denominator": 4,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "data_quality.trajectory_coverage",
+    "contractVersion": "1",
+    "subjectId": "s-team",
+    "status": "available",
+    "value": {
+      "unknownEventTypes": 0,
+      "unpairedToolResults": 0,
+      "openSpans": 0,
+      "qualityIssueCount": 0,
+      "qualityCodes": []
+    },
+    "sampleCount": 16,
+    "denominator": 16,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "model.long_gap_segments",
+    "contractVersion": "1",
+    "subjectId": "m-alpha",
+    "status": "unavailable",
+    "unit": "ms",
+    "sampleCount": 0,
+    "denominator": 10,
+    "evidenceRefs": [
+      {
+        "sessionId": "m-alpha",
+        "seq": 1
+      },
+      {
+        "sessionId": "m-alpha",
+        "seq": 2
+      },
+      {
+        "sessionId": "m-alpha",
+        "seq": 3
+      },
+      {
+        "sessionId": "m-alpha",
+        "seq": 3
+      },
+      {
+        "sessionId": "m-alpha",
+        "seq": 4
+      },
+      {
+        "sessionId": "m-alpha",
+        "seq": 5
+      },
+      {
+        "sessionId": "m-alpha",
+        "seq": 6
+      },
+      {
+        "sessionId": "m-alpha",
+        "seq": 6
+      },
+      {
+        "sessionId": "m-alpha",
+        "seq": 7
+      },
+      {
+        "sessionId": "m-alpha",
+        "seq": 7
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "inferred"
+  },
+  {
+    "metricId": "model.long_gap_segments",
+    "contractVersion": "1",
+    "subjectId": "m-beta",
+    "status": "unavailable",
+    "unit": "ms",
+    "sampleCount": 0,
+    "denominator": 6,
+    "evidenceRefs": [
+      {
+        "sessionId": "m-beta",
+        "seq": 1
+      },
+      {
+        "sessionId": "m-beta",
+        "seq": 2
+      },
+      {
+        "sessionId": "m-beta",
+        "seq": 3
+      },
+      {
+        "sessionId": "m-beta",
+        "seq": 3
+      },
+      {
+        "sessionId": "m-beta",
+        "seq": 4
+      },
+      {
+        "sessionId": "m-beta",
+        "seq": 4
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "inferred"
+  },
+  {
+    "metricId": "model.long_gap_segments",
+    "contractVersion": "1",
+    "subjectId": "s-team",
+    "status": "unavailable",
+    "unit": "ms",
+    "sampleCount": 0,
+    "denominator": 18,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-team",
+        "seq": 1
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 2
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 3
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 4
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 5
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 6
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 7
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 8
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 9
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 10
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 11
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 12
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 13
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 14
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 14
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 15
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 16
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 16
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "inferred"
+  },
+  {
+    "metricId": "model.stream_span_ms",
+    "contractVersion": "1",
+    "subjectId": "1:1",
+    "status": "available",
+    "value": 20,
+    "unit": "ms",
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-team",
+        "seq": 14
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "model.stream_span_ms",
+    "contractVersion": "1",
+    "subjectId": "1:1",
+    "status": "available",
+    "value": 10,
+    "unit": "ms",
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "m-alpha",
+        "seq": 3
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "model.stream_span_ms",
+    "contractVersion": "1",
+    "subjectId": "1:1",
+    "status": "available",
+    "value": 10,
+    "unit": "ms",
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "m-beta",
+        "seq": 3
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "model.stream_span_ms",
+    "contractVersion": "1",
+    "subjectId": "2:1",
+    "status": "available",
+    "value": 10,
+    "unit": "ms",
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "m-alpha",
+        "seq": 6
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "outcome.turn_completion_evidence",
+    "contractVersion": "1",
+    "subjectId": "m-alpha",
+    "status": "available",
+    "value": {
+      "turns": 2,
+      "completed": 2,
+      "turnsWithDeliverables": 0,
+      "deliverableCount": 0
+    },
+    "sampleCount": 2,
+    "denominator": 2,
+    "evidenceRefs": [
+      {
+        "sessionId": "m-alpha",
+        "seq": 4
+      },
+      {
+        "sessionId": "m-alpha",
+        "seq": 7
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "outcome.turn_completion_evidence",
+    "contractVersion": "1",
+    "subjectId": "m-beta",
+    "status": "available",
+    "value": {
+      "turns": 1,
+      "completed": 1,
+      "turnsWithDeliverables": 0,
+      "deliverableCount": 0
+    },
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "m-beta",
+        "seq": 4
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "outcome.turn_completion_evidence",
+    "contractVersion": "1",
+    "subjectId": "s-team",
+    "status": "available",
+    "value": {
+      "turns": 1,
+      "completed": 1,
+      "turnsWithDeliverables": 1,
+      "deliverableCount": 1
+    },
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-team",
+        "seq": 15
+      },
+      {
+        "sessionId": "s-team",
+        "seq": 16
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "outcome.turn_reason_mix",
+    "contractVersion": "1",
+    "subjectId": "m-alpha",
+    "status": "available",
+    "value": {
+      "completed": 2
+    },
+    "sampleCount": 2,
+    "denominator": 2,
+    "evidenceRefs": [
+      {
+        "sessionId": "m-alpha",
+        "seq": 4
+      },
+      {
+        "sessionId": "m-alpha",
+        "seq": 7
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "outcome.turn_reason_mix",
+    "contractVersion": "1",
+    "subjectId": "m-beta",
+    "status": "available",
+    "value": {
+      "completed": 1
+    },
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "m-beta",
+        "seq": 4
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "outcome.turn_reason_mix",
+    "contractVersion": "1",
+    "subjectId": "s-team",
+    "status": "available",
+    "value": {
+      "completed": 1
+    },
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-team",
+        "seq": 16
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "planning.rewrite_after_completion",
+    "contractVersion": "1",
+    "subjectId": "m-alpha",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "planning.rewrite_after_completion",
+    "contractVersion": "1",
+    "subjectId": "m-beta",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "planning.rewrite_after_completion",
+    "contractVersion": "1",
+    "subjectId": "s-team",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "planning.todo_snapshot_change",
+    "contractVersion": "1",
+    "subjectId": "m-alpha",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "planning.todo_snapshot_change",
+    "contractVersion": "1",
+    "subjectId": "m-beta",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "planning.todo_snapshot_change",
+    "contractVersion": "1",
+    "subjectId": "s-team",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "tool.failure_rate",
+    "contractVersion": "1",
+    "subjectId": "m-alpha",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "tool.failure_rate",
+    "contractVersion": "1",
+    "subjectId": "m-beta",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "tool.failure_rate",
+    "contractVersion": "1",
+    "subjectId": "s-team",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "tool.repeat_loop",
+    "contractVersion": "1",
+    "subjectId": "m-alpha",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "tool.repeat_loop",
+    "contractVersion": "1",
+    "subjectId": "m-beta",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "tool.repeat_loop",
+    "contractVersion": "1",
+    "subjectId": "s-team",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  }
+]

@@ -253,3 +253,9 @@ Team 概念模型（team/member/session/task/message、显式依赖 relation、s
 5. DSH-only 离线 metric extension 的装载协议、版本绑定和 sealed evidence 输入接口。
 
 本盘点最初的源码检查不包含 Canonical Trajectory v1 的后续实现；当前已增加 envelope 与 DSH fact normalization，但尚未修改现有指标定义或计算行为。下一步优先完成权威 vocabulary/fixture 和共享 reducer，再逐个把现有 metric ID 接到共享实现；只有新观测能力才新增定义。历史 suite 必须由 characterization fixtures 保护，不因 reducer 重构改变结果。
+
+## 10. 协议 v3 落地状态（dsh-eval-control 0.2.6）
+
+- 共享 reducer 的插件侧实现已冻结为"每会话折叠 + 跨会话 Team 引擎"两层（详见 [`trajectory-metrics-contract.md`](trajectory-metrics-contract.md) §8）：`metrics.ts` 覆盖 30 个会话级指标与根专属 Team 事实，`team.ts` 覆盖 5 个跨会话指标与根 coverage 树级覆盖。
+- 对等门禁：7 个 aeval fixture（empty / first-token / lifecycle / open-prefix / repeat-recovery / team-subtree / tool-error）全字段与 aeval 金标一致，含子会话协议与封口语义；fixture manifest 锁定 aeval revision 与 sha256。
+- 上述第 4 条已按"面板不进 MetricOutcome"落地：实时视图（`conversation.view` 的轨迹分析页）只呈现契约指标的值/状态/证据/质量码，不产生判分。

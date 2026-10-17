@@ -51,6 +51,188 @@
     "evidenceLevel": "derived"
   },
   {
+    "metricId": "context.compaction_time_share",
+    "contractVersion": "1",
+    "subjectId": "s-errors",
+    "status": "available",
+    "value": 0.0,
+    "unit": "share",
+    "sampleCount": 0,
+    "denominator": 310,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.active_members_now",
+    "contractVersion": "1",
+    "subjectId": "s-errors",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.delegation_depth",
+    "contractVersion": "1",
+    "subjectId": "s-errors",
+    "status": "available",
+    "value": 0,
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-errors",
+        "seq": 5
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "observed"
+  },
+  {
+    "metricId": "coordination.fan_out_width",
+    "contractVersion": "1",
+    "subjectId": "s-errors",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.inbox_tool_overlap_share",
+    "contractVersion": "1",
+    "subjectId": "s-errors",
+    "status": "unavailable",
+    "unit": "share",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.member_busy_ms",
+    "contractVersion": "1",
+    "subjectId": "s-errors",
+    "status": "unavailable",
+    "unit": "ms",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.peak_concurrent_members",
+    "contractVersion": "1",
+    "subjectId": "s-errors",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "data_quality.trajectory_coverage",
+    "contractVersion": "1",
+    "subjectId": "s-errors",
+    "status": "available",
+    "value": {
+      "unknownEventTypes": 0,
+      "unpairedToolResults": 0,
+      "openSpans": 0,
+      "qualityIssueCount": 0,
+      "qualityCodes": []
+    },
+    "sampleCount": 5,
+    "denominator": 5,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "model.long_gap_segments",
+    "contractVersion": "1",
+    "subjectId": "s-errors",
+    "status": "unavailable",
+    "unit": "ms",
+    "sampleCount": 0,
+    "denominator": 5,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-errors",
+        "seq": 1
+      },
+      {
+        "sessionId": "s-errors",
+        "seq": 2
+      },
+      {
+        "sessionId": "s-errors",
+        "seq": 3
+      },
+      {
+        "sessionId": "s-errors",
+        "seq": 4
+      },
+      {
+        "sessionId": "s-errors",
+        "seq": 5
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "inferred"
+  },
+  {
+    "metricId": "outcome.turn_completion_evidence",
+    "contractVersion": "1",
+    "subjectId": "s-errors",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "outcome.turn_reason_mix",
+    "contractVersion": "1",
+    "subjectId": "s-errors",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "planning.rewrite_after_completion",
+    "contractVersion": "1",
+    "subjectId": "s-errors",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "planning.todo_snapshot_change",
+    "contractVersion": "1",
+    "subjectId": "s-errors",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
     "metricId": "tool.call_elapsed_ms",
     "contractVersion": "1",
     "subjectId": "err-1",
@@ -95,6 +277,32 @@
     "evidenceLevel": "derived"
   },
   {
+    "metricId": "tool.error_recovery",
+    "contractVersion": "1",
+    "subjectId": "err-1",
+    "status": "available",
+    "value": {
+      "recovered": false,
+      "retryCalls": 0
+    },
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-errors",
+        "seq": 1
+      },
+      {
+        "sessionId": "s-errors",
+        "seq": 2
+      }
+    ],
+    "qualityRefs": [
+      "tool_error_unrecovered"
+    ],
+    "evidenceLevel": "inferred"
+  },
+  {
     "metricId": "tool.failure_rate",
     "contractVersion": "1",
     "subjectId": "s-errors",
@@ -112,6 +320,22 @@
         "seq": 4
       }
     ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "tool.repeat_loop",
+    "contractVersion": "1",
+    "subjectId": "s-errors",
+    "status": "available",
+    "value": {
+      "loopCount": 0,
+      "repeatedCalls": 0,
+      "maxRunLength": 1
+    },
+    "sampleCount": 2,
+    "denominator": 2,
+    "evidenceRefs": [],
     "qualityRefs": [],
     "evidenceLevel": "derived"
   }

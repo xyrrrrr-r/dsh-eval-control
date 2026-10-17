@@ -1,0 +1,1143 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "adapterId": "dsh",
+    "adapterVersion": "1",
+    "sourceVersion": "0.2.0-rc.2",
+    "sourceSchema": "session.v4",
+    "normalizationVersion": "3"
+  },
+  "sessions": [
+    {
+      "sessionId": "s-team",
+      "agentId": "s-team",
+      "complete": true,
+      "observedThroughSeq": 16
+    },
+    {
+      "sessionId": "m-alpha",
+      "parentSessionId": "s-team",
+      "agentId": "m-alpha",
+      "complete": true,
+      "observedThroughSeq": 7
+    },
+    {
+      "sessionId": "m-beta",
+      "parentSessionId": "s-team",
+      "agentId": "m-beta",
+      "complete": true,
+      "observedThroughSeq": 4
+    }
+  ],
+  "entities": [
+    {
+      "entityType": "agent",
+      "entityId": "m-alpha",
+      "attributes": {
+        "delegationDepth": 1,
+        "firstEventTimeMs": 2200
+      },
+      "eventRefs": [
+        {
+          "sessionId": "m-alpha",
+          "seq": 1
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "entityType": "agent",
+      "entityId": "m-beta",
+      "attributes": {
+        "delegationDepth": 1,
+        "firstEventTimeMs": 2300
+      },
+      "eventRefs": [
+        {
+          "sessionId": "m-beta",
+          "seq": 1
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "entityType": "agent",
+      "entityId": "s-team",
+      "attributes": {
+        "delegationDepth": 0,
+        "firstEventTimeMs": 1000
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 1
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "entityType": "member",
+      "entityId": "m-alpha",
+      "attributes": {
+        "name": "alpha",
+        "teamId": "team-1",
+        "sessionId": "m-alpha"
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 5
+        },
+        {
+          "sessionId": "s-team",
+          "seq": 9
+        },
+        {
+          "sessionId": "s-team",
+          "seq": 10
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "entityType": "member",
+      "entityId": "m-beta",
+      "attributes": {
+        "name": "beta",
+        "teamId": "team-1",
+        "sessionId": "m-beta"
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 6
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "entityType": "member",
+      "entityId": "s-team",
+      "attributes": {
+        "teamId": "team-1"
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 9
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "entityType": "message",
+      "entityId": "msg-1",
+      "attributes": {
+        "teamId": "team-1"
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 9
+        },
+        {
+          "sessionId": "s-team",
+          "seq": 10
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "entityType": "task",
+      "entityId": "task-a",
+      "attributes": {
+        "teamId": "team-1",
+        "subject": "collect facts"
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 7
+        },
+        {
+          "sessionId": "s-team",
+          "seq": 11
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "entityType": "task",
+      "entityId": "task-b",
+      "attributes": {
+        "teamId": "team-1",
+        "subject": "draft report"
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 8
+        },
+        {
+          "sessionId": "s-team",
+          "seq": 12
+        },
+        {
+          "sessionId": "s-team",
+          "seq": 13
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "entityType": "team",
+      "entityId": "team-1",
+      "attributes": {},
+      "eventRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 5
+        },
+        {
+          "sessionId": "s-team",
+          "seq": 6
+        },
+        {
+          "sessionId": "s-team",
+          "seq": 7
+        },
+        {
+          "sessionId": "s-team",
+          "seq": 8
+        },
+        {
+          "sessionId": "s-team",
+          "seq": 9
+        },
+        {
+          "sessionId": "s-team",
+          "seq": 10
+        },
+        {
+          "sessionId": "s-team",
+          "seq": 11
+        },
+        {
+          "sessionId": "s-team",
+          "seq": 12
+        },
+        {
+          "sessionId": "s-team",
+          "seq": 13
+        }
+      ],
+      "evidenceLevel": "observed"
+    }
+  ],
+  "facts": [
+    {
+      "factId": "s-team:1:turn_start",
+      "kind": "turn_start",
+      "domain": "outcome",
+      "timestampMs": 1000,
+      "subjectId": "s-team:1",
+      "attributes": {
+        "turn": 1
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 1
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-team:2:request_route",
+      "kind": "request_route",
+      "domain": "model",
+      "timestampMs": 1010,
+      "attributes": {
+        "provider": "deepseek",
+        "model": "test-model-a"
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 2
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-team:3:subagent_child",
+      "kind": "subagent_child",
+      "domain": "coordination",
+      "timestampMs": 1020,
+      "subjectId": "m-alpha",
+      "attributes": {
+        "childId": "m-alpha",
+        "childCreatedAt": 2000
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 3
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-team:4:subagent_child",
+      "kind": "subagent_child",
+      "domain": "coordination",
+      "timestampMs": 1030,
+      "subjectId": "m-beta",
+      "attributes": {
+        "childId": "m-beta",
+        "childCreatedAt": 2100
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 4
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-team:5:team_member_snapshot",
+      "kind": "team_member_snapshot",
+      "domain": "coordination",
+      "timestampMs": 1040,
+      "subjectId": "m-alpha",
+      "attributes": {
+        "teamId": "team-1",
+        "memberId": "m-alpha",
+        "memberName": "alpha",
+        "phase": "active"
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 5
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-team:6:team_member_snapshot",
+      "kind": "team_member_snapshot",
+      "domain": "coordination",
+      "timestampMs": 1050,
+      "subjectId": "m-beta",
+      "attributes": {
+        "teamId": "team-1",
+        "memberId": "m-beta",
+        "memberName": "beta",
+        "phase": "active"
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 6
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-team:7:team_task_snapshot",
+      "kind": "team_task_snapshot",
+      "domain": "coordination",
+      "timestampMs": 1060,
+      "subjectId": "task-a",
+      "attributes": {
+        "teamId": "team-1",
+        "taskId": "task-a",
+        "revision": 1,
+        "subject": "collect facts",
+        "status": "in_progress",
+        "blockedBy": []
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 7
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-team:8:team_task_snapshot",
+      "kind": "team_task_snapshot",
+      "domain": "coordination",
+      "timestampMs": 1070,
+      "subjectId": "task-b",
+      "attributes": {
+        "teamId": "team-1",
+        "taskId": "task-b",
+        "revision": 1,
+        "subject": "draft report",
+        "status": "pending",
+        "blockedBy": [
+          "task-a"
+        ]
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 8
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-team:9:team_message_queued",
+      "kind": "team_message_queued",
+      "domain": "coordination",
+      "timestampMs": 3300,
+      "subjectId": "msg-1",
+      "attributes": {
+        "teamId": "team-1",
+        "messageId": "msg-1",
+        "senderId": "s-team",
+        "targetId": "m-alpha"
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 9
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-team:10:team_message_delivered",
+      "kind": "team_message_delivered",
+      "domain": "coordination",
+      "timestampMs": 3400,
+      "subjectId": "msg-1",
+      "attributes": {
+        "teamId": "team-1",
+        "messageId": "msg-1",
+        "targetId": "m-alpha"
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 10
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-team:11:team_task_snapshot",
+      "kind": "team_task_snapshot",
+      "domain": "coordination",
+      "timestampMs": 4000,
+      "subjectId": "task-a",
+      "attributes": {
+        "teamId": "team-1",
+        "taskId": "task-a",
+        "revision": 2,
+        "subject": "collect facts",
+        "status": "completed",
+        "blockedBy": []
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 11
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-team:12:team_task_snapshot",
+      "kind": "team_task_snapshot",
+      "domain": "coordination",
+      "timestampMs": 4100,
+      "subjectId": "task-b",
+      "attributes": {
+        "teamId": "team-1",
+        "taskId": "task-b",
+        "revision": 2,
+        "subject": "draft report",
+        "status": "in_progress",
+        "blockedBy": []
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 12
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-team:13:team_task_snapshot",
+      "kind": "team_task_snapshot",
+      "domain": "coordination",
+      "timestampMs": 4800,
+      "subjectId": "task-b",
+      "attributes": {
+        "teamId": "team-1",
+        "taskId": "task-b",
+        "revision": 3,
+        "subject": "draft report",
+        "status": "completed",
+        "blockedBy": []
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 13
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-team:14:model_first_token",
+      "kind": "model_first_token",
+      "domain": "model",
+      "timestampMs": 5000,
+      "attributes": {
+        "turn": 1,
+        "step": 1,
+        "firstTokenTimeMs": 4950
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 14
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-team:14:model_usage",
+      "kind": "model_usage",
+      "domain": "model",
+      "timestampMs": 5000,
+      "attributes": {
+        "turn": 1,
+        "step": 1,
+        "inputTokens": 900,
+        "outputTokens": 30
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 14
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-team:15:deliverable_presented",
+      "kind": "deliverable_presented",
+      "domain": "outcome",
+      "timestampMs": 5100,
+      "attributes": {
+        "turn": 1,
+        "fileCount": 1
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 15
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-team:16:turn_end",
+      "kind": "turn_end",
+      "domain": "outcome",
+      "timestampMs": 5200,
+      "subjectId": "s-team:1",
+      "attributes": {
+        "turn": 1,
+        "reasonKind": "completed"
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 16
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-team:16:session_observed",
+      "kind": "session_observed",
+      "domain": "data_quality",
+      "timestampMs": 5200,
+      "subjectId": "s-team",
+      "attributes": {
+        "eventCount": 16,
+        "firstEventTimeMs": 1000,
+        "lastEventTimeMs": 5200,
+        "delegationDepth": 0
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 16
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "m-alpha:1:turn_start",
+      "kind": "turn_start",
+      "domain": "outcome",
+      "timestampMs": 2200,
+      "subjectId": "m-alpha:1",
+      "attributes": {
+        "turn": 1
+      },
+      "eventRefs": [
+        {
+          "sessionId": "m-alpha",
+          "seq": 1
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "m-alpha:2:request_route",
+      "kind": "request_route",
+      "domain": "model",
+      "timestampMs": 2210,
+      "attributes": {
+        "provider": "deepseek",
+        "model": "test-model-a"
+      },
+      "eventRefs": [
+        {
+          "sessionId": "m-alpha",
+          "seq": 2
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "m-alpha:3:model_first_token",
+      "kind": "model_first_token",
+      "domain": "model",
+      "timestampMs": 3100,
+      "attributes": {
+        "turn": 1,
+        "step": 1,
+        "firstTokenTimeMs": 3050
+      },
+      "eventRefs": [
+        {
+          "sessionId": "m-alpha",
+          "seq": 3
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "m-alpha:3:model_usage",
+      "kind": "model_usage",
+      "domain": "model",
+      "timestampMs": 3100,
+      "attributes": {
+        "turn": 1,
+        "step": 1,
+        "inputTokens": 400,
+        "outputTokens": 20
+      },
+      "eventRefs": [
+        {
+          "sessionId": "m-alpha",
+          "seq": 3
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "m-alpha:4:turn_end",
+      "kind": "turn_end",
+      "domain": "outcome",
+      "timestampMs": 3200,
+      "subjectId": "m-alpha:1",
+      "attributes": {
+        "turn": 1,
+        "reasonKind": "completed"
+      },
+      "eventRefs": [
+        {
+          "sessionId": "m-alpha",
+          "seq": 4
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "m-alpha:5:turn_start",
+      "kind": "turn_start",
+      "domain": "outcome",
+      "timestampMs": 3400,
+      "subjectId": "m-alpha:2",
+      "attributes": {
+        "turn": 2
+      },
+      "eventRefs": [
+        {
+          "sessionId": "m-alpha",
+          "seq": 5
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "m-alpha:6:model_first_token",
+      "kind": "model_first_token",
+      "domain": "model",
+      "timestampMs": 4500,
+      "attributes": {
+        "turn": 2,
+        "step": 1,
+        "firstTokenTimeMs": 4450
+      },
+      "eventRefs": [
+        {
+          "sessionId": "m-alpha",
+          "seq": 6
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "m-alpha:6:model_usage",
+      "kind": "model_usage",
+      "domain": "model",
+      "timestampMs": 4500,
+      "attributes": {
+        "turn": 2,
+        "step": 1,
+        "inputTokens": 460,
+        "outputTokens": 25
+      },
+      "eventRefs": [
+        {
+          "sessionId": "m-alpha",
+          "seq": 6
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "m-alpha:7:turn_end",
+      "kind": "turn_end",
+      "domain": "outcome",
+      "timestampMs": 4600,
+      "subjectId": "m-alpha:2",
+      "attributes": {
+        "turn": 2,
+        "reasonKind": "completed"
+      },
+      "eventRefs": [
+        {
+          "sessionId": "m-alpha",
+          "seq": 7
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "m-alpha:7:session_observed",
+      "kind": "session_observed",
+      "domain": "data_quality",
+      "timestampMs": 4600,
+      "subjectId": "m-alpha",
+      "attributes": {
+        "eventCount": 7,
+        "firstEventTimeMs": 2200,
+        "lastEventTimeMs": 4600,
+        "delegationDepth": 1
+      },
+      "eventRefs": [
+        {
+          "sessionId": "m-alpha",
+          "seq": 7
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "m-beta:1:turn_start",
+      "kind": "turn_start",
+      "domain": "outcome",
+      "timestampMs": 2300,
+      "subjectId": "m-beta:1",
+      "attributes": {
+        "turn": 1
+      },
+      "eventRefs": [
+        {
+          "sessionId": "m-beta",
+          "seq": 1
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "m-beta:2:request_route",
+      "kind": "request_route",
+      "domain": "model",
+      "timestampMs": 2310,
+      "attributes": {
+        "provider": "deepseek",
+        "model": "test-model-a"
+      },
+      "eventRefs": [
+        {
+          "sessionId": "m-beta",
+          "seq": 2
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "m-beta:3:model_first_token",
+      "kind": "model_first_token",
+      "domain": "model",
+      "timestampMs": 3250,
+      "attributes": {
+        "turn": 1,
+        "step": 1,
+        "firstTokenTimeMs": 3200
+      },
+      "eventRefs": [
+        {
+          "sessionId": "m-beta",
+          "seq": 3
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "m-beta:3:model_usage",
+      "kind": "model_usage",
+      "domain": "model",
+      "timestampMs": 3250,
+      "attributes": {
+        "turn": 1,
+        "step": 1,
+        "inputTokens": 350,
+        "outputTokens": 15
+      },
+      "eventRefs": [
+        {
+          "sessionId": "m-beta",
+          "seq": 3
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "m-beta:4:turn_end",
+      "kind": "turn_end",
+      "domain": "outcome",
+      "timestampMs": 3300,
+      "subjectId": "m-beta:1",
+      "attributes": {
+        "turn": 1,
+        "reasonKind": "completed"
+      },
+      "eventRefs": [
+        {
+          "sessionId": "m-beta",
+          "seq": 4
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "m-beta:4:session_observed",
+      "kind": "session_observed",
+      "domain": "data_quality",
+      "timestampMs": 3300,
+      "subjectId": "m-beta",
+      "attributes": {
+        "eventCount": 4,
+        "firstEventTimeMs": 2300,
+        "lastEventTimeMs": 3300,
+        "delegationDepth": 1
+      },
+      "eventRefs": [
+        {
+          "sessionId": "m-beta",
+          "seq": 4
+        }
+      ],
+      "evidenceLevel": "observed"
+    }
+  ],
+  "spans": [
+    {
+      "spanId": "model_stream:s-team:14",
+      "sessionId": "s-team",
+      "domain": "model",
+      "kind": "model_stream",
+      "key": "1:1",
+      "startRef": {
+        "sessionId": "s-team",
+        "seq": 14
+      },
+      "startTimeMs": 4950,
+      "status": "closed",
+      "endRef": {
+        "sessionId": "s-team",
+        "seq": 14
+      },
+      "endTimeMs": 4970,
+      "evidenceLevel": "derived"
+    },
+    {
+      "spanId": "turn:s-team:1",
+      "sessionId": "s-team",
+      "domain": "outcome",
+      "kind": "turn",
+      "key": "1",
+      "startRef": {
+        "sessionId": "s-team",
+        "seq": 1
+      },
+      "startTimeMs": 1000,
+      "status": "closed",
+      "endRef": {
+        "sessionId": "s-team",
+        "seq": 16
+      },
+      "endTimeMs": 5200,
+      "evidenceLevel": "derived"
+    },
+    {
+      "spanId": "model_stream:m-alpha:3",
+      "sessionId": "m-alpha",
+      "domain": "model",
+      "kind": "model_stream",
+      "key": "1:1",
+      "startRef": {
+        "sessionId": "m-alpha",
+        "seq": 3
+      },
+      "startTimeMs": 3050,
+      "status": "closed",
+      "endRef": {
+        "sessionId": "m-alpha",
+        "seq": 3
+      },
+      "endTimeMs": 3060,
+      "evidenceLevel": "derived"
+    },
+    {
+      "spanId": "model_stream:m-alpha:6",
+      "sessionId": "m-alpha",
+      "domain": "model",
+      "kind": "model_stream",
+      "key": "2:1",
+      "startRef": {
+        "sessionId": "m-alpha",
+        "seq": 6
+      },
+      "startTimeMs": 4450,
+      "status": "closed",
+      "endRef": {
+        "sessionId": "m-alpha",
+        "seq": 6
+      },
+      "endTimeMs": 4460,
+      "evidenceLevel": "derived"
+    },
+    {
+      "spanId": "turn:m-alpha:1",
+      "sessionId": "m-alpha",
+      "domain": "outcome",
+      "kind": "turn",
+      "key": "1",
+      "startRef": {
+        "sessionId": "m-alpha",
+        "seq": 1
+      },
+      "startTimeMs": 2200,
+      "status": "closed",
+      "endRef": {
+        "sessionId": "m-alpha",
+        "seq": 4
+      },
+      "endTimeMs": 3200,
+      "evidenceLevel": "derived"
+    },
+    {
+      "spanId": "turn:m-alpha:2",
+      "sessionId": "m-alpha",
+      "domain": "outcome",
+      "kind": "turn",
+      "key": "2",
+      "startRef": {
+        "sessionId": "m-alpha",
+        "seq": 5
+      },
+      "startTimeMs": 3400,
+      "status": "closed",
+      "endRef": {
+        "sessionId": "m-alpha",
+        "seq": 7
+      },
+      "endTimeMs": 4600,
+      "evidenceLevel": "derived"
+    },
+    {
+      "spanId": "model_stream:m-beta:3",
+      "sessionId": "m-beta",
+      "domain": "model",
+      "kind": "model_stream",
+      "key": "1:1",
+      "startRef": {
+        "sessionId": "m-beta",
+        "seq": 3
+      },
+      "startTimeMs": 3200,
+      "status": "closed",
+      "endRef": {
+        "sessionId": "m-beta",
+        "seq": 3
+      },
+      "endTimeMs": 3210,
+      "evidenceLevel": "derived"
+    },
+    {
+      "spanId": "turn:m-beta:1",
+      "sessionId": "m-beta",
+      "domain": "outcome",
+      "kind": "turn",
+      "key": "1",
+      "startRef": {
+        "sessionId": "m-beta",
+        "seq": 1
+      },
+      "startTimeMs": 2300,
+      "status": "closed",
+      "endRef": {
+        "sessionId": "m-beta",
+        "seq": 4
+      },
+      "endTimeMs": 3300,
+      "evidenceLevel": "derived"
+    }
+  ],
+  "relations": [
+    {
+      "fromEntity": {
+        "entityType": "task",
+        "entityId": "task-b"
+      },
+      "relationType": "blocked_by",
+      "toEntity": {
+        "entityType": "task",
+        "entityId": "task-a"
+      },
+      "evidenceRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 8
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "fromEntity": {
+        "entityType": "message",
+        "entityId": "msg-1"
+      },
+      "relationType": "message_to",
+      "toEntity": {
+        "entityType": "member",
+        "entityId": "m-alpha"
+      },
+      "evidenceRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 9
+        },
+        {
+          "sessionId": "s-team",
+          "seq": 10
+        }
+      ],
+      "evidenceLevel": "derived"
+    },
+    {
+      "fromEntity": {
+        "entityType": "agent",
+        "entityId": "s-team"
+      },
+      "relationType": "delegates_to",
+      "toEntity": {
+        "entityType": "agent",
+        "entityId": "m-alpha"
+      },
+      "evidenceRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 5
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "fromEntity": {
+        "entityType": "agent",
+        "entityId": "s-team"
+      },
+      "relationType": "delegates_to",
+      "toEntity": {
+        "entityType": "agent",
+        "entityId": "m-beta"
+      },
+      "evidenceRefs": [
+        {
+          "sessionId": "s-team",
+          "seq": 6
+        }
+      ],
+      "evidenceLevel": "observed"
+    }
+  ],
+  "capabilities": {
+    "tool_call": {
+      "status": "supported_complete"
+    },
+    "tool_result.isError": {
+      "status": "supported_partial",
+      "reason": "DSH records isError on error results; absence does not prove every result carries an explicit boolean"
+    },
+    "context.compaction": {
+      "status": "supported_complete"
+    },
+    "model.stream": {
+      "status": "supported_partial",
+      "reason": "Stream bounds come from compact stream records; absent streams and zero-width spans stay unusable, never zero"
+    },
+    "planning.todo": {
+      "status": "supported_partial",
+      "reason": "Todo matching uses truncated content digests; status transitions are observed, content identity is derived"
+    },
+    "coordination.team": {
+      "status": "supported_partial",
+      "reason": "Team snapshot, task, message and member-session linkage facts are mapped; member liveness intervals and terminal coverage are not observable from committed events"
+    },
+    "member_liveness": {
+      "status": "unsupported",
+      "reason": "DSH 0.2.0-rc.2 committed events carry no member liveness intervals; idle duration cannot be replayed offline"
+    }
+  },
+  "quality": []
+}

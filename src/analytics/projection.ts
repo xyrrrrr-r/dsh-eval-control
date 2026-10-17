@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { ProjectionDefinition } from '@deepseek-ai/dsh-session-projection';
 import type { SessionEvent } from '@deepseek-ai/dsh-session';
 import { foldLifecycleMetrics, initialMetricFoldState, isToolResultSurfaceReplacement, type MetricFoldState, type TrajectoryMetricResult } from './metrics.js';
+import { teamInputFromFoldState, type TeamSessionInput } from './team.js';
 import '@deepseek-ai/dsh-compaction/types';
 import '@deepseek-ai/dsh-llm-retry/types';
 import '@deepseek-ai/dsh-experimental-agent-team/types';
@@ -30,6 +31,7 @@ export interface AnalyticsSummary {
   queuedTeamMessages: number;
   deliveredTeamMessages: number;
   metricResults: TrajectoryMetricResult[];
+  teamInput: TeamSessionInput;
   turnTrend: Array<{ turn: number; toolCalls: number; toolErrors: number; retries: number; compactionStarts: number; inputTokens: number }>;
   recentEvents: Array<{ seq: number; time: number; type: string; label?: string | undefined; callId?: string | undefined }>;
 }
@@ -65,45 +67,226 @@ const turnTrendSchema = z.object({
 }).strict();
 
 const eventRefSchema = z.object({ sessionId: z.string().min(1), seq: z.number().int().nonnegative() }).strict();
+const metricIdSchema = z.enum([
+  'tool.call_elapsed_ms', 'tool.failure_rate', 'compaction.summary_cycles', 'compaction.elapsed_ms',
+  'compaction.shadowed_tokens', 'compaction.prune_passes', 'compaction.reclaimed_tokens_per_call_token',
+  'context.compaction_frequency_per_1k_input_tokens', 'context.compaction_time_share',
+  'context.input_window_utilization', 'model.step_to_first_chunk_ms', 'model.stream_span_ms',
+  'model.retry_recovery', 'model.long_gap_segments', 'tool.repeat_loop', 'tool.error_recovery',
+  'tool.repeat_overhead', 'planning.todo_snapshot_change', 'planning.rewrite_after_completion',
+  'coordination.inbox_insert_to_message_event_ms', 'coordination.inbox_tool_overlap_share',
+  'coordination.team_delivery_ms', 'coordination.delegation_depth', 'coordination.fan_out_width',
+  'coordination.member_idle_ms', 'coordination.task_blocked_duration',
+  'coordination.team_path_critical_segments', 'coordination.member_busy_ms',
+  'coordination.active_members_now', 'coordination.peak_concurrent_members',
+  'coordination.team_completion_wall_ms', 'coordination.branch_first_activity_ms',
+  'outcome.turn_reason_mix',
+  'outcome.turn_completion_evidence', 'data_quality.trajectory_coverage',
+]);
+const metricValueSchema = z.union([
+  z.number(),
+  z.record(z.string(), z.union([z.number(), z.array(z.string()), z.boolean()])),
+]).optional();
 const metricResultSchema = z.object({
-  metricId: z.enum(['tool.call_elapsed_ms', 'tool.failure_rate', 'compaction.summary_cycles', 'compaction.elapsed_ms', 'compaction.shadowed_tokens', 'compaction.prune_passes', 'context.compaction_frequency_per_1k_input_tokens']),
+  metricId: metricIdSchema,
   contractVersion: z.literal('1'),
   subjectId: z.string().min(1),
   status: z.enum(['available', 'partial', 'incomplete', 'unavailable']),
-  value: z.union([
-    z.number(),
-    z.object({ closedCount: z.number().int().nonnegative(), openCount: z.number().int().nonnegative() }).strict(),
-  ]).optional(),
-  unit: z.enum(['ms', 'tokens', 'passes', 'cycles/1k_input_tokens']).optional(),
+  value: metricValueSchema,
+  unit: z.enum(['ms', 'tokens', 'passes', 'cycles/1k_input_tokens', 'share', 'shadowed_tokens_per_call_token']).optional(),
   sampleCount: z.number().int().nonnegative(),
   denominator: z.number().int().nonnegative().optional(),
-  evidenceRefs: z.array(eventRefSchema),
+  evidenceRefs: z.array(eventRefSchema).max(64),
   qualityRefs: z.array(z.string()),
-  evidenceLevel: z.literal('derived'),
+  evidenceLevel: z.enum(['observed', 'derived', 'inferred']),
 }).strict();
+
+const turnIntervalSchema = z.object({
+  turn: z.number().int().nonnegative(),
+  startMs: z.number().nonnegative(),
+  startSeq: z.number().int().nonnegative(),
+  firstEndMs: z.number().nonnegative().nullable(),
+  firstEndSeq: z.number().int().nonnegative().nullable(),
+}).strict();
+const qualityItemSchema = z.object({
+  code: z.string().min(1),
+  refs: z.array(eventRefSchema),
+}).strict();
+const taskSnapshotSchema = z.object({
+  taskId: z.string().nullable(),
+  status: z.string().nullable(),
+  blockedBy: z.array(z.string()).nullable(),
+  timeMs: z.number().nonnegative(),
+  ref: eventRefSchema,
+}).strict();
+const memberSnapshotSchema = z.object({
+  memberId: z.string().nullable(),
+  phase: z.string().nullable(),
+  timeMs: z.number().nonnegative(),
+  ref: eventRefSchema,
+}).strict();
+const subagentChildSchema = z.object({
+  childId: z.string().nullable(),
+  childCreatedAtMs: z.number().int().nonnegative().nullable(),
+  ref: eventRefSchema,
+}).strict();
+
+/** Bounded wire form of the team engine's per-session input. */
+const teamInputSchema = z.object({
+  sessionId: z.string().min(1),
+  hasEvents: z.boolean(),
+  firstEventTimeMs: z.number().nonnegative().nullable(),
+  lastEventRef: eventRefSchema.nullable(),
+  eventCount: z.number().int().nonnegative(),
+  factTimeMax: z.number().nonnegative().nullable(),
+  turnIntervals: z.array(turnIntervalSchema).max(256),
+  memberIds: z.array(z.string()).max(64),
+  teamMemberSnapshotRefs: z.array(eventRefSchema).max(64),
+  memberLastRefs: z.record(z.string(), eventRefSchema),
+  subagentChildren: z.array(subagentChildSchema).max(32),
+  childLastRefs: z.record(z.string(), eventRefSchema),
+  taskSnapshots: z.array(taskSnapshotSchema).max(128),
+  teamMemberSnapshots: z.array(memberSnapshotSchema).max(64),
+  qualityItems: z.array(qualityItemSchema).max(64),
+  unpairedToolResultRefs: z.array(eventRefSchema).max(64),
+  unknownEventTypes: z.number().int().nonnegative(),
+  openSpans: z.number().int().nonnegative(),
+}).strict();
+
+const stateEventRefSchema = z.object({ sessionId: z.string().min(1), seq: z.number().int().nonnegative() }).strict();
+const stateMetricResultSchema = metricResultSchema;
 const metricFoldStateSchema = z.object({
   sessionId: z.string().min(1),
-  openToolCalls: z.record(z.string(), z.object({ timeMs: z.number().nonnegative(), seq: z.number().int().nonnegative() }).strict()),
-  openCompactions: z.record(z.string(), z.object({ timeMs: z.number().nonnegative(), seq: z.number().int().nonnegative() }).strict()),
-  compactionStartedCount: z.number().int().nonnegative(),
-  compactionClosedCount: z.number().int().nonnegative(),
-  compactionElapsedMs: z.number().nonnegative(),
-  compactionStartRefs: z.array(eventRefSchema).max(64),
+  firstEventTimeMs: z.number().nonnegative().nullable(),
+  lastEventTimeMs: z.number().nonnegative().nullable(),
+  lastEventRef: stateEventRefSchema.nullable(),
+  eventCount: z.number().int().nonnegative(),
+  delegationDepth: z.number().int().nonnegative().nullable(),
+  sealed: z.boolean(),
+  factTimes: z.array(z.number().nonnegative()),
+  factRefs: z.array(stateEventRefSchema),
+  stepStarts: z.record(z.string(), z.object({ timeMs: z.number().nonnegative(), seq: z.number().int().nonnegative() }).strict()),
+  stepTokens: z.record(z.string(), z.array(z.object({ timeMs: z.number().nonnegative(), seq: z.number().int().nonnegative() }).strict())),
+  stepEnded: z.record(z.string(), z.literal(true)),
+  turnIntervals: z.array(turnIntervalSchema),
+  turnEndReasons: z.array(z.object({ reasonKind: z.string().nullable(), ref: stateEventRefSchema }).strict()),
+  turnBoundaryDuplicateRefs: z.array(stateEventRefSchema),
+  orphanTurnEndRefs: z.record(z.string(), stateEventRefSchema),
+  toolCallObservations: z.array(z.object({
+    callId: z.string().nullable(),
+    digest: z.string().nullable(),
+    timeMs: z.number().nonnegative(),
+    seq: z.number().int().nonnegative(),
+  }).strict()),
+  toolResultObservations: z.array(z.object({
+    callId: z.string().nullable(),
+    isError: z.boolean().nullable(),
+    timeMs: z.number().nonnegative(),
+    seq: z.number().int().nonnegative(),
+  }).strict()),
   toolResultByCallId: z.record(z.string(), z.boolean().nullable()),
   duplicateToolResultIds: z.record(z.string(), z.literal(true)),
-  toolResultRefs: z.array(eventRefSchema).max(64),
+  toolResultRefs: z.array(stateEventRefSchema).max(64),
   toolResultMissingIdCount: z.number().int().nonnegative(),
+  compactionStartsById: z.record(z.string(), z.object({ timeMs: z.number().nonnegative(), seq: z.number().int().nonnegative() }).strict()),
+  compactionStartRefsById: z.record(z.string(), z.array(stateEventRefSchema)),
+  compactionStartMissingIdRefs: z.array(stateEventRefSchema),
+  compactionEndsById: z.record(z.string(), z.object({ timeMs: z.number().nonnegative(), seq: z.number().int().nonnegative() }).strict()),
   compactionSummaryById: z.record(z.string(), z.number().int().nonnegative().nullable()),
+  compactionSummaryEvents: z.array(z.object({
+    compactionId: z.string().min(1),
+    shadowed: z.number().int().nonnegative().nullable(),
+    total: z.number().int().nonnegative().nullable(),
+    ref: stateEventRefSchema,
+  }).strict()),
   duplicateCompactionSummaryIds: z.record(z.string(), z.literal(true)),
-  compactionSummaryRefs: z.array(eventRefSchema).max(64),
+  compactionSummaryRefs: z.array(stateEventRefSchema).max(64),
   compactionSummaryMissingIdCount: z.number().int().nonnegative(),
   prunePassCount: z.number().int().nonnegative(),
-  pruneEventRefs: z.array(eventRefSchema).max(64),
-  compactionClosedCycleRefs: z.array(eventRefSchema).max(64),
+  pruneEventRefs: z.array(stateEventRefSchema).max(64),
+  modelUsageObservations: z.array(z.object({
+    turn: z.number().int().nonnegative().nullable(),
+    step: z.number().int().nonnegative().nullable(),
+    inputTokens: z.number().int().nonnegative().nullable(),
+    timeMs: z.number().nonnegative(),
+    seq: z.number().int().nonnegative(),
+    ref: stateEventRefSchema,
+  }).strict()),
   modelUsageInputTokens: z.number().int().nonnegative(),
   modelUsageMissingCount: z.number().int().nonnegative(),
-  modelUsageRefs: z.array(eventRefSchema).max(64),
-  recentMetricResults: z.array(metricResultSchema).max(64),
+  modelUsageRefs: z.array(stateEventRefSchema).max(64),
+  retryGroups: z.array(z.object({
+    retryId: z.string().min(1),
+    turn: z.number().int().nonnegative().nullable(),
+    step: z.number().int().nonnegative().nullable(),
+    firstTimeMs: z.number().nonnegative(),
+    firstSeq: z.number().int().nonnegative(),
+    lastTimeMs: z.number().nonnegative(),
+    lastSeq: z.number().int().nonnegative(),
+    count: z.number().int().positive(),
+    refs: z.array(stateEventRefSchema),
+  }).strict()),
+  streamSpans: z.array(z.object({
+    key: z.string().min(1),
+    startMs: z.number().nonnegative(),
+    endMs: z.number().nonnegative(),
+    ref: stateEventRefSchema,
+  }).strict()),
+  routeObservations: z.array(z.object({
+    provider: z.string().nullable(),
+    model: z.string().nullable(),
+    seq: z.number().int().nonnegative(),
+    ref: stateEventRefSchema,
+  }).strict()),
+  contextWindowObservations: z.array(z.object({
+    provider: z.string().nullable(),
+    model: z.string().nullable(),
+    contextWindow: z.number().int().nonnegative().nullable(),
+    seq: z.number().int().nonnegative(),
+    ref: stateEventRefSchema,
+  }).strict()),
+  approvalAsks: z.record(z.string(), z.object({ askMs: z.number().nonnegative(), askSeq: z.number().int().nonnegative() }).strict()),
+  approvalEnds: z.record(z.string(), z.object({ decidedMs: z.number().nonnegative(), decidedSeq: z.number().int().nonnegative() }).strict()),
+  deliverableTurns: z.array(z.object({
+    turn: z.number().int().nonnegative().nullable(),
+    fileCount: z.number().int().nonnegative().nullable(),
+    ref: stateEventRefSchema,
+  }).strict()),
+  todoSnapshots: z.array(z.object({
+    items: z.array(z.object({ digest: z.string().min(1), status: z.string().min(1) }).strict()),
+    ref: stateEventRefSchema,
+  }).strict()),
+  goalChangeRefs: z.array(stateEventRefSchema),
+  inboxInserts: z.array(z.object({
+    messageIds: z.array(z.string().min(1)),
+    timeMs: z.number().nonnegative(),
+    seq: z.number().int().nonnegative(),
+    ref: stateEventRefSchema,
+  }).strict()),
+  surfacedMessages: z.array(z.object({
+    messageId: z.string().nullable(),
+    timeMs: z.number().nonnegative(),
+    seq: z.number().int().nonnegative(),
+    ref: stateEventRefSchema,
+  }).strict()),
+  teamMemberIds: z.array(z.string()),
+  teamMemberSnapshotRefs: z.array(stateEventRefSchema).max(64),
+  teamMemberSnapshots: z.array(memberSnapshotSchema),
+  subagentChildren: z.array(subagentChildSchema),
+  taskSnapshots: z.array(taskSnapshotSchema),
+  queuedTeamMessages: z.array(z.object({
+    messageId: z.string().nullable(),
+    timeMs: z.number().nonnegative(),
+    ref: stateEventRefSchema,
+  }).strict()),
+  deliveredTeamMessages: z.array(z.object({
+    messageId: z.string().nullable(),
+    timeMs: z.number().nonnegative(),
+    ref: stateEventRefSchema,
+  }).strict()),
+  qualityItems: z.array(qualityItemSchema),
+  unknownEventTypes: z.record(z.string(), stateEventRefSchema),
+  recentMetricResults: z.array(stateMetricResultSchema).max(64),
 }).strict();
 
 const summarySchema = z.object({
@@ -130,12 +313,46 @@ const summarySchema = z.object({
   queuedTeamMessages: z.number().int().nonnegative(),
   deliveredTeamMessages: z.number().int().nonnegative(),
   metricResults: z.array(metricResultSchema).max(64),
+  teamInput: teamInputSchema,
   turnTrend: z.array(turnTrendSchema).max(32),
   recentEvents: z.array(recentEventSchema).max(64),
 }).strict();
 
 const stateSchema = summarySchema.extend({ metricState: metricFoldStateSchema });
 const MAX_RECENT_EVENTS = 64;
+/** Wire caps for the team engine input; documented divergence from exact parity. */
+const MAX_TEAM_TURN_INTERVALS = 256;
+const MAX_TEAM_MEMBER_REFS = 64;
+const MAX_TEAM_CHILDREN = 32;
+const MAX_TEAM_TASK_SNAPSHOTS = 128;
+const MAX_TEAM_MEMBER_SNAPSHOTS = 64;
+const MAX_TEAM_QUALITY_ITEMS = 64;
+const MAX_TEAM_UNPAIRED_REFS = 64;
+
+function cappedRefs(refs: CanonicalEventRefLike[], cap: number): CanonicalEventRefLike[] {
+  return [...refs].sort((a, b) => a.sessionId.localeCompare(b.sessionId) || a.seq - b.seq).slice(-cap);
+}
+
+type CanonicalEventRefLike = { sessionId: string; seq: number };
+
+/** Build the bounded wire form of the team input from the exact fold state. */
+function teamInputForWire(state: MetricFoldState): TeamSessionInput {
+  const exact = teamInputFromFoldState(state);
+  return {
+    ...exact,
+    turnIntervals: exact.turnIntervals.slice(-MAX_TEAM_TURN_INTERVALS),
+    memberIds: exact.memberIds.slice(0, MAX_TEAM_MEMBER_REFS),
+    teamMemberSnapshotRefs: cappedRefs(exact.teamMemberSnapshotRefs, MAX_TEAM_MEMBER_REFS),
+    subagentChildren: exact.subagentChildren.slice(-MAX_TEAM_CHILDREN),
+    taskSnapshots: exact.taskSnapshots.slice(-MAX_TEAM_TASK_SNAPSHOTS),
+    teamMemberSnapshots: exact.teamMemberSnapshots.slice(-MAX_TEAM_MEMBER_SNAPSHOTS),
+    qualityItems: exact.qualityItems.slice(-MAX_TEAM_QUALITY_ITEMS).map(item => ({
+      ...item,
+      refs: cappedRefs(item.refs, 64),
+    })),
+    unpairedToolResultRefs: cappedRefs(exact.unpairedToolResultRefs, MAX_TEAM_UNPAIRED_REFS),
+  };
+}
 
 function safeLabel(event: SessionEvent): string | undefined {
   switch (event.type) {
@@ -146,30 +363,40 @@ function safeLabel(event: SessionEvent): string | undefined {
   }
 }
 
-/** Bounded, privacy-conscious first projection for the ordinary-user surface. */
+/** Bounded, privacy-conscious trajectory projection for the ordinary-user surface. */
 export const trajectoryAnalyticsProjection = {
   key: 'trajectoryAnalytics',
-  stateVersion: 6,
+  stateVersion: 8,
   stateSchema,
   init: header => {
-    const metricState = initialMetricFoldState(header.id);
+    const delegationDepth = typeof header.delegationDepth === 'number' && header.delegationDepth >= 0
+      ? header.delegationDepth
+      : null;
+    const metricState = initialMetricFoldState(header.id, { delegationDepth });
     return {
       eventsSeen: 0, turnsStarted: 0, turnsEnded: 0, stepsStarted: 0, stepsEnded: 0,
       toolCalls: 0, toolResults: 0, toolErrors: 0, inputTokens: 0, inputUsageSteps: 0, retries: 0,
       compactionStarts: 0, compactionSummaries: 0, compactionEnds: 0, prunePasses: 0,
       compactionShadowedTokens: 0, pruneShadowedTokens: 0, compactionElapsedMs: 0,
       teamMemberSnapshots: 0, teamTaskSnapshots: 0, queuedTeamMessages: 0, deliveredTeamMessages: 0,
-      recentEvents: [], metricState, metricResults: metricState.recentMetricResults, turnTrend: [],
+      recentEvents: [], metricState, metricResults: metricState.recentMetricResults,
+      teamInput: teamInputForWire(metricState), turnTrend: [],
     };
   },
   apply: (state, event) => {
     const metricState = foldLifecycleMetrics(state.metricState, event);
+    let compactionElapsedMs = 0;
+    for (const [compactionId, end] of Object.entries(metricState.compactionEndsById)) {
+      const start = metricState.compactionStartsById[compactionId];
+      if (start && end.timeMs >= start.timeMs) compactionElapsedMs += end.timeMs - start.timeMs;
+    }
     const next: AnalyticsState = {
       ...state,
       eventsSeen: state.eventsSeen + 1,
       metricState,
       metricResults: metricState.recentMetricResults,
-      compactionElapsedMs: metricState.compactionElapsedMs,
+      teamInput: teamInputForWire(metricState),
+      compactionElapsedMs,
     };
     let relevant = true;
     switch (event.type) {

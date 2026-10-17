@@ -62,6 +62,44 @@
     "evidenceLevel": "derived"
   },
   {
+    "metricId": "compaction.reclaimed_tokens_per_call_token",
+    "contractVersion": "1",
+    "subjectId": "compact-a",
+    "status": "unavailable",
+    "unit": "shadowed_tokens_per_call_token",
+    "sampleCount": 0,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-basic",
+        "seq": 5
+      }
+    ],
+    "qualityRefs": [
+      "compaction_usage_total_missing"
+    ],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "compaction.reclaimed_tokens_per_call_token",
+    "contractVersion": "1",
+    "subjectId": "compact-b",
+    "status": "unavailable",
+    "unit": "shadowed_tokens_per_call_token",
+    "sampleCount": 0,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-basic",
+        "seq": 8
+      }
+    ],
+    "qualityRefs": [
+      "compaction_usage_total_missing"
+    ],
+    "evidenceLevel": "derived"
+  },
+  {
     "metricId": "compaction.shadowed_tokens",
     "contractVersion": "1",
     "subjectId": "s-basic",
@@ -146,6 +184,273 @@
     "evidenceLevel": "derived"
   },
   {
+    "metricId": "context.compaction_time_share",
+    "contractVersion": "1",
+    "subjectId": "s-basic",
+    "status": "available",
+    "value": 0.21764705882352942,
+    "unit": "share",
+    "sampleCount": 2,
+    "denominator": 1700,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-basic",
+        "seq": 4
+      },
+      {
+        "sessionId": "s-basic",
+        "seq": 6
+      },
+      {
+        "sessionId": "s-basic",
+        "seq": 7
+      },
+      {
+        "sessionId": "s-basic",
+        "seq": 9
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "context.input_window_utilization",
+    "contractVersion": "1",
+    "subjectId": "s-basic:11",
+    "status": "unavailable",
+    "unit": "share",
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-basic",
+        "seq": 11
+      }
+    ],
+    "qualityRefs": [
+      "context_window_missing",
+      "request_route_missing"
+    ],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "context.input_window_utilization",
+    "contractVersion": "1",
+    "subjectId": "s-basic:12",
+    "status": "unavailable",
+    "unit": "share",
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-basic",
+        "seq": 12
+      }
+    ],
+    "qualityRefs": [
+      "context_window_missing",
+      "request_route_missing"
+    ],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.active_members_now",
+    "contractVersion": "1",
+    "subjectId": "s-basic",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.delegation_depth",
+    "contractVersion": "1",
+    "subjectId": "s-basic",
+    "status": "available",
+    "value": 0,
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-basic",
+        "seq": 12
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "observed"
+  },
+  {
+    "metricId": "coordination.fan_out_width",
+    "contractVersion": "1",
+    "subjectId": "s-basic",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.inbox_tool_overlap_share",
+    "contractVersion": "1",
+    "subjectId": "s-basic",
+    "status": "unavailable",
+    "unit": "share",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.member_busy_ms",
+    "contractVersion": "1",
+    "subjectId": "s-basic",
+    "status": "unavailable",
+    "unit": "ms",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.peak_concurrent_members",
+    "contractVersion": "1",
+    "subjectId": "s-basic",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "data_quality.trajectory_coverage",
+    "contractVersion": "1",
+    "subjectId": "s-basic",
+    "status": "available",
+    "value": {
+      "unknownEventTypes": 0,
+      "unpairedToolResults": 0,
+      "openSpans": 0,
+      "qualityIssueCount": 0,
+      "qualityCodes": []
+    },
+    "sampleCount": 12,
+    "denominator": 12,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "model.long_gap_segments",
+    "contractVersion": "1",
+    "subjectId": "s-basic",
+    "status": "unavailable",
+    "unit": "ms",
+    "sampleCount": 0,
+    "denominator": 12,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-basic",
+        "seq": 1
+      },
+      {
+        "sessionId": "s-basic",
+        "seq": 2
+      },
+      {
+        "sessionId": "s-basic",
+        "seq": 4
+      },
+      {
+        "sessionId": "s-basic",
+        "seq": 5
+      },
+      {
+        "sessionId": "s-basic",
+        "seq": 6
+      },
+      {
+        "sessionId": "s-basic",
+        "seq": 7
+      },
+      {
+        "sessionId": "s-basic",
+        "seq": 8
+      },
+      {
+        "sessionId": "s-basic",
+        "seq": 9
+      },
+      {
+        "sessionId": "s-basic",
+        "seq": 10
+      },
+      {
+        "sessionId": "s-basic",
+        "seq": 11
+      },
+      {
+        "sessionId": "s-basic",
+        "seq": 12
+      },
+      {
+        "sessionId": "s-basic",
+        "seq": 12
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "inferred"
+  },
+  {
+    "metricId": "outcome.turn_completion_evidence",
+    "contractVersion": "1",
+    "subjectId": "s-basic",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "outcome.turn_reason_mix",
+    "contractVersion": "1",
+    "subjectId": "s-basic",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "planning.rewrite_after_completion",
+    "contractVersion": "1",
+    "subjectId": "s-basic",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "planning.todo_snapshot_change",
+    "contractVersion": "1",
+    "subjectId": "s-basic",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
     "metricId": "tool.call_elapsed_ms",
     "contractVersion": "1",
     "subjectId": "call-a",
@@ -181,6 +486,22 @@
         "seq": 2
       }
     ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "tool.repeat_loop",
+    "contractVersion": "1",
+    "subjectId": "s-basic",
+    "status": "available",
+    "value": {
+      "loopCount": 0,
+      "repeatedCalls": 0,
+      "maxRunLength": 1
+    },
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [],
     "qualityRefs": [],
     "evidenceLevel": "derived"
   }

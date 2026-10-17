@@ -12,6 +12,44 @@ schema、bundle descriptor 格式、bin 协议），每次都会在下方
 
 ## [Unreleased]
 
+## [0.2.7] - 2026-10-17
+
+**协议 v3 落地：单会话折叠引擎拆分 + Team 跨会话聚合 + 轨迹分析视图。** 本版把
+`foldLifecycleMetrics`（单会话、每次事件从状态全量重算）与 `foldTeamMetrics(root, children)`
+（跨会话：成员忙碌、并发峰值、完成墙钟、分支首活动、任务阻塞）拆成两个纯函数，
+aeval 与插件两侧逐字节对齐；并新增面向普通用户的"轨迹分析"会话视图。
+
+### Added
+
+- `src/analytics/team.ts`：`TeamSessionInput` / `teamInputFromFoldState` /
+  `foldTeamMetrics` / `combineFoldStates`（对齐路径）/ `combineTeamViews`（线上路径）。
+  子会话折叠排除仅根会话可得的指标（成员扇出、成员空闲等），根会话对未观测子会话
+  给出 `member_session_not_observed` / `child_session_not_observed` 覆盖码。
+- `client/client.js` 轨迹分析视图：摘要卡片、按轮次趋势、Team 协作区（成员行 +
+  分支首活动）、指标明细表（状态/值/质量码/证据引用）、数据质量、最近事件。
+- 协议 v3 契约文档 `docs/trajectory-metrics-contract.md` §8 与
+  `docs/aeval-dsh-metric-mapping.md` §10。
+- 同步 aeval `a576dcd` 的 7 个轨迹契约 fixtures（新增 first-token-basic、
+  repeat-recovery-basic、team-subtree-basic）。
+
+### Changed
+
+- `MetricValue` 放宽为 `number | Record<string, number | string[] | boolean>`
+  （新增 5 个跨会话指标 + 布尔质量位），`metricValueSchema` 同步。
+- 客户端模块 `inject` 扩为 `['slots', 'locale', 'remote', 'remote.pluginInventory',
+  'remote.pluginManager', 'sessions']`：0.2 宿主把服务与 remote 通道都关在 inject
+  后面，缺声明的插件在 web 客户端里拿不到 `ctx.remote.pluginInventory`。
+- 成员会话读取改为 `sessions.refreshProjections(memberId)`（`session.projections`
+  RPC，不激活 Agent）+ `sessions.using()` 借共享投影 store：子智能体会话的 agent 绑定
+  open 可能永不 settle，直读 store 才能稳定拿到基线。
+
+### Fixed
+
+- `src/analytics_entry.ts` 默认导出从裸函数改为完整定义对象
+  （`{ name, inject, usage, Config, apply }`）：cordis 插件加载器的
+  `unwrapExports` 做 `exports.default ?? exports`，裸函数默认导出会丢弃具名导出，
+  导致宿主报 `cannot get property "sessionProjections" without inject`。
+
 ## [0.2.6] - 2026-10-11
 
 **修掉"市场安装的控制栈不能独立跑"这个根因。** 此前 `dsh plugin add` 装进 profile 的副本

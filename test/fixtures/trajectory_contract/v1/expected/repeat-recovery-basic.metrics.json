@@ -1,0 +1,736 @@
+[
+  {
+    "metricId": "compaction.prune_passes",
+    "contractVersion": "1",
+    "subjectId": "s-repeat",
+    "status": "unavailable",
+    "unit": "passes",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "compaction.shadowed_tokens",
+    "contractVersion": "1",
+    "subjectId": "s-repeat",
+    "status": "unavailable",
+    "unit": "tokens",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "compaction.summary_cycles",
+    "contractVersion": "1",
+    "subjectId": "s-repeat",
+    "status": "available",
+    "value": {
+      "closedCount": 0,
+      "openCount": 0
+    },
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "context.compaction_frequency_per_1k_input_tokens",
+    "contractVersion": "1",
+    "subjectId": "s-repeat",
+    "status": "available",
+    "value": 0.0,
+    "unit": "cycles/1k_input_tokens",
+    "sampleCount": 0,
+    "denominator": 2400,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-repeat",
+        "seq": 19
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "context.compaction_time_share",
+    "contractVersion": "1",
+    "subjectId": "s-repeat",
+    "status": "available",
+    "value": 0.0,
+    "unit": "share",
+    "sampleCount": 0,
+    "denominator": 1700,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "context.input_window_utilization",
+    "contractVersion": "1",
+    "subjectId": "s-repeat:19",
+    "status": "available",
+    "value": 0.146484375,
+    "unit": "share",
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-repeat",
+        "seq": 2
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 3
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 19
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.active_members_now",
+    "contractVersion": "1",
+    "subjectId": "s-repeat",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.delegation_depth",
+    "contractVersion": "1",
+    "subjectId": "s-repeat",
+    "status": "available",
+    "value": 0,
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-repeat",
+        "seq": 24
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "observed"
+  },
+  {
+    "metricId": "coordination.fan_out_width",
+    "contractVersion": "1",
+    "subjectId": "s-repeat",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.inbox_tool_overlap_share",
+    "contractVersion": "1",
+    "subjectId": "s-repeat",
+    "status": "unavailable",
+    "unit": "share",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.member_busy_ms",
+    "contractVersion": "1",
+    "subjectId": "s-repeat",
+    "status": "unavailable",
+    "unit": "ms",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "coordination.peak_concurrent_members",
+    "contractVersion": "1",
+    "subjectId": "s-repeat",
+    "status": "unavailable",
+    "sampleCount": 0,
+    "denominator": 0,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "data_quality.trajectory_coverage",
+    "contractVersion": "1",
+    "subjectId": "s-repeat",
+    "status": "available",
+    "value": {
+      "unknownEventTypes": 0,
+      "unpairedToolResults": 0,
+      "openSpans": 0,
+      "qualityIssueCount": 0,
+      "qualityCodes": []
+    },
+    "sampleCount": 24,
+    "denominator": 24,
+    "evidenceRefs": [],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "model.long_gap_segments",
+    "contractVersion": "1",
+    "subjectId": "s-repeat",
+    "status": "unavailable",
+    "unit": "ms",
+    "sampleCount": 0,
+    "denominator": 26,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-repeat",
+        "seq": 1
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 2
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 3
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 4
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 5
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 6
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 7
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 8
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 9
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 10
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 11
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 12
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 13
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 14
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 15
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 16
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 17
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 18
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 19
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 19
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 20
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 21
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 22
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 23
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 24
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 24
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "inferred"
+  },
+  {
+    "metricId": "model.retry_recovery",
+    "contractVersion": "1",
+    "subjectId": "s-repeat:retry-1",
+    "status": "available",
+    "value": {
+      "retries": 2,
+      "recovered": true,
+      "wallMs": 300
+    },
+    "sampleCount": 2,
+    "denominator": 2,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-repeat",
+        "seq": 17
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 18
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 19
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "model.step_to_first_chunk_ms",
+    "contractVersion": "1",
+    "subjectId": "s-repeat:1:1",
+    "status": "incomplete",
+    "unit": "ms",
+    "sampleCount": 0,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-repeat",
+        "seq": 5
+      }
+    ],
+    "qualityRefs": [
+      "step_first_token_missing"
+    ],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "model.stream_span_ms",
+    "contractVersion": "1",
+    "subjectId": "1:3",
+    "status": "available",
+    "value": 40,
+    "unit": "ms",
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-repeat",
+        "seq": 19
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "outcome.turn_completion_evidence",
+    "contractVersion": "1",
+    "subjectId": "s-repeat",
+    "status": "available",
+    "value": {
+      "turns": 1,
+      "completed": 1,
+      "turnsWithDeliverables": 0,
+      "deliverableCount": 0
+    },
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-repeat",
+        "seq": 24
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "outcome.turn_reason_mix",
+    "contractVersion": "1",
+    "subjectId": "s-repeat",
+    "status": "available",
+    "value": {
+      "completed": 1
+    },
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-repeat",
+        "seq": 24
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "planning.rewrite_after_completion",
+    "contractVersion": "1",
+    "subjectId": "s-repeat",
+    "status": "available",
+    "value": {
+      "rewriteCount": 1
+    },
+    "sampleCount": 1,
+    "denominator": 3,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-repeat",
+        "seq": 23
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "planning.todo_snapshot_change",
+    "contractVersion": "1",
+    "subjectId": "s-repeat",
+    "status": "available",
+    "value": {
+      "snapshotCount": 4,
+      "structuralChanges": 1,
+      "statusChanges": 2,
+      "goalRevisions": 1
+    },
+    "sampleCount": 4,
+    "denominator": 4,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-repeat",
+        "seq": 4
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 20
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 21
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 22
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 23
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "tool.call_elapsed_ms",
+    "contractVersion": "1",
+    "subjectId": "call-read-1",
+    "status": "available",
+    "value": 90,
+    "unit": "ms",
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-repeat",
+        "seq": 6
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 7
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "tool.call_elapsed_ms",
+    "contractVersion": "1",
+    "subjectId": "call-read-2",
+    "status": "available",
+    "value": 50,
+    "unit": "ms",
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-repeat",
+        "seq": 8
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 9
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "tool.call_elapsed_ms",
+    "contractVersion": "1",
+    "subjectId": "call-read-3",
+    "status": "available",
+    "value": 50,
+    "unit": "ms",
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-repeat",
+        "seq": 10
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 11
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "tool.call_elapsed_ms",
+    "contractVersion": "1",
+    "subjectId": "call-sql-1",
+    "status": "available",
+    "value": 120,
+    "unit": "ms",
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-repeat",
+        "seq": 12
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 13
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "tool.call_elapsed_ms",
+    "contractVersion": "1",
+    "subjectId": "call-sql-2",
+    "status": "available",
+    "value": 110,
+    "unit": "ms",
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-repeat",
+        "seq": 14
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 15
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "tool.error_recovery",
+    "contractVersion": "1",
+    "subjectId": "call-sql-1",
+    "status": "available",
+    "value": {
+      "recovered": true,
+      "retryCalls": 1,
+      "recoveryMs": 190
+    },
+    "sampleCount": 1,
+    "denominator": 1,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-repeat",
+        "seq": 12
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 13
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 15
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "inferred"
+  },
+  {
+    "metricId": "tool.failure_rate",
+    "contractVersion": "1",
+    "subjectId": "s-repeat",
+    "status": "available",
+    "value": 0.2,
+    "sampleCount": 5,
+    "denominator": 5,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-repeat",
+        "seq": 7
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 9
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 11
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 13
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 15
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "tool.repeat_loop",
+    "contractVersion": "1",
+    "subjectId": "s-repeat",
+    "status": "available",
+    "value": {
+      "loopCount": 1,
+      "repeatedCalls": 3,
+      "maxRunLength": 3
+    },
+    "sampleCount": 5,
+    "denominator": 5,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-repeat",
+        "seq": 6
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 8
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 10
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "derived"
+  },
+  {
+    "metricId": "tool.repeat_overhead",
+    "contractVersion": "1",
+    "subjectId": "179bdcda988a4868e42e2e8a057c4b31",
+    "status": "available",
+    "value": {
+      "repeatCalls": 1,
+      "overheadMs": 110
+    },
+    "sampleCount": 2,
+    "denominator": 2,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-repeat",
+        "seq": 12
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 14
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 15
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "inferred"
+  },
+  {
+    "metricId": "tool.repeat_overhead",
+    "contractVersion": "1",
+    "subjectId": "bf75014ead51a3190b66e2ebed76cc3d",
+    "status": "available",
+    "value": {
+      "repeatCalls": 2,
+      "overheadMs": 100
+    },
+    "sampleCount": 3,
+    "denominator": 3,
+    "evidenceRefs": [
+      {
+        "sessionId": "s-repeat",
+        "seq": 6
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 8
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 9
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 10
+      },
+      {
+        "sessionId": "s-repeat",
+        "seq": 11
+      }
+    ],
+    "qualityRefs": [],
+    "evidenceLevel": "inferred"
+  }
+]

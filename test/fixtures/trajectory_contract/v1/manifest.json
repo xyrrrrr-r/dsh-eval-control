@@ -2,7 +2,7 @@
   "fixtureVersion": 1,
   "dshVersion": "0.2.0-rc.2",
   "sessionSchema": "session.v4",
-  "normalizationVersion": "2",
+  "normalizationVersion": "3",
   "metricContractVersion": "1",
   "fixtures": [
     {
@@ -12,10 +12,23 @@
       "expectedMetrics": "expected/empty-session.metrics.json",
       "sha256": {
         "events/empty-session.json": "db664eb8d90aebc67d02ad54e99ae8ab2bb58fb70eafc62c99c2247937fe221d",
-        "expected/empty-session.normalized.json": "df5f2b3c6a0e775da4149e5c58561c9cca7a1d9b955d9e5e518a009e871ce7d2",
-        "expected/empty-session.metrics.json": "2d27cb1f767062693d76704082bfbe4b02cbd9fd98a8af17bfed5072b1fd1d3e"
+        "expected/empty-session.normalized.json": "99e942636ffc4bbbcc5075811a0cc631212757faa38e8fdf0a0057c09ff4f49c",
+        "expected/empty-session.metrics.json": "b5701dff18be5ce093bff2a9dd88e6d35022700e47bc732e83b873b5fe5f1582"
       },
       "purpose": "zero lifecycle observations with a complete event window",
+      "redaction": "synthetic"
+    },
+    {
+      "fixtureId": "first-token-basic",
+      "input": "events/first-token-basic.json",
+      "expectedNormalized": "expected/first-token-basic.normalized.json",
+      "expectedMetrics": "expected/first-token-basic.metrics.json",
+      "sha256": {
+        "events/first-token-basic.json": "d5c4a63af68a756e99491bd1af9f59407748adfd0c567a101e3d57e3dad35507",
+        "expected/first-token-basic.normalized.json": "2f2dfacc47df200677cb20f9d0944e3ae8454143b7e07bfab629e10333756b64",
+        "expected/first-token-basic.metrics.json": "3c8e27a78491ffe214f1857d1e56a3f4e4ab4fc7f10f2d4e0fc5635cb16cc2fb"
+      },
+      "purpose": "first-token latency from compact stream records plus stream span bounds and route/window pairing",
       "redaction": "synthetic"
     },
     {
@@ -25,8 +38,8 @@
       "expectedMetrics": "expected/lifecycle-basic.metrics.json",
       "sha256": {
         "events/lifecycle-basic.json": "e79387d2d349a27765c31f7af4452356d48f9612a3598262fab70962bf8e9fa6",
-        "expected/lifecycle-basic.normalized.json": "cf3052d91450e7b8ba181e859414551a995e68e7144735deb2987571b6fe010e",
-        "expected/lifecycle-basic.metrics.json": "cc881ba3bebb90204cc1513dc235661cb8c3aaad3169caba8d18cb8cb3a853da"
+        "expected/lifecycle-basic.normalized.json": "1b974fd102f07b78da5138ad751f275327405f3dab194c054c4fa3de7ea9694f",
+        "expected/lifecycle-basic.metrics.json": "86ed33f4b584d9540f9ee24ae85be751464063493703644f0a6ff84f100fe6fd"
       },
       "purpose": "closed tool call, surface replacement dedupe, multiple summary cycles and separate model-free prune pass",
       "redaction": "synthetic"
@@ -38,10 +51,36 @@
       "expectedMetrics": "expected/open-prefix.metrics.json",
       "sha256": {
         "events/open-prefix.json": "a24a88126caa47e71a83ce32102f42591542513c47bd879c37f28e83e1643032",
-        "expected/open-prefix.normalized.json": "c26dd9b5acacd86fbf2ba1d176a0ac915b689dff8adbc84953a06887f84e1b4f",
-        "expected/open-prefix.metrics.json": "0aa7e5c91692e1c171db51461635b307a9c5a878ddba496326d4dcd42ea9b0df"
+        "expected/open-prefix.normalized.json": "65eb43caf9b29a38b53dbe7419a429a8cbe8732e53a704935a5103cc6e25c269",
+        "expected/open-prefix.metrics.json": "40c0a8fc3dc17b98770a52abf24be9592f880a1a04f0cbbe306451128d92eab8"
       },
-      "purpose": "incomplete event prefix with open tool and compaction spans",
+      "purpose": "unmatched lifecycle boundaries mid-session; open spans, honest unavailable counts",
+      "redaction": "synthetic"
+    },
+    {
+      "fixtureId": "repeat-recovery-basic",
+      "input": "events/repeat-recovery-basic.json",
+      "expectedNormalized": "expected/repeat-recovery-basic.normalized.json",
+      "expectedMetrics": "expected/repeat-recovery-basic.metrics.json",
+      "sha256": {
+        "events/repeat-recovery-basic.json": "2909412c678f36c2fbbc51139120e5d1151ea835de2c1aef9118431322b9380b",
+        "expected/repeat-recovery-basic.normalized.json": "5fd2809d31b1ed17f7c290b2d3baa9b975af62e993abeb121ee6514a8ef2db22",
+        "expected/repeat-recovery-basic.metrics.json": "4ade394983b187199e7bcba9d7d0b79ad5cb582d55b69efbbf332062326e0efc"
+      },
+      "purpose": "repeat call runs, errored call retried to success, retry group recovery, todo/goal planning transitions and deliverable evidence",
+      "redaction": "synthetic"
+    },
+    {
+      "fixtureId": "team-subtree-basic",
+      "input": "events/team-subtree-basic.json",
+      "expectedNormalized": "expected/team-subtree-basic.normalized.json",
+      "expectedMetrics": "expected/team-subtree-basic.metrics.json",
+      "sha256": {
+        "events/team-subtree-basic.json": "e3130b6b81c45926855e14f3c25425e2a430652abdf2a731469b8df8219a2597",
+        "expected/team-subtree-basic.normalized.json": "266c954ab23101efd52ad252c9a00cf9f1fa22cf5fdf1c15a8e0522425f366e6",
+        "expected/team-subtree-basic.metrics.json": "5d6bae085a713d03238d46864bcf8d699f89acd73451f8246b6cb5161286b3ca"
+      },
+      "purpose": "team subtree: member/session linkage, task dependencies and transitions, message delivery, member busy/concurrency, completion wall",
       "redaction": "synthetic"
     },
     {
@@ -51,10 +90,10 @@
       "expectedMetrics": "expected/tool-error-basic.metrics.json",
       "sha256": {
         "events/tool-error-basic.json": "60eda2e9a42ba450a515f626c1c6d2f4fcdea7cd69bd32ac3177764602ca8931",
-        "expected/tool-error-basic.normalized.json": "359af82ef5d86e1a2c6d6c4848c3f2dc7dc9413a786a468b1167cc879c48ed84",
-        "expected/tool-error-basic.metrics.json": "a8d57ee412c97009e8a8d21b336e9190e324542a31c979e417963e1534ed5a0a"
+        "expected/tool-error-basic.normalized.json": "b914b72c66d4aa3f3cad32743e80d2b87fe4b0dd02f1560ae2cd0dcc1936e485",
+        "expected/tool-error-basic.metrics.json": "0b7596caaec85b63f7c03fbf84cd61579f609fc0ba907179f33317ced57355b8"
       },
-      "purpose": "explicit tool error rate with success and surface replacement dedupe",
+      "purpose": "explicit tool error surface and per-call failure evidence",
       "redaction": "synthetic"
     }
   ],

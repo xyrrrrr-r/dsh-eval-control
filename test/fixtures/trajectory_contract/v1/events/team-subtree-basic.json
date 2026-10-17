@@ -1,0 +1,58 @@
+{
+  "fixtureVersion": 1,
+  "fixtureId": "team-subtree-basic",
+  "source": {
+    "dshVersion": "0.2.0-rc.2",
+    "sessionSchema": "session.v4",
+    "normalizationVersion": "3",
+    "metricContractVersion": "1",
+    "redaction": "synthetic"
+  },
+  "session": {
+    "header": { "id": "s-team", "delegationDepth": 0 },
+    "complete": true,
+    "observedThroughSeq": 16
+  },
+  "events": [
+    { "seq": 1, "time": 1000, "type": "turn/start", "data": { "turn": 1 } },
+    { "seq": 2, "time": 1010, "type": "request/header", "data": { "header": { "config": { "provider": "deepseek", "model": "test-model-a" } } } },
+    { "seq": 3, "time": 1020, "type": "subagent/catalog", "data": { "childId": "m-alpha", "childCreatedAt": 2000 } },
+    { "seq": 4, "time": 1030, "type": "subagent/catalog", "data": { "childId": "m-beta", "childCreatedAt": 2100 } },
+    { "seq": 5, "time": 1040, "type": "team/member", "data": { "teamId": "team-1", "member": { "id": "m-alpha", "name": "alpha", "description": "alpha", "provider": "deepseek", "context": "fresh", "phase": "active" } } },
+    { "seq": 6, "time": 1050, "type": "team/member", "data": { "teamId": "team-1", "member": { "id": "m-beta", "name": "beta", "description": "beta", "provider": "deepseek", "context": "fresh", "phase": "active" } } },
+    { "seq": 7, "time": 1060, "type": "team/task", "data": { "teamId": "team-1", "task": { "id": "task-a", "revision": 1, "subject": "collect facts", "description": "", "status": "in_progress", "blockedBy": [], "writeScopes": ["docs/"] } } },
+    { "seq": 8, "time": 1070, "type": "team/task", "data": { "teamId": "team-1", "task": { "id": "task-b", "revision": 1, "subject": "draft report", "description": "", "status": "pending", "blockedBy": ["task-a"], "writeScopes": ["docs/"] } } },
+    { "seq": 9, "time": 3300, "type": "team/message/queued", "data": { "teamId": "team-1", "message": { "id": "msg-1", "senderId": "s-team", "senderName": "lead", "targetId": "m-alpha", "content": [{ "type": "text", "text": "status?" }] } } },
+    { "seq": 10, "time": 3400, "type": "team/message/delivered", "data": { "teamId": "team-1", "messageId": "msg-1", "targetId": "m-alpha" } },
+    { "seq": 11, "time": 4000, "type": "team/task", "data": { "teamId": "team-1", "task": { "id": "task-a", "revision": 2, "subject": "collect facts", "description": "", "status": "completed", "blockedBy": [], "writeScopes": ["docs/"] } } },
+    { "seq": 12, "time": 4100, "type": "team/task", "data": { "teamId": "team-1", "task": { "id": "task-b", "revision": 2, "subject": "draft report", "description": "", "status": "in_progress", "blockedBy": [], "writeScopes": ["docs/"] } } },
+    { "seq": 13, "time": 4800, "type": "team/task", "data": { "teamId": "team-1", "task": { "id": "task-b", "revision": 3, "subject": "draft report", "description": "", "status": "completed", "blockedBy": [], "writeScopes": ["docs/"] } } },
+    { "seq": 14, "time": 5000, "type": "assistant/message", "data": { "turn": 1, "step": 1, "stream": [{ "type": "text-chunks", "time0": 4950, "index": 0, "dt": [20], "texts": ["ok"] }], "usage": { "inputTokens": 900, "outputTokens": 30, "totalTokens": 930 } } },
+    { "seq": 15, "time": 5100, "type": "deliverables/presented", "data": { "turn": 1, "callId": null, "files": ["docs/report.md"] } },
+    { "seq": 16, "time": 5200, "type": "turn/end", "data": { "turn": 1, "reason": { "kind": "completed" } } }
+  ],
+  "children": [
+    {
+      "session": { "header": { "id": "m-alpha", "parentSession": "s-team", "delegationDepth": 1 }, "complete": true, "observedThroughSeq": 5 },
+      "events": [
+        { "seq": 1, "time": 2200, "type": "turn/start", "data": { "turn": 1 } },
+        { "seq": 2, "time": 2210, "type": "request/header", "data": { "header": { "config": { "provider": "deepseek", "model": "test-model-a" } } } },
+        { "seq": 3, "time": 3100, "type": "assistant/message", "data": { "turn": 1, "step": 1, "stream": [{ "type": "text-chunks", "time0": 3050, "index": 0, "dt": [10], "texts": ["a1"] }], "usage": { "inputTokens": 400, "outputTokens": 20, "totalTokens": 420 } } },
+        { "seq": 4, "time": 3200, "type": "turn/end", "data": { "turn": 1, "reason": { "kind": "completed" } } },
+        { "seq": 5, "time": 3400, "type": "turn/start", "data": { "turn": 2 } },
+        { "seq": 6, "time": 4500, "type": "assistant/message", "data": { "turn": 2, "step": 1, "stream": [{ "type": "text-chunks", "time0": 4450, "index": 0, "dt": [10], "texts": ["a2"] }], "usage": { "inputTokens": 460, "outputTokens": 25, "totalTokens": 485 } } },
+        { "seq": 7, "time": 4600, "type": "turn/end", "data": { "turn": 2, "reason": { "kind": "completed" } } }
+      ]
+    },
+    {
+      "session": { "header": { "id": "m-beta", "parentSession": "s-team", "delegationDepth": 1 }, "complete": true, "observedThroughSeq": 4 },
+      "events": [
+        { "seq": 1, "time": 2300, "type": "turn/start", "data": { "turn": 1 } },
+        { "seq": 2, "time": 2310, "type": "request/header", "data": { "header": { "config": { "provider": "deepseek", "model": "test-model-a" } } } },
+        { "seq": 3, "time": 3250, "type": "assistant/message", "data": { "turn": 1, "step": 1, "stream": [{ "type": "text-chunks", "time0": 3200, "index": 0, "dt": [10], "texts": ["b1"] }], "usage": { "inputTokens": 350, "outputTokens": 15, "totalTokens": 365 } } },
+        { "seq": 4, "time": 3300, "type": "turn/end", "data": { "turn": 1, "reason": { "kind": "completed" } } }
+      ]
+    }
+  ],
+  "options": {}
+}

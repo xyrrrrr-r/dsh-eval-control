@@ -5,16 +5,32 @@
     "adapterVersion": "1",
     "sourceVersion": "0.2.0-rc.2",
     "sourceSchema": "session.v4",
-    "normalizationVersion": "2"
+    "normalizationVersion": "3"
   },
   "sessions": [
     {
       "sessionId": "s-errors",
+      "agentId": "s-errors",
       "complete": true,
       "observedThroughSeq": 5
     }
   ],
-  "entities": [],
+  "entities": [
+    {
+      "entityType": "agent",
+      "entityId": "s-errors",
+      "attributes": {
+        "firstEventTimeMs": 1000
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-errors",
+          "seq": 1
+        }
+      ],
+      "evidenceLevel": "observed"
+    }
+  ],
   "facts": [
     {
       "factId": "s-errors:1:tool_call",
@@ -25,6 +41,7 @@
       "attributes": {
         "callId": "err-1",
         "toolName": "shell",
+        "callDigest": "bbc5199b196456223a3b4581e5d56d95",
         "turn": 1,
         "step": 1
       },
@@ -65,6 +82,7 @@
       "attributes": {
         "callId": "ok-1",
         "toolName": "read",
+        "callDigest": "73414591aec3dcfe28f526b82469d17c",
         "turn": 1,
         "step": 2
       },
@@ -92,6 +110,25 @@
         {
           "sessionId": "s-errors",
           "seq": 4
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-errors:5:session_observed",
+      "kind": "session_observed",
+      "domain": "data_quality",
+      "timestampMs": 1310,
+      "subjectId": "s-errors",
+      "attributes": {
+        "eventCount": 5,
+        "firstEventTimeMs": 1000,
+        "lastEventTimeMs": 1310
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-errors",
+          "seq": 5
         }
       ],
       "evidenceLevel": "observed"
@@ -149,9 +186,21 @@
     "context.compaction": {
       "status": "supported_complete"
     },
+    "model.stream": {
+      "status": "supported_partial",
+      "reason": "Stream bounds come from compact stream records; absent streams and zero-width spans stay unusable, never zero"
+    },
+    "planning.todo": {
+      "status": "supported_partial",
+      "reason": "Todo matching uses truncated content digests; status transitions are observed, content identity is derived"
+    },
     "coordination.team": {
       "status": "supported_partial",
-      "reason": "Team snapshot, task and message facts are mapped, but member-to-session linkage, liveness intervals and terminal coverage are not yet normalized"
+      "reason": "Team snapshot, task, message and member-session linkage facts are mapped; member liveness intervals and terminal coverage are not observable from committed events"
+    },
+    "member_liveness": {
+      "status": "unsupported",
+      "reason": "DSH 0.2.0-rc.2 committed events carry no member liveness intervals; idle duration cannot be replayed offline"
     }
   },
   "quality": []

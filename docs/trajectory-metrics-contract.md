@@ -93,6 +93,7 @@ parentSpanRef?, linkedSpanRefs[], evidenceLevel, sourceDshVersion
 | --- | --- | --- | --- | --- | --- | --- |
 | `context.input_window_utilization` | `context` | 上下文窗口输入占用比例 | 观察输入 Token 相对已知窗口的变化趋势，提前发现上下文压力增大的会话。 | 每个带有效 usage 的模型输出：`input_tokens / contextWindow`；呈现逐步趋势和峰值 | `contextWindow` 必须与该事件所属 provider/model/会话上下文匹配；缺少或不确定时 unavailable。不得把单个 `request/context` 值无条件外推到整个会话 | `derived`；称“观测输入占窗口比例”，不得称压缩触发阈值或精确剩余上下文 |
 | `context.compaction_frequency_per_1k_input_tokens` | `context` | 每千输入 Token 的摘要压缩频率 | 按会话输入规模比较压缩出现频度，避免只看原始次数。 | `1000 × 闭合 compaction summary 周期数 / 有效模型 input_tokens 总和`；另报相邻摘要压缩周期的间隔 | 分子只按唯一 `compactionId` 计摘要周期；prune 独立，不并入；分母为同一会话、同一纳入范围内有效输入 token | `derived`；小分母或 usage 覆盖不完整时不算比率，只显示次数和覆盖率 |
+| `model.step_to_first_chunk_ms` | `model` | 步骤开始到首个输出块等待时间 | 观察每步从启动到模型第一次产生 token-bearing 输出的代理时延，便于发现响应变慢。 | `step/start` 到 assistant message/attempt 内首个 token-bearing stream 成员的时间 | 一个 step 只取最早的首 token；空流不算 0，已结束且无 token 时为 incomplete；token-bearing 遵循锁定 DSH stream reader，包括非空文本/推理/工具参数片段或有名称的工具调用片段 | `derived`；不称 provider TTFT 或首个可见文字；canonical 只保存首 token 时间和源事件引用，不保存 stream 内容 |
 | `context.compaction_time_share` | `context` | 摘要压缩时间占比 | 了解压缩时间占会话观测时长的比例，判断它是否值得进一步排查。 | `compaction Span 与 session Span 的区间并集覆盖时长 / session Span 时长` | 区间并集避免重叠压缩重复累计；只纳入闭合 Span，session 时长须大于零 | `derived`；是会话时间占比，不表示压缩造成其余等待 |
 | `model.retry_recovery` | `model` | 模型请求重试与后续响应 | 查看模型请求是否重试、重试后是否出现后续响应，以及等待跨度。 | 按 `retryId` 统计重试次数及之后是否出现配对的 assistant/message 结果；显示重试至结果的墙钟跨度 | 关联限于同 session、turn、step；缺结果标记 incomplete，不判失败；结果事件不等价于任务成功 | `derived`；称“请求重试后有/无后续结果”，不称任务恢复成功 |
 | `tool.error_recovery` | `tool` | 工具错误后的后续尝试 | 查看显式工具错误后是否出现相似调用及非错误结果，辅助判断问题是否缓解。 | 对每次唯一 `tool/call` 错误结果，观察同一 turn 内后续相同规范化 `call_key` 调用是否有非错误结果；计重试次数和错误至后续结果跨度 | `call_key` 规范化算法及版本固定并记录；显式错误仅据 `message.isError`；参数不可比或结果缺失归 unknown；移除 surface 替换重发副本 | 错误事实为 `observed`，重复关联为 `inferred`；“后续调用返回非错误结果”不证明业务任务成功 |
@@ -130,3 +131,26 @@ Team 状态统一按如下优先级：打开 turn 为 `busy`；没有打开 turn
 - 未知事件保留为 `unknownEventTypes`/兼容性信号，不把未知类型硬塞进既有类别；是否忽略遵从目标 DSH reader 契约。
 - 保留原始事件引用供审计；UI 默认显示聚合与短字段。消息正文、参数、路径等内容按最小必要原则展示，跨会话读取遵守 parent-session 授权边界。
 - 事件字段缺失、版本不支持、Span 未闭合、配对不唯一时，输出明确状态和原因，不静默回退为零或猜测。
+
+## 8. 插件侧实现契约（协议 v3，冻结引擎拆分）
+
+本节记录 `dsh-eval-control` 0.2.6 起 TS 引擎与 aeval 离线 reducer 的冻结拆分；语义权威仍归 aeval `TRaJECTORY-METRIC-CATALOG-v1`（见 `src/aeval/trajectory_metrics.py`）。
+
+### 8.1 引擎拆分
+
+| 层 | 位置 | 职责 |
+| --- | --- | --- |
+| 每会话折叠 | `src/analytics/metrics.ts` 的 `foldLifecycleMetrics` / `MetricFoldState` | 逐事件增量折叠本会话全部 30 个会话级指标 + 根会话专属 Team 事实（fan_out、member_idle、task_blocked、team_delivery、critical segments）。每个事件后从状态整体重算（recompute-from-state），保证任意前缀自一致 |
+| 跨会话引擎 | `src/analytics/team.ts` 的 `foldTeamMetrics` / `combineFoldStates` | 输入根 + 子会话的 `TeamSessionInput`，计算 member_busy、active_members_now、peak_concurrent_members、team_completion_wall、branch_first_activity，以及根会话 coverage 的树级质量码覆盖（`member_session_not_observed` / `child_session_not_observed`） |
+| 封口 | `sealMetricFoldState(state, sealed)` | 会话完成标志只影响完成敏感指标的 status（`partial`→`incomplete`/`available`），不改历史证据；实时折叠永不封口 |
+| 线视图 | `src/analytics/projection.ts` | wire view 携带 `metricResults`（每折叠状态上限 64 条，LRU 逐出）与 `teamInput`（跨会话引擎的有界输入） |
+
+### 8.2 对等测试协议
+
+`test/analytics_parity.test.ts` 逐 fixture：根/子会话分别折叠 → 按 fixture `complete` 封口 → `combineFoldStates` 组合 → 与 aeval 金标（`test/fixtures/trajectory_contract/v1/expected/*.metrics.json`，manifest 锁 sha256 与 `aevalRevision`）全字段深比较（status/value/unit/sampleCount/denominator/evidenceLevel/evidenceRefs/qualityRefs）。另测任意事件前缀的增量折叠 == 同前缀重放。fixture 由 `scripts/sync-trajectory-fixtures.mjs` 从 aeval 同步。
+
+已知且已记录的非对称（fixture 未覆盖，文档化为可接受差异）：跨会话 callId/digest 在 byId/byDigest 索引中的碰撞；实时 repeat_overhead 按会话内 digest 分组而 aeval 全树分组；wire 路径 `teamInput` 有界截断（turnIntervals 256、refs 64、children 32、taskSnapshots 128、memberSnapshots 64、qualityItems 64）。对等路径（fold states）不受截断影响。
+
+### 8.3 客户端聚合
+
+`client/client.js` 的轨迹分析视图在根会话 `teamInput.memberIds` 非空时，经 `ctx.sessions.using(memberId, {source: 'dsh-eval-control-analytics'})` 读取各成员会话的 `trajectoryAnalytics` 线视图（5s 打开超时，失败降级），并在浏览器内镜像 `foldTeamMetrics` 的活跃/并发/忙碌/墙钟/分支首活动计算。该聚合是展示层近似（wire 截断），不得用于评测判分；页面文案已声明与离线精确值的差异。

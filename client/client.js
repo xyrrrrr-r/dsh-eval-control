@@ -509,7 +509,212 @@ window.__ModuleLoader__.load({
       };
     }
 
-    function createAnalyticsView() {
+    /**
+     * Cross-session Team aggregation for the live view — the wire-path mirror
+     * of the host's `foldTeamMetrics` (src/analytics/team.ts), computed from
+     * each member session's bounded `teamInput` wire section. Wire caps make
+     * this a documented approximation of the exact parity path; the display
+     * never claims parity precision.
+     */
+    function mergeIntervalsPlain(list) {
+      const normalized = list.filter((pair) => pair[1] > pair[0]).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+      const merged = [];
+      for (const interval of normalized) {
+        const last = merged[merged.length - 1];
+        if (last && interval[0] <= last[1]) {
+          if (interval[1] > last[1]) last[1] = interval[1];
+        } else merged.push([interval[0], interval[1]]);
+      }
+      return merged;
+    }
+
+    function teamAggregate(rootInput, memberEntries) {
+      const members = Array.isArray(rootInput.memberIds) ? rootInput.memberIds : [];
+      const childInputs = new Map(memberEntries
+        .filter((entry) => entry.summary && entry.summary.teamInput)
+        .map((entry) => [entry.memberId, entry.summary.teamInput]));
+      const observed = new Set([rootInput.sessionId, ...childInputs.keys()]);
+      const asOfCandidates = [rootInput, ...childInputs.values()]
+        .map((input) => input.factTimeMax)
+        .filter((value) => typeof value === 'number' && value >= 0);
+      const asOf = asOfCandidates.length ? Math.max(...asOfCandidates) : null;
+      const intervals = {};
+      const openFlags = {};
+      const busyMs = {};
+      for (const memberId of members) {
+        const input = childInputs.get(memberId);
+        const turns = input && Array.isArray(input.turnIntervals) ? input.turnIntervals : [];
+        const collected = [];
+        let open = false;
+        for (const turn of turns) {
+          if (typeof turn.startMs !== 'number') continue;
+          const end = typeof turn.firstEndMs === 'number' && turn.firstEndMs >= turn.startMs ? turn.firstEndMs : null;
+          if (end !== null) collected.push([turn.startMs, end]);
+          else {
+            open = true;
+            if (asOf !== null && asOf >= turn.startMs) collected.push([turn.startMs, asOf]);
+          }
+        }
+        intervals[memberId] = mergeIntervalsPlain(collected);
+        openFlags[memberId] = open;
+        busyMs[memberId] = intervals[memberId].reduce((sum, pair) => sum + (pair[1] - pair[0]), 0);
+      }
+      const activeNow = asOf === null
+        ? 0
+        : members.filter((memberId) => intervals[memberId].some((pair) => pair[0] <= asOf && asOf < pair[1])).length;
+      const sweep = [];
+      for (const memberId of members) {
+        for (const pair of intervals[memberId]) {
+          sweep.push([pair[0], 1]);
+          sweep.push([pair[1], -1]);
+        }
+      }
+      sweep.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
+      let peak = 0;
+      let cursor = 0;
+      for (const entry of sweep) {
+        cursor += entry[1];
+        if (cursor > peak) peak = cursor;
+      }
+      const startCandidates = [];
+      for (const child of (Array.isArray(rootInput.subagentChildren) ? rootInput.subagentChildren : [])) {
+        if (child && typeof child.childId === 'string' && typeof child.childCreatedAtMs === 'number' && observed.has(child.childId)) {
+          startCandidates.push(child.childCreatedAtMs);
+        }
+      }
+      for (const memberId of members) {
+        const first = childInputs.get(memberId)?.firstEventTimeMs;
+        if (typeof first === 'number') startCandidates.push(first);
+      }
+      const tasksById = new Map();
+      for (const snapshot of (Array.isArray(rootInput.taskSnapshots) ? rootInput.taskSnapshots : [])) {
+        if (!snapshot || typeof snapshot.taskId !== 'string') continue;
+        if (!tasksById.has(snapshot.taskId)) tasksById.set(snapshot.taskId, []);
+        tasksById.get(snapshot.taskId).push(snapshot);
+      }
+      const bySeq = (a, b) => (a.ref && a.ref.seq ? a.ref.seq : 0) - (b.ref && b.ref.seq ? b.ref.seq : 0);
+      for (const snapshots of tasksById.values()) {
+        const started = snapshots.slice().sort(bySeq).find((item) => item.status === 'in_progress' || item.status === 'completed');
+        if (started && typeof started.timeMs === 'number') startCandidates.push(started.timeMs);
+      }
+      let wallMs = null;
+      const wallCoverage = [];
+      if (members.length && startCandidates.length) {
+        const start = Math.min(...startCandidates);
+        const ends = [];
+        for (const snapshots of tasksById.values()) {
+          const latest = snapshots.slice().sort(bySeq).pop();
+          if (latest && (latest.status === 'completed' || latest.status === 'deleted') && typeof latest.timeMs === 'number') ends.push(latest.timeMs);
+          else wallCoverage.push('task_terminal_missing');
+        }
+        for (const snapshot of (Array.isArray(rootInput.teamMemberSnapshots) ? rootInput.teamMemberSnapshots : [])) {
+          if (snapshot && snapshot.phase === 'failed' && typeof snapshot.timeMs === 'number') ends.push(snapshot.timeMs);
+        }
+        for (const memberId of members) {
+          if (!observed.has(memberId)) {
+            wallCoverage.push('member_session_not_observed');
+            continue;
+          }
+          const input = childInputs.get(memberId);
+          const turns = (input && Array.isArray(input.turnIntervals) ? input.turnIntervals : [])
+            .slice().sort((a, b) => (typeof a.turn === 'number' ? a.turn : 0) - (typeof b.turn === 'number' ? b.turn : 0));
+          const closed = turns.filter((turn) => typeof turn.firstEndMs === 'number' && turn.firstEndMs >= turn.startMs);
+          if (closed.length > 0 && closed.length === turns.length) ends.push(closed[closed.length - 1].firstEndMs);
+          else wallCoverage.push('member_terminal_missing');
+        }
+        if (ends.length) wallMs = Math.max(Math.max(...ends) - start, 0);
+      }
+      const branchFirst = [];
+      for (const child of (Array.isArray(rootInput.subagentChildren) ? rootInput.subagentChildren : [])) {
+        if (!child || typeof child.childId !== 'string' || typeof child.childCreatedAtMs !== 'number') continue;
+        const input = childInputs.get(child.childId);
+        const first = input ? input.firstEventTimeMs : null;
+        if (typeof first !== 'number') {
+          branchFirst.push({ childId: child.childId, status: input ? 'child_first_event_missing' : 'child_session_not_observed' });
+        } else {
+          branchFirst.push({ childId: child.childId, latencyMs: first - child.childCreatedAtMs });
+        }
+      }
+      return { asOf, members, busyMs, openFlags, activeNow, peak, wallMs, wallCoverage, branchFirst, observed };
+    }
+
+    /**
+     * Read one member session's analytics wire view without leaving a scope
+     * open. The projections RPC seeds the client's shared per-session store
+     * without activating an Agent, which matters for subagent children whose
+     * agent-bound open may never settle; using() then borrows that store.
+     */
+    const readMemberSummary = async (sessions, memberId) => {
+      try {
+        if (typeof sessions.refreshProjections === 'function') await sessions.refreshProjections(memberId);
+      } catch { /* degrade: read whatever the client already holds */ }
+      return sessions.using(memberId, { source: 'dsh-eval-control-analytics' }, async (reference) => {
+        try {
+          await Promise.race([
+            reference.ready,
+            new Promise((resolve) => { setTimeout(resolve, 2000); }),
+          ]);
+        } catch { /* ready rejected; the store may still hold a baseline */ }
+        const face = reference && reference.binding && reference.binding.session && reference.binding.session.projections
+          && typeof reference.binding.session.projections.faceOf === 'function'
+          ? reference.binding.session.projections.faceOf('trajectoryAnalytics')
+          : null;
+        return face && typeof face.getSnapshot === 'function' ? face.getSnapshot() : undefined;
+      });
+    };
+
+    function formatMetricValue(value) {
+      if (value === undefined || value === null) return '—';
+      if (typeof value === 'number') return Number.isInteger(value) ? String(value) : value.toFixed(3);
+      if (typeof value === 'object') {
+        const parts = Object.entries(value).map(([key, item]) => {
+          if (Array.isArray(item)) return `${key}:[${item.slice(0, 4).join(', ')}${item.length > 4 ? ', …' : ''}]`;
+          return `${key}:${typeof item === 'number' && !Number.isInteger(item) ? item.toFixed(3) : String(item)}`;
+        });
+        return parts.join(' · ');
+      }
+      return String(value);
+    }
+
+    const METRIC_LABELS = {
+      'tool.call_elapsed_ms': '工具调用耗时',
+      'tool.failure_rate': '工具显式错误率',
+      'tool.repeat_loop': '重复调用循环',
+      'tool.error_recovery': '错误恢复',
+      'tool.repeat_overhead': '重复调用开销',
+      'compaction.summary_cycles': '摘要压缩周期',
+      'compaction.elapsed_ms': '压缩耗时',
+      'compaction.shadowed_tokens': '摘要覆盖 Token',
+      'compaction.prune_passes': '历史修剪批次',
+      'compaction.reclaimed_tokens_per_call_token': '回收比例',
+      'context.compaction_frequency_per_1k_input_tokens': '压缩频率',
+      'context.compaction_time_share': '压缩时间占比',
+      'context.input_window_utilization': '输入窗口占用',
+      'model.step_to_first_chunk_ms': '步骤首块延迟',
+      'model.stream_span_ms': '流式输出跨度',
+      'model.retry_recovery': '模型重试恢复',
+      'model.long_gap_segments': '长间隔段',
+      'planning.todo_snapshot_change': 'Todo 快照变更',
+      'planning.rewrite_after_completion': '完成后重写',
+      'coordination.inbox_insert_to_message_event_ms': '收件箱入队到浮出',
+      'coordination.inbox_tool_overlap_share': '等待期工具重叠',
+      'coordination.team_delivery_ms': 'Team 消息投递',
+      'coordination.delegation_depth': '委派深度',
+      'coordination.fan_out_width': '成员扇出',
+      'coordination.member_idle_ms': '成员空闲(不可得)',
+      'coordination.member_busy_ms': '成员忙碌时长',
+      'coordination.active_members_now': '当前活跃成员',
+      'coordination.peak_concurrent_members': '并发峰值成员',
+      'coordination.team_completion_wall_ms': 'Team 完成墙钟',
+      'coordination.branch_first_activity_ms': '分支首活动延迟',
+      'coordination.task_blocked_duration': '任务阻塞时长',
+      'coordination.team_path_critical_segments': '关键依赖路径',
+      'outcome.turn_reason_mix': '轮次结束原因',
+      'outcome.turn_completion_evidence': '轮次完成证据',
+      'data_quality.trajectory_coverage': '数据质量覆盖',
+    };
+
+    function createAnalyticsView(ctx) {
       return function TrajectoryAnalyticsView(props) {
         const analytics = typeof props.useProjection === 'function'
           ? props.useProjection('trajectoryAnalytics')
@@ -517,6 +722,29 @@ window.__ModuleLoader__.load({
         const stats = typeof props.useProjection === 'function'
           ? props.useProjection('sessionStats')
           : undefined;
+        const [teamState, setTeamState] = React.useState({ phase: 'idle', members: [] });
+        const memberKey = analytics && analytics.teamInput && Array.isArray(analytics.teamInput.memberIds)
+          ? analytics.teamInput.memberIds.join(',')
+          : '';
+        React.useEffect(() => {
+          const memberIds = memberKey ? memberKey.split(',') : [];
+          if (!memberIds.length) {
+            setTeamState({ phase: 'none', members: [] });
+            return undefined;
+          }
+          const sessions = ctx && ctx.sessions;
+          if (!sessions || typeof sessions.using !== 'function') {
+            setTeamState({ phase: 'unavailable', members: [] });
+            return undefined;
+          }
+          let cancelled = false;
+          setTeamState({ phase: 'loading', members: [] });
+          Promise.all(memberIds.map((memberId) => readMemberSummary(sessions, memberId)
+            .then((summary) => ({ memberId, summary: summary && typeof summary === 'object' ? summary : null }),
+              (error) => ({ memberId, summary: null, error: String((error && error.message) || error) }))))
+            .then((members) => { if (!cancelled) setTeamState({ phase: 'ready', members }); });
+          return () => { cancelled = true; };
+        }, [memberKey]);
         const cycles = analytics?.metricResults?.find((item) => item.metricId === 'compaction.summary_cycles')?.value;
         const cycleCount = cycles && typeof cycles === 'object' ? cycles : { closedCount: 0, openCount: 0 };
         const compactionElapsed = analytics?.compactionElapsedMs ?? 0;
@@ -527,6 +755,24 @@ window.__ModuleLoader__.load({
         const failureRate = analytics?.metricResults?.find((item) => item.metricId === 'tool.failure_rate');
         const shadowedTokens = analytics?.metricResults?.find((item) => item.metricId === 'compaction.shadowed_tokens');
         const prunePasses = analytics?.metricResults?.find((item) => item.metricId === 'compaction.prune_passes');
+        const delegationDepth = analytics?.metricResults?.find((item) => item.metricId === 'coordination.delegation_depth');
+        const longGap = analytics?.metricResults?.find((item) => item.metricId === 'model.long_gap_segments');
+        const longGapValue = longGap && typeof longGap.value === 'object' ? longGap.value : undefined;
+        const stepFirstChunks = (analytics?.metricResults ?? []).filter((item) => item.metricId === 'model.step_to_first_chunk_ms' && item.status === 'available' && typeof item.value === 'number');
+        const stepFirstAvg = stepFirstChunks.length
+          ? Math.round(stepFirstChunks.reduce((sum, item) => sum + item.value, 0) / stepFirstChunks.length)
+          : null;
+        const retryRecovered = (analytics?.metricResults ?? []).filter((item) => item.metricId === 'model.retry_recovery');
+        const repeatLoop = analytics?.metricResults?.find((item) => item.metricId === 'tool.repeat_loop');
+        const repeatLoopValue = repeatLoop && typeof repeatLoop.value === 'object' ? repeatLoop.value : undefined;
+        const todoChange = analytics?.metricResults?.find((item) => item.metricId === 'planning.todo_snapshot_change');
+        const todoChangeValue = todoChange && typeof todoChange.value === 'object' ? todoChange.value : undefined;
+        const coverage = analytics?.metricResults?.find((item) => item.metricId === 'data_quality.trajectory_coverage');
+        const coverageValue = coverage && typeof coverage.value === 'object' ? coverage.value : undefined;
+        const teamInput = analytics?.teamInput;
+        const teamAggregateView = teamInput && teamState.phase === 'ready'
+          ? teamAggregate(teamInput, teamState.members)
+          : null;
         const cards = analytics ? [
           ...(stats ? [
             ['已完成轮次', stats.turns],
@@ -546,6 +792,12 @@ window.__ModuleLoader__.load({
           ['摘要覆盖历史 Token', shadowedTokens?.value ?? '暂无摘要样本'],
           ['历史修剪批次', prunePasses?.value ?? '暂无修剪样本'],
           ['修剪覆盖 Token', analytics.pruneShadowedTokens],
+          ['委派深度', delegationDepth ? String(delegationDepth.value ?? 0) : '未知'],
+          ['步骤首块延迟', stepFirstAvg !== null ? `平均 ${stepFirstAvg} ms · n=${stepFirstChunks.length}` : '暂无样本'],
+          ['长间隔段(≥30s)', longGapValue ? `${longGapValue.gapCount} 段 · 未归因 ${(longGapValue.unattributedMs / 1000).toFixed(1)}s` : '无'],
+          ['重试恢复', retryRecovered.length ? `${retryRecovered.filter((item) => item.value && item.value.recovered).length} / ${retryRecovered.length} 已恢复` : '无重试'],
+          ['重复调用循环', repeatLoopValue ? `${repeatLoopValue.loopCount} 组 · 最长 ${repeatLoopValue.maxRunLength} 连` : '无'],
+          ['Todo 变更', todoChangeValue ? `${todoChangeValue.structuralChanges} 结构 · ${todoChangeValue.statusChanges} 状态 · ${todoChangeValue.goalRevisions} 目标` : '无快照'],
           ['Team 消息投递', `${analytics.deliveredTeamMessages} / ${analytics.queuedTeamMessages}`],
         ] : [];
         const card = (label, value) => h('div', {
@@ -554,6 +806,31 @@ window.__ModuleLoader__.load({
         }, [
           h('div', { key: 'label', style: { opacity: 0.7, fontSize: '12px' } }, label),
           h('strong', { key: 'value', style: { display: 'block', marginTop: '5px', fontSize: '18px' } }, String(value)),
+        ]);
+        const memberRow = (entry) => {
+          const aggregate = teamAggregateView ? teamAggregateView.busyMs[entry.memberId] : undefined;
+          const summary = entry.summary;
+          const turns = summary && Array.isArray(summary.teamInput?.turnIntervals) ? summary.teamInput.turnIntervals.length : null;
+          return h('li', {
+            key: entry.memberId,
+            style: { margin: '6px 0', fontSize: '12px', fontFamily: 'var(--font-mono, monospace)' },
+          }, [
+            h('span', { key: 'id' }, `${entry.memberId} · 事件 ${summary ? summary.eventsSeen : '未知'} · 轮次 ${turns ?? '未知'} · 忙碌 ${aggregate !== undefined ? `${aggregate} ms` : '未知'}${teamAggregateView && teamAggregateView.openFlags[entry.memberId] ? ' · 有未闭合轮次' : ''}`),
+            entry.error ? h('span', { key: 'error', style: { opacity: 0.7 } }, ` · 读取失败: ${entry.error}`) : null,
+          ]);
+        };
+        const metricRow = (item) => h('tr', {
+          key: `${item.metricId}:${item.subjectId}`,
+          style: { borderBottom: '1px solid color-mix(in srgb, currentColor 12%, transparent)' },
+        }, [
+          h('td', { key: 'metric', style: { padding: '4px 10px 4px 0', fontSize: '12px', whiteSpace: 'nowrap' } },
+            `${METRIC_LABELS[item.metricId] ?? item.metricId}${item.subjectId && !item.subjectId.startsWith('s-') ? ` · ${item.subjectId}` : ''}`),
+          h('td', { key: 'status', style: { padding: '4px 10px 4px 0', fontSize: '12px', whiteSpace: 'nowrap' } }, item.status),
+          h('td', { key: 'value', style: { padding: '4px 10px 4px 0', fontSize: '12px' } }, formatMetricValue(item.value)),
+          h('td', { key: 'quality', style: { padding: '4px 0', fontSize: '12px', opacity: 0.8 } },
+            item.qualityRefs?.length ? item.qualityRefs.join(', ') : ''),
+          h('td', { key: 'evidence', style: { padding: '4px 0', fontSize: '12px', opacity: 0.7 } },
+            item.evidenceRefs?.length ? `证据 ${item.evidenceRefs.length} 条（如 ${item.evidenceRefs[0].sessionId}:${item.evidenceRefs[0].seq}）` : '无证据引用'),
         ]);
         return h('section', { style: { height: '100%', overflow: 'auto', padding: '20px', color: 'var(--foreground, inherit)' } }, [
           h('h2', { key: 'title', style: { marginTop: 0 } }, '轨迹分析'),
@@ -569,6 +846,40 @@ window.__ModuleLoader__.load({
                   style: { margin: '6px 0', fontSize: '12px' },
                 }, `Turn ${turn.turn}: 工具 ${turn.toolCalls} · 显式错误 ${turn.toolErrors} · 重试 ${turn.retries} · 压缩 ${turn.compactionStarts} · 输入 ${turn.inputTokens} Token`)))
                 : h('p', { key: 'no-trend' }, '尚无可按轮次归属的事件。'),
+              h('h3', { key: 'team-title' }, 'Team 协作'),
+              !teamInput || !teamInput.memberIds?.length
+                ? h('p', { key: 'no-team' }, '本会话未观测到 Team 成员（非多智能体会话或尚未派发成员）。')
+                : h('div', { key: 'team' }, [
+                  h('p', { key: 'team-summary', style: { fontSize: '12px' } }, [
+                    `成员 ${teamInput.memberIds.length} 名`,
+                    teamAggregateView ? ` · 当前活跃 ${teamAggregateView.activeNow} · 并发峰值 ${teamAggregateView.peak} · 完成墙钟 ${teamAggregateView.wallMs !== null ? `${teamAggregateView.wallMs} ms` : '待定'}${teamAggregateView.wallCoverage.length ? `（覆盖缺口: ${[...new Set(teamAggregateView.wallCoverage)].join(', ')}）` : ''}` : '',
+                  ]),
+                  teamState.phase === 'loading'
+                    ? h('p', { key: 'team-loading', role: 'status' }, '正在读取成员会话…')
+                    : teamState.phase === 'unavailable'
+                      ? h('p', { key: 'team-unavailable', style: { opacity: 0.7, fontSize: '12px' } }, '成员会话投影不可读（宿主未提供 sessions 通道）；以上为根会话自身的 Team 事实。')
+                      : h('ul', { key: 'team-members', style: { paddingLeft: '1.5em' } }, teamState.members.map(memberRow)),
+                  teamAggregateView && teamAggregateView.branchFirst.length
+                    ? h('p', { key: 'branch-first', style: { fontSize: '12px', opacity: 0.85 } },
+                      `分支首活动: ${teamAggregateView.branchFirst.map((item) => item.latencyMs !== undefined ? `${item.childId} ${item.latencyMs >= 0 ? `${item.latencyMs} ms` : `时钟回退 ${item.latencyMs} ms`}` : `${item.childId} ${item.status}`).join(' · ')}`)
+                    : null,
+                ]),
+              h('h3', { key: 'metrics-title' }, '指标明细（含证据与质量标记）'),
+              h('table', { key: 'metrics', style: { borderCollapse: 'collapse', width: '100%', maxWidth: '960px' } }, [
+                h('thead', { key: 'head' }, h('tr', { key: 'head-row' }, ['指标', '状态', '值', '质量', '证据'].map((label) => h('th', {
+                  key: label, style: { textAlign: 'left', padding: '4px 10px 4px 0', fontSize: '12px', opacity: 0.7 },
+                }, label)))),
+                h('tbody', { key: 'body' }, (analytics.metricResults ?? []).map(metricRow)),
+              ]),
+              h('h3', { key: 'quality-title' }, '数据质量'),
+              coverageValue
+                ? h('div', { key: 'quality', style: { fontSize: '12px', lineHeight: '1.7' } }, [
+                    h('div', { key: 'counts' }, `未知事件类型 ${coverageValue.unknownEventTypes} · 未配对工具结果 ${coverageValue.unpairedToolResults} · 未闭合区间 ${coverageValue.openSpans} · 质量问题 ${coverageValue.qualityIssueCount} 项`),
+                    coverageValue.qualityCodes?.length
+                      ? h('div', { key: 'codes', style: { fontFamily: 'var(--font-mono, monospace)', opacity: 0.8 } }, coverageValue.qualityCodes.join(' · '))
+                      : h('div', { key: 'codes-empty' }, '无质量标记。'),
+                  ])
+                : h('p', { key: 'no-quality' }, '暂无数据质量样本。'),
               h('h3', { key: 'events' }, '最近事件'),
               analytics.recentEvents.length === 0
                 ? h('p', { key: 'no-events' }, '尚无可展示的事件。')
@@ -581,14 +892,18 @@ window.__ModuleLoader__.load({
                     ? h('button', { key: 'inspect', type: 'button', onClick: () => props.inspectCall(event.callId), style: { marginLeft: '8px' } }, '在 Trajectory 定位')
                     : h('span', { key: 'seq', style: { marginLeft: '8px', opacity: 0.65 } }, '请在 Trajectory 按 seq 查看'),
                 ]))),
-              h('p', { key: 'notice', style: { opacity: 0.65, fontSize: '12px' } }, '轮次、步骤、模型/工具耗时和首 Token 等待来自 DSH sessionStats 投影；工具错误依据显式 isError，压缩按已闭合周期归一到输入 Token。缺少样本时显示暂无样本。工具参数、消息正文和文件路径不会在此展示。'),
+              h('p', { key: 'notice', style: { opacity: 0.65, fontSize: '12px' } }, '轮次、步骤、模型/工具耗时和首 Token 等待来自 DSH sessionStats 投影；指标明细按 aeval v1 轨迹契约逐事件推导（含证据引用与质量码）。Team 聚合按成员会话的 wire 摘要近似计算（有界截断），与离线评测的精确值可能略有差异。工具参数、消息正文和文件路径不会在此展示。'),
             ]),
         ]);
       };
     }
 
     return {
-      inject: ['slots', 'locale'],
+      // The 0.2 client context gates every service and remote channel behind
+      // inject: `remote` carries the typert face, `remote.pluginInventory` /
+      // `remote.pluginManager` the two channels the chip reads, and `sessions`
+      // the member-projection reads of the Team area.
+      inject: ['slots', 'locale', 'remote', 'remote.pluginInventory', 'remote.pluginManager', 'sessions'],
       apply(ctx) {
         ctx.effect(() => ctx.locale.register(NS, DICTIONARIES), 'dsh-eval-control:dictionaries');
         const t = ctx.locale.bind(NS);
@@ -641,7 +956,7 @@ window.__ModuleLoader__.load({
           locale: NS,
           order: 10,
         }, Section));
-        const AnalyticsView = createAnalyticsView();
+        const AnalyticsView = createAnalyticsView(ctx);
         ctx.slots.inject('conversation.view', () => ctx.slots.register({
           name: 'conversation.view',
           id: 'dsh-trajectory-analytics',

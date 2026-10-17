@@ -1,0 +1,739 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "adapterId": "dsh",
+    "adapterVersion": "1",
+    "sourceVersion": "0.2.0-rc.2",
+    "sourceSchema": "session.v4",
+    "normalizationVersion": "3"
+  },
+  "sessions": [
+    {
+      "sessionId": "s-repeat",
+      "agentId": "s-repeat",
+      "complete": true,
+      "observedThroughSeq": 24
+    }
+  ],
+  "entities": [
+    {
+      "entityType": "agent",
+      "entityId": "s-repeat",
+      "attributes": {
+        "delegationDepth": 0,
+        "firstEventTimeMs": 1000
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-repeat",
+          "seq": 1
+        }
+      ],
+      "evidenceLevel": "observed"
+    }
+  ],
+  "facts": [
+    {
+      "factId": "s-repeat:1:turn_start",
+      "kind": "turn_start",
+      "domain": "outcome",
+      "timestampMs": 1000,
+      "subjectId": "s-repeat:1",
+      "attributes": {
+        "turn": 1
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-repeat",
+          "seq": 1
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-repeat:2:request_route",
+      "kind": "request_route",
+      "domain": "model",
+      "timestampMs": 1010,
+      "attributes": {
+        "provider": "deepseek",
+        "model": "test-model-a"
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-repeat",
+          "seq": 2
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-repeat:3:context_window",
+      "kind": "context_window",
+      "domain": "context",
+      "timestampMs": 1020,
+      "attributes": {
+        "provider": "deepseek",
+        "model": "test-model-a",
+        "contextWindow": 16384
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-repeat",
+          "seq": 3
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-repeat:4:todo_snapshot",
+      "kind": "todo_snapshot",
+      "domain": "planning_state",
+      "timestampMs": 1030,
+      "attributes": {
+        "items": [
+          {
+            "digest": "a7204b5effe83a5d1d9fa3b58f8d98c1",
+            "status": "pending"
+          },
+          {
+            "digest": "85d8677a23f7edb1f96bd3a971377e30",
+            "status": "pending"
+          },
+          {
+            "digest": "6b5721720c74067e11cf7d4c6dc6c96c",
+            "status": "pending"
+          }
+        ]
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-repeat",
+          "seq": 4
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-repeat:5:model_step_start",
+      "kind": "model_step_start",
+      "domain": "model",
+      "timestampMs": 1100,
+      "attributes": {
+        "turn": 1,
+        "step": 1
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-repeat",
+          "seq": 5
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-repeat:6:tool_call",
+      "kind": "tool_call",
+      "domain": "tool",
+      "timestampMs": 1110,
+      "subjectId": "call-read-1",
+      "attributes": {
+        "callId": "call-read-1",
+        "toolName": "read_file",
+        "callDigest": "bf75014ead51a3190b66e2ebed76cc3d",
+        "turn": 1,
+        "step": 1
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-repeat",
+          "seq": 6
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-repeat:7:tool_result",
+      "kind": "tool_result",
+      "domain": "tool",
+      "timestampMs": 1200,
+      "subjectId": "call-read-1",
+      "attributes": {
+        "callId": "call-read-1",
+        "isError": false
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-repeat",
+          "seq": 7
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-repeat:8:tool_call",
+      "kind": "tool_call",
+      "domain": "tool",
+      "timestampMs": 1250,
+      "subjectId": "call-read-2",
+      "attributes": {
+        "callId": "call-read-2",
+        "toolName": "read_file",
+        "callDigest": "bf75014ead51a3190b66e2ebed76cc3d",
+        "turn": 1,
+        "step": 1
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-repeat",
+          "seq": 8
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-repeat:9:tool_result",
+      "kind": "tool_result",
+      "domain": "tool",
+      "timestampMs": 1300,
+      "subjectId": "call-read-2",
+      "attributes": {
+        "callId": "call-read-2",
+        "isError": false
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-repeat",
+          "seq": 9
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-repeat:10:tool_call",
+      "kind": "tool_call",
+      "domain": "tool",
+      "timestampMs": 1350,
+      "subjectId": "call-read-3",
+      "attributes": {
+        "callId": "call-read-3",
+        "toolName": "read_file",
+        "callDigest": "bf75014ead51a3190b66e2ebed76cc3d",
+        "turn": 1,
+        "step": 1
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-repeat",
+          "seq": 10
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-repeat:11:tool_result",
+      "kind": "tool_result",
+      "domain": "tool",
+      "timestampMs": 1400,
+      "subjectId": "call-read-3",
+      "attributes": {
+        "callId": "call-read-3",
+        "isError": false
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-repeat",
+          "seq": 11
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-repeat:12:tool_call",
+      "kind": "tool_call",
+      "domain": "tool",
+      "timestampMs": 1500,
+      "subjectId": "call-sql-1",
+      "attributes": {
+        "callId": "call-sql-1",
+        "toolName": "sqlite_exec",
+        "callDigest": "179bdcda988a4868e42e2e8a057c4b31",
+        "turn": 1,
+        "step": 2
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-repeat",
+          "seq": 12
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-repeat:13:tool_result",
+      "kind": "tool_result",
+      "domain": "tool",
+      "timestampMs": 1620,
+      "subjectId": "call-sql-1",
+      "attributes": {
+        "callId": "call-sql-1",
+        "isError": true
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-repeat",
+          "seq": 13
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-repeat:14:tool_call",
+      "kind": "tool_call",
+      "domain": "tool",
+      "timestampMs": 1700,
+      "subjectId": "call-sql-2",
+      "attributes": {
+        "callId": "call-sql-2",
+        "toolName": "sqlite_exec",
+        "callDigest": "179bdcda988a4868e42e2e8a057c4b31",
+        "turn": 1,
+        "step": 2
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-repeat",
+          "seq": 14
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-repeat:15:tool_result",
+      "kind": "tool_result",
+      "domain": "tool",
+      "timestampMs": 1810,
+      "subjectId": "call-sql-2",
+      "attributes": {
+        "callId": "call-sql-2",
+        "isError": false
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-repeat",
+          "seq": 15
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-repeat:16:model_step_end",
+      "kind": "model_step_end",
+      "domain": "model",
+      "timestampMs": 1900,
+      "attributes": {
+        "turn": 1,
+        "step": 2
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-repeat",
+          "seq": 16
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-repeat:17:model_retry",
+      "kind": "model_retry",
+      "domain": "model",
+      "timestampMs": 2000,
+      "subjectId": "retry-1",
+      "attributes": {
+        "retryId": "retry-1",
+        "retryEvent": "llm/retry",
+        "retryNumber": 1,
+        "delayMs": 250,
+        "turn": 1,
+        "step": 3,
+        "failureCode": "rate_limited"
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-repeat",
+          "seq": 17
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-repeat:18:model_retry",
+      "kind": "model_retry",
+      "domain": "model",
+      "timestampMs": 2010,
+      "subjectId": "retry-1",
+      "attributes": {
+        "retryId": "retry-1",
+        "retryEvent": "llm/retry-started",
+        "retryNumber": 1,
+        "turn": 1,
+        "step": 3
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-repeat",
+          "seq": 18
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-repeat:19:model_first_token",
+      "kind": "model_first_token",
+      "domain": "model",
+      "timestampMs": 2300,
+      "attributes": {
+        "turn": 1,
+        "step": 3,
+        "firstTokenTimeMs": 2250
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-repeat",
+          "seq": 19
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-repeat:19:model_usage",
+      "kind": "model_usage",
+      "domain": "model",
+      "timestampMs": 2300,
+      "attributes": {
+        "turn": 1,
+        "step": 3,
+        "inputTokens": 2400,
+        "outputTokens": 60
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-repeat",
+          "seq": 19
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-repeat:20:todo_snapshot",
+      "kind": "todo_snapshot",
+      "domain": "planning_state",
+      "timestampMs": 2320,
+      "attributes": {
+        "items": [
+          {
+            "digest": "a7204b5effe83a5d1d9fa3b58f8d98c1",
+            "status": "completed"
+          },
+          {
+            "digest": "85d8677a23f7edb1f96bd3a971377e30",
+            "status": "in_progress"
+          },
+          {
+            "digest": "6b5721720c74067e11cf7d4c6dc6c96c",
+            "status": "pending"
+          }
+        ]
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-repeat",
+          "seq": 20
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-repeat:21:goal_change",
+      "kind": "goal_change",
+      "domain": "planning_state",
+      "timestampMs": 2400,
+      "attributes": {
+        "operation": "create",
+        "revision": 1
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-repeat",
+          "seq": 21
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-repeat:22:todo_snapshot",
+      "kind": "todo_snapshot",
+      "domain": "planning_state",
+      "timestampMs": 2500,
+      "attributes": {
+        "items": [
+          {
+            "digest": "a7204b5effe83a5d1d9fa3b58f8d98c1",
+            "status": "completed"
+          },
+          {
+            "digest": "85d8677a23f7edb1f96bd3a971377e30",
+            "status": "completed"
+          },
+          {
+            "digest": "6b5721720c74067e11cf7d4c6dc6c96c",
+            "status": "completed"
+          }
+        ]
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-repeat",
+          "seq": 22
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-repeat:23:todo_snapshot",
+      "kind": "todo_snapshot",
+      "domain": "planning_state",
+      "timestampMs": 2600,
+      "attributes": {
+        "items": [
+          {
+            "digest": "a7204b5effe83a5d1d9fa3b58f8d98c1",
+            "status": "completed"
+          },
+          {
+            "digest": "85d8677a23f7edb1f96bd3a971377e30",
+            "status": "completed"
+          },
+          {
+            "digest": "6b5721720c74067e11cf7d4c6dc6c96c",
+            "status": "completed"
+          },
+          {
+            "digest": "d2446044f094fe2465841ab7a2406728",
+            "status": "pending"
+          }
+        ]
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-repeat",
+          "seq": 23
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-repeat:24:turn_end",
+      "kind": "turn_end",
+      "domain": "outcome",
+      "timestampMs": 2700,
+      "subjectId": "s-repeat:1",
+      "attributes": {
+        "turn": 1,
+        "reasonKind": "completed"
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-repeat",
+          "seq": 24
+        }
+      ],
+      "evidenceLevel": "observed"
+    },
+    {
+      "factId": "s-repeat:24:session_observed",
+      "kind": "session_observed",
+      "domain": "data_quality",
+      "timestampMs": 2700,
+      "subjectId": "s-repeat",
+      "attributes": {
+        "eventCount": 24,
+        "firstEventTimeMs": 1000,
+        "lastEventTimeMs": 2700,
+        "delegationDepth": 0
+      },
+      "eventRefs": [
+        {
+          "sessionId": "s-repeat",
+          "seq": 24
+        }
+      ],
+      "evidenceLevel": "observed"
+    }
+  ],
+  "spans": [
+    {
+      "spanId": "model_stream:s-repeat:19",
+      "sessionId": "s-repeat",
+      "domain": "model",
+      "kind": "model_stream",
+      "key": "1:3",
+      "startRef": {
+        "sessionId": "s-repeat",
+        "seq": 19
+      },
+      "startTimeMs": 2250,
+      "status": "closed",
+      "endRef": {
+        "sessionId": "s-repeat",
+        "seq": 19
+      },
+      "endTimeMs": 2290,
+      "evidenceLevel": "derived"
+    },
+    {
+      "spanId": "tool:s-repeat:call-read-1",
+      "sessionId": "s-repeat",
+      "domain": "tool",
+      "kind": "tool_call",
+      "key": "call-read-1",
+      "startRef": {
+        "sessionId": "s-repeat",
+        "seq": 6
+      },
+      "startTimeMs": 1110,
+      "status": "closed",
+      "endRef": {
+        "sessionId": "s-repeat",
+        "seq": 7
+      },
+      "endTimeMs": 1200,
+      "evidenceLevel": "derived"
+    },
+    {
+      "spanId": "tool:s-repeat:call-read-2",
+      "sessionId": "s-repeat",
+      "domain": "tool",
+      "kind": "tool_call",
+      "key": "call-read-2",
+      "startRef": {
+        "sessionId": "s-repeat",
+        "seq": 8
+      },
+      "startTimeMs": 1250,
+      "status": "closed",
+      "endRef": {
+        "sessionId": "s-repeat",
+        "seq": 9
+      },
+      "endTimeMs": 1300,
+      "evidenceLevel": "derived"
+    },
+    {
+      "spanId": "tool:s-repeat:call-read-3",
+      "sessionId": "s-repeat",
+      "domain": "tool",
+      "kind": "tool_call",
+      "key": "call-read-3",
+      "startRef": {
+        "sessionId": "s-repeat",
+        "seq": 10
+      },
+      "startTimeMs": 1350,
+      "status": "closed",
+      "endRef": {
+        "sessionId": "s-repeat",
+        "seq": 11
+      },
+      "endTimeMs": 1400,
+      "evidenceLevel": "derived"
+    },
+    {
+      "spanId": "tool:s-repeat:call-sql-1",
+      "sessionId": "s-repeat",
+      "domain": "tool",
+      "kind": "tool_call",
+      "key": "call-sql-1",
+      "startRef": {
+        "sessionId": "s-repeat",
+        "seq": 12
+      },
+      "startTimeMs": 1500,
+      "status": "closed",
+      "endRef": {
+        "sessionId": "s-repeat",
+        "seq": 13
+      },
+      "endTimeMs": 1620,
+      "evidenceLevel": "derived"
+    },
+    {
+      "spanId": "tool:s-repeat:call-sql-2",
+      "sessionId": "s-repeat",
+      "domain": "tool",
+      "kind": "tool_call",
+      "key": "call-sql-2",
+      "startRef": {
+        "sessionId": "s-repeat",
+        "seq": 14
+      },
+      "startTimeMs": 1700,
+      "status": "closed",
+      "endRef": {
+        "sessionId": "s-repeat",
+        "seq": 15
+      },
+      "endTimeMs": 1810,
+      "evidenceLevel": "derived"
+    },
+    {
+      "spanId": "turn:s-repeat:1",
+      "sessionId": "s-repeat",
+      "domain": "outcome",
+      "kind": "turn",
+      "key": "1",
+      "startRef": {
+        "sessionId": "s-repeat",
+        "seq": 1
+      },
+      "startTimeMs": 1000,
+      "status": "closed",
+      "endRef": {
+        "sessionId": "s-repeat",
+        "seq": 24
+      },
+      "endTimeMs": 2700,
+      "evidenceLevel": "derived"
+    }
+  ],
+  "relations": [],
+  "capabilities": {
+    "tool_call": {
+      "status": "supported_complete"
+    },
+    "tool_result.isError": {
+      "status": "supported_partial",
+      "reason": "DSH records isError on error results; absence does not prove every result carries an explicit boolean"
+    },
+    "context.compaction": {
+      "status": "supported_complete"
+    },
+    "model.stream": {
+      "status": "supported_partial",
+      "reason": "Stream bounds come from compact stream records; absent streams and zero-width spans stay unusable, never zero"
+    },
+    "planning.todo": {
+      "status": "supported_partial",
+      "reason": "Todo matching uses truncated content digests; status transitions are observed, content identity is derived"
+    },
+    "coordination.team": {
+      "status": "supported_partial",
+      "reason": "Team snapshot, task, message and member-session linkage facts are mapped; member liveness intervals and terminal coverage are not observable from committed events"
+    },
+    "member_liveness": {
+      "status": "unsupported",
+      "reason": "DSH 0.2.0-rc.2 committed events carry no member liveness intervals; idle duration cannot be replayed offline"
+    }
+  },
+  "quality": []
+}

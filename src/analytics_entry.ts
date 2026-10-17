@@ -13,4 +13,8 @@ export function apply(ctx: Context, _config: Record<string, never> = {}): void {
   ctx.logger('dsh-trajectory-analytics').info('Realtime trajectory projection registered.');
 }
 
-export default apply;
+// The loader's `unwrapExports` prefers a default export when present; a bare
+// `apply` default would drop the named `inject` and break the
+// `sessionProjections` dependency guard, so mirror sandbox_entry's whole
+// definition object instead.
+export default { name, inject, usage, Config, apply };
