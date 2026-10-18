@@ -27,6 +27,11 @@ schema、bundle descriptor 格式、bin 协议），每次都会在下方
 
 - `upsertResult` 现在把 `subjectId === sessionId` 的会话级聚合行豁免出 LRU 窗口
   （每族至多一条，界限仍有界），明细行维持最近 64 条。
+- wire schema（`projection.ts`）的 `metricResults` / `recentMetricResults` 上限从
+  硬编码 64 改为 `MAX_METRIC_RESULTS + TRAJECTORY_METRIC_IDS.length`（64 明细 +
+  每族一条聚合）；此前豁免让长会话结果数超过 64，zod 校验直接拒绝投影，轨迹视图
+  报"历史加载失败"。指标族清单以 `TRaJECTORY_METRIC_IDS` 运行时数组导出，并带
+  编译期穷尽性断言（新增族必须同步数组，否则 tsc 失败）。
 - 契约文档 §8 更新了 `metricResults` 的有界语义描述。
 
 ## [0.2.7] - 2026-10-17

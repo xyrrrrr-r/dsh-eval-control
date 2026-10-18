@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { ProjectionDefinition } from '@deepseek-ai/dsh-session-projection';
 import type { SessionEvent } from '@deepseek-ai/dsh-session';
-import { foldLifecycleMetrics, initialMetricFoldState, isToolResultSurfaceReplacement, type MetricFoldState, type TrajectoryMetricResult } from './metrics.js';
+import { foldLifecycleMetrics, initialMetricFoldState, isToolResultSurfaceReplacement, MAX_METRIC_RESULTS, TRAJECTORY_METRIC_IDS, type MetricFoldState, type TrajectoryMetricResult } from './metrics.js';
 import { teamInputFromFoldState, type TeamSessionInput } from './team.js';
 import '@deepseek-ai/dsh-compaction/types';
 import '@deepseek-ai/dsh-llm-retry/types';
@@ -87,6 +87,10 @@ const metricValueSchema = z.union([
   z.number(),
   z.record(z.string(), z.union([z.number(), z.array(z.string()), z.boolean()])),
 ]).optional();
+/** Wire bound for the metric-result lists: the per-subject LRU detail window
+ * (MAX_METRIC_RESULTS) plus at most one session-aggregate row per metric
+ * family, which the engine exempts from LRU eviction. */
+const METRIC_RESULT_WIRE_MAX = MAX_METRIC_RESULTS + TRAJECTORY_METRIC_IDS.length;
 const metricResultSchema = z.object({
   metricId: metricIdSchema,
   contractVersion: z.literal('1'),
@@ -286,7 +290,7 @@ const metricFoldStateSchema = z.object({
   }).strict()),
   qualityItems: z.array(qualityItemSchema),
   unknownEventTypes: z.record(z.string(), stateEventRefSchema),
-  recentMetricResults: z.array(stateMetricResultSchema).max(64),
+  recentMetricResults: z.array(stateMetricResultSchema).max(METRIC_RESULT_WIRE_MAX),
 }).strict();
 
 const summarySchema = z.object({
@@ -312,7 +316,7 @@ const summarySchema = z.object({
   teamTaskSnapshots: z.number().int().nonnegative(),
   queuedTeamMessages: z.number().int().nonnegative(),
   deliveredTeamMessages: z.number().int().nonnegative(),
-  metricResults: z.array(metricResultSchema).max(64),
+  metricResults: z.array(metricResultSchema).max(METRIC_RESULT_WIRE_MAX),
   teamInput: teamInputSchema,
   turnTrend: z.array(turnTrendSchema).max(32),
   recentEvents: z.array(recentEventSchema).max(64),

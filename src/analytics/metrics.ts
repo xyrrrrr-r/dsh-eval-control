@@ -44,6 +44,52 @@ export type TrajectoryMetricId =
   | 'outcome.turn_completion_evidence'
   | 'data_quality.trajectory_coverage';
 
+/** Runtime mirror of {@link TrajectoryMetricId}; the compile-time assertion
+ * below fails when a family is added to the union without extending this list. */
+export const TRAJECTORY_METRIC_IDS = [
+  'tool.call_elapsed_ms',
+  'tool.failure_rate',
+  'compaction.summary_cycles',
+  'compaction.elapsed_ms',
+  'compaction.shadowed_tokens',
+  'compaction.prune_passes',
+  'compaction.reclaimed_tokens_per_call_token',
+  'context.compaction_frequency_per_1k_input_tokens',
+  'context.compaction_time_share',
+  'context.input_window_utilization',
+  'model.step_to_first_chunk_ms',
+  'model.stream_span_ms',
+  'model.retry_recovery',
+  'model.long_gap_segments',
+  'tool.repeat_loop',
+  'tool.error_recovery',
+  'tool.repeat_overhead',
+  'planning.todo_snapshot_change',
+  'planning.rewrite_after_completion',
+  'coordination.inbox_insert_to_message_event_ms',
+  'coordination.inbox_tool_overlap_share',
+  'coordination.team_delivery_ms',
+  'coordination.delegation_depth',
+  'coordination.fan_out_width',
+  'coordination.member_idle_ms',
+  'coordination.task_blocked_duration',
+  'coordination.team_path_critical_segments',
+  'coordination.member_busy_ms',
+  'coordination.active_members_now',
+  'coordination.peak_concurrent_members',
+  'coordination.team_completion_wall_ms',
+  'coordination.branch_first_activity_ms',
+  'outcome.turn_reason_mix',
+  'outcome.turn_completion_evidence',
+  'data_quality.trajectory_coverage',
+] as const satisfies readonly TrajectoryMetricId[];
+type _TrajectoryMetricIdsExhaustive =
+  [TrajectoryMetricId] extends [typeof TRAJECTORY_METRIC_IDS[number]]
+    ? [typeof TRAJECTORY_METRIC_IDS[number]] extends [TrajectoryMetricId]
+      ? true
+      : ['TRraJECTORY_METRIC_IDS carries an id outside the union']
+    : ['TrajectoryMetricId family missing from TRAJECTORY_METRIC_IDS'];
+
 export interface SummaryCyclesValue { closedCount: number; openCount: number }
 export interface RetryRecoveryValue { retries: number; recovered: boolean; wallMs: number }
 export interface LongGapValue { gapCount: number; gapMs: number; attributedMs: number; unattributedMs: number }
