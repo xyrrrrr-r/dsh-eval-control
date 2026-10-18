@@ -61,8 +61,11 @@
     "pull-neutral": "node scripts/pull-neutral.mjs",
     "sync:trajectory-fixtures": "node scripts/sync-trajectory-fixtures.mjs",
     "vendor:neutral": "node scripts/pull-neutral.mjs --refresh-vendor",
-    "typecheck": "tsc --noEmit",
-    "build": "npm run pull-neutral && tsc -p tsconfig.build.json && npm run bundle:standalone",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.client.json",
+    "typecheck:host": "tsc --noEmit",
+    "typecheck:client": "tsc -p tsconfig.client.json",
+    "build": "npm run pull-neutral && tsc -p tsconfig.build.json && npm run bundle:standalone && npm run build:client",
+    "build:client": "node scripts/build-client.mjs",
     "bundle:standalone": "node scripts/bundle-standalone.mjs",
     "prepublishOnly": "npm run build && npm test",
     "clean:test": "node --input-type=module -e \"import { rmSync } from 'node:fs'; rmSync('.test-dist', { recursive: true, force: true })\"",
@@ -105,7 +108,10 @@
     "@deepseek-ai/dsh-session-projection": "0.2.0-rc.2",
     "@deepseek-ai/dsh-system-prompt": ">=0.1.7-alpha.1 <0.1.8-0 || >=0.1.8-alpha.1 <0.2.0-0 || >=0.2.0-0 <0.3.0-0",
     "@deepseek-ai/dsh-tools": ">=0.1.7-alpha.1 <0.1.8-0 || >=0.1.8-alpha.1 <0.2.0-0 || >=0.2.0-0 <0.3.0-0",
-    "@deepseek-ai/schemastery": "^3.18.4"
+    "@deepseek-ai/schemastery": "^3.18.4",
+    "@deepseek-ai/dsh-config-editor": ">=0.2.0-rc.2 <0.3.0-0",
+    "@deepseek-ai/dsh-typert-protocol": ">=0.2.0-rc.2 <0.3.0-0",
+    "@deepseek-ai/dsh-host-webserver": ">=0.2.0-rc.2 <0.3.0-0"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "4.0.4",
@@ -128,6 +134,9 @@
     "@deepseek-ai/schemastery": "3.18.4",
     "@types/node": "24.13.6",
     "esbuild": "0.28.2",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "@deepseek-ai/dsh-config-editor": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-typert-protocol": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-host-webserver": "0.2.0-rc.2"
   }
 }

@@ -61,6 +61,8 @@ function createChip(remote: unknown): Harness {
 
   const states: unknown[] = [];
   const effects: Array<(() => void | (() => void)) | undefined> = [];
+  const memoized: unknown[] = [];
+  const refs: unknown[] = [];
   const initialized = new Set<number>();
   const ran = new Set<number>();
   let cursor = 0;
@@ -88,6 +90,29 @@ function createChip(remote: unknown): Harness {
       const index = cursor;
       cursor += 1;
       effects[index] = effect;
+    },
+    // The dashboard bundle uses the remaining standard hooks; they follow the
+    // same cursor protocol so one direct render still works.
+    useMemo<T>(factory: () => T, _deps: readonly unknown[]): T {
+      const index = cursor;
+      cursor += 1;
+      if (!initialized.has(index)) {
+        initialized.add(index);
+        memoized[index] = factory();
+      }
+      return memoized[index] as T;
+    },
+    useRef<T>(initial: T): { current: T } {
+      const index = cursor;
+      cursor += 1;
+      if (!initialized.has(index)) {
+        initialized.add(index);
+        refs[index] = { current: initial };
+      }
+      return refs[index] as { current: T };
+    },
+    useCallback<T extends (...args: never[]) => unknown>(callback: T, _deps: readonly unknown[]): T {
+      return callback;
     },
   };
 
@@ -175,7 +200,11 @@ function textOf(node: unknown): string {
   if (typeof node === 'string' || typeof node === 'number') return String(node);
   if (Array.isArray(node)) return node.map(textOf).join('');
   const element = node as UiElement;
-  return element.props === undefined ? '' : textOf(element.props['children']);
+  if (element.props === undefined) return '';
+  // The dashboard composes real components; React would call them with their
+  // props, so the walker does the same to see the rendered text.
+  if (typeof element.type === 'function') return textOf((element.type as (props?: unknown) => unknown)(element.props));
+  return textOf(element.props['children']);
 }
 
 function findButtons(node: unknown): UiElement[] {
@@ -187,6 +216,11 @@ function findButtons(node: unknown): UiElement[] {
     }
     if (current === null || typeof current !== 'object') return;
     const element = current as UiElement;
+    // Components render like React would (same walker policy as textOf).
+    if (typeof element.type === 'function') {
+      visit((element.type as (props?: unknown) => unknown)(element.props));
+      return;
+    }
     if (element.type === 'button') found.push(element);
     if (element.props !== undefined) visit(element.props['children']);
   };
@@ -251,7 +285,7 @@ function open(chip: Harness, view: UiElement): UiElement {
 test('the client half registers the dock chip and the plugin-page section', () => {
   const { remote } = stubRemote();
   const chip = createChip(remote);
-  assert.deepEqual(chip.plugin.inject, ['slots', 'locale', 'remote', 'remote.pluginInventory', 'remote.pluginManager', 'sessions']);
+  assert.deepEqual(chip.plugin.inject, ['slots', 'locale', 'remote', 'remote.pluginInventory', 'remote.pluginManager', 'connection', 'sessions']);
   assert.deepEqual(chip.injected, ['conversation.composer.dock', 'plugins.detail.section', 'conversation.view']);
   assert.equal(chip.registrations.length, 3);
   assert.deepEqual(chip.registrations.map((entry) => entry.options['id']), ['dsh-eval-control', 'dsh-eval-control-status', 'dsh-trajectory-analytics']);
@@ -288,17 +322,15 @@ test('the client half registers the dock chip and the plugin-page section', () =
     inspectCall: (callId: string) => { inspected = callId; },
   });
   assert.match(textOf(element), /轨迹分析/);
-  assert.match(textOf(element), /shell/);
-  // The Team section names the observed members and the detail table carries
-  // the contract's status/value/quality vocabulary.
+  assert.doesNotMatch(textOf(element), /shell/);
   assert.match(textOf(element), /成员 2 名/);
-  assert.match(textOf(element), /指标明细/);
-  assert.match(textOf(element), /turn_end_without_start/);
-  assert.match(textOf(element), /数据质量/);
-  const locate = findButtons(element).find((button) => textOf(button).includes('在 Trajectory 定位'));
-  assert.ok(locate);
-  (locate.props['onClick'] as () => void)();
-  assert.equal(inspected, 'call-1');
+  assert.match(textOf(element), /诊断数据/);
+  assert.match(textOf(element), /质量问题 1/);
+  assert.doesNotMatch(textOf(element), /turn_end_without_start/);
+  const diagnostics = findButtons(element).find((button) => textOf(button).includes('诊断数据'));
+  assert.ok(diagnostics);
+  assert.equal(diagnostics.props['aria-expanded'], false);
+  assert.equal(inspected, '');
 });
 
 test('the chip reports active when the control row is live', async () => {

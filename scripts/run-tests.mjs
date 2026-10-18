@@ -60,6 +60,14 @@ if (!sibling) {
     }
   }
 }
+// Browser component tests bundle their TypeScript sources with esbuild directly.
+// Keep them outside the compiled-runtime import-closure guard above.
+const directTests = readdirSync(join(root, 'test'))
+  .filter((name) => name.endsWith('.test.mjs'))
+  .map((name) => join(root, 'test', name))
+  .sort();
+run.push(...directTests);
+
 if (run.length === 0) {
   console.error('[run-tests] no runnable test files left');
   process.exit(1);
