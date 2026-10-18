@@ -450,7 +450,15 @@ function upsertResult(
     item.metricId !== result.metricId || item.subjectId !== result.subjectId,
   );
   next.push(result);
-  return { ...state, recentMetricResults: next.slice(-MAX_METRIC_RESULTS) };
+  // Session-scoped aggregate rows carry ``subjectId === sessionId`` (one row
+  // per metric family, so the exemption stays bounded) and feed the client's
+  // summary cards. Per-subject detail rows keep the LRU window; without the
+  // exemption, sessions past the window size would evict every aggregate —
+  // they are upserted first in ``recomputeSessionResults`` and therefore
+  // always fall out of the trailing slice first on long sessions.
+  const sessionRows = next.filter(item => item.subjectId === state.sessionId);
+  const detailRows = next.filter(item => item.subjectId !== state.sessionId);
+  return { ...state, recentMetricResults: [...sessionRows, ...detailRows.slice(-MAX_METRIC_RESULTS)] };
 }
 
 // --- derived views over state ------------------------------------------------

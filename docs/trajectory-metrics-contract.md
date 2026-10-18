@@ -143,7 +143,7 @@ Team 状态统一按如下优先级：打开 turn 为 `busy`；没有打开 turn
 | 每会话折叠 | `src/analytics/metrics.ts` 的 `foldLifecycleMetrics` / `MetricFoldState` | 逐事件增量折叠本会话全部 30 个会话级指标 + 根会话专属 Team 事实（fan_out、member_idle、task_blocked、team_delivery、critical segments）。每个事件后从状态整体重算（recompute-from-state），保证任意前缀自一致 |
 | 跨会话引擎 | `src/analytics/team.ts` 的 `foldTeamMetrics` / `combineFoldStates` | 输入根 + 子会话的 `TeamSessionInput`，计算 member_busy、active_members_now、peak_concurrent_members、team_completion_wall、branch_first_activity，以及根会话 coverage 的树级质量码覆盖（`member_session_not_observed` / `child_session_not_observed`） |
 | 封口 | `sealMetricFoldState(state, sealed)` | 会话完成标志只影响完成敏感指标的 status（`partial`→`incomplete`/`available`），不改历史证据；实时折叠永不封口 |
-| 线视图 | `src/analytics/projection.ts` | wire view 携带 `metricResults`（每折叠状态上限 64 条，LRU 逐出）与 `teamInput`（跨会话引擎的有界输入） |
+| 线视图 | `src/analytics/projection.ts` | wire view 携带 `metricResults` 与 `teamInput`（跨会话引擎的有界输入）。`metricResults` 有界：会话级聚合行（`subjectId === sessionId`，每族至多一条，摘要卡数据源）永不逐出；每主体明细行（callId / 步号 / 压缩 ID 等）按 LRU 保留最近 64 条。超长会话中较早的明细行会被逐出 —— 这是文档化的 wire 界限，aeval 离线归约始终产出全量 |
 
 ### 8.2 对等测试协议
 

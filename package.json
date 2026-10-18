@@ -1,6 +1,6 @@
 {
   "name": "dsh-eval-control",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "DSH plugin for aeval evaluation control and realtime, projection-based personal trajectory analytics.",
   "license": "Apache-2.0",
   "keywords": [

@@ -12,6 +12,23 @@ schema、bundle descriptor 格式、bin 协议），每次都会在下方
 
 ## [Unreleased]
 
+## [0.2.8] - 2026-10-18
+
+**修复超长会话把会话级聚合指标逐出 wire 视图。** hw-lab 真实评测会话的引擎间偏移
+检查（同一会话分别过 aeval Python 归约与本插件 TS 折叠）发现：当会话的
+`(metricId, subjectId)` 组合超过 64 条时，`recentMetricResults` 的 LRU 截断会先逐出
+聚合行 —— 它们在 `recomputeSessionResults` 中最先 upsert，永远落在尾部切片之外，
+导致客户端摘要卡（工具错误率、数据质量、轮次结束原因等）在长会话上全部丢数。
+对 9 个真实 trial 会话的量化验证：修复前保留行 455/455 全等但 3 个 60 步会话丢失
+全部聚合行；修复后保留行 503/503 全等、聚合行全量保留，被逐出的只剩文档化的
+每主体明细行（`step_to_first_chunk` / `call_elapsed` / `stream_span`）。
+
+### Fixed
+
+- `upsertResult` 现在把 `subjectId === sessionId` 的会话级聚合行豁免出 LRU 窗口
+  （每族至多一条，界限仍有界），明细行维持最近 64 条。
+- 契约文档 §8 更新了 `metricResults` 的有界语义描述。
+
 ## [0.2.7] - 2026-10-17
 
 **协议 v3 落地：单会话折叠引擎拆分 + Team 跨会话聚合 + 轨迹分析视图。** 本版把
