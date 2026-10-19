@@ -1,3 +1,5 @@
+import { EvidenceButton } from './evidencePanel.js';
+import { aggregateEvidence, eventRef, type EvidenceProps } from './evidence.js';
 /**
  * Overview tab: occupancy gauge, context composition (stacked bar + pie),
  * smart alert cards, and the compact team summary line (PRD §3.1/§3.2/§3.7).
@@ -21,7 +23,7 @@ const linkButtonStyle: Record<string, string | number> = {
   fontSize: '12px', color: 'inherit', textDecoration: 'underline', textUnderlineOffset: '2px', opacity: 0.75,
 };
 
-export function OverviewTab(props: {
+export function OverviewTab(props: EvidenceProps & {
   data: DashboardData;
   alerts: Alert[];
   thresholds: AlertThresholds;
@@ -100,6 +102,7 @@ export function OverviewTab(props: {
   };
 
   return h('div', { style: { display: 'flex', flexDirection: 'column', gap: '18px' } }, [
+    h(EvidenceButton, {...props, chain: () => aggregateEvidence(props.evidenceSessionId ?? 'current', '上下文窗口占用', data.analytics, data.timeline, 'context'), label:'查看窗口占用证据链'}),
     /* Occupancy + composition side by side */
     h('div', {
       key: 'top',
@@ -263,7 +266,7 @@ export function OverviewTab(props: {
       h('span', { key: 'members' }, `成员 ${memberCount} 名`),
       props.team !== null ? h('span', { key: 'active', style: { opacity: 0.8 } }, `当前活跃 ${props.team.activeNow}`) : null,
       props.team !== null ? h('span', { key: 'peak', style: { opacity: 0.8 } }, `并发峰值 ${props.team.peak}`) : null,
-      props.team !== null && props.team.wallMs !== null ? h('span', { key: 'wall', style: { opacity: 0.8 } }, `完成墙钟 ${Math.round(props.team.wallMs / 1000)}s`) : null,
+      props.team !== null && props.team.wallMs !== null ? h('span', { key: 'wall', style: { opacity: 0.8 } }, `成员结束跨度 ${Math.round(props.team.wallMs / 1000)}s（含空档）`) : null,
       props.teamState.phase === 'loading' ? h('span', { key: 'load', style: { opacity: 0.55 } }, '（成员数据读取中…）') : null,
       props.teamState.phase === 'unavailable' ? h('span', { key: 'unavail', style: { opacity: 0.55 } }, '（成员会话暂不可读）') : null,
     ]) : null,
@@ -330,6 +333,7 @@ export function OverviewTab(props: {
               style: { display: 'flex', gap: '10px', fontSize: '11.5px', opacity: 0.65, marginBottom: '4px', fontVariantNumeric: 'tabular-nums', alignItems: 'baseline' },
             }, [
               h('span', { key: 'seq' }, `#${node.seq}`),
+              h(EvidenceButton, {...props, chain: () => ({title:`上下文组成 · #${node.seq}`,conclusion:`${node.label} · ${node.tokens} Token`,level:'derived',rule:'有效表面消息的内容估算。',facts:[],notes:['当前组成不代表全历史消耗。'],refs:[eventRef(props.evidenceSessionId ?? 'current',node.seq,'有效上下文消息')]})}),
               node.turn !== null ? h('span', { key: 'turn' }, `第 ${node.turn} 轮`) : null,
               h('span', { key: 'label' }, node.label),
               h('span', { key: 'tokens', style: { marginLeft: 'auto' } }, `${formatTokens(node.tokens)} Token`),

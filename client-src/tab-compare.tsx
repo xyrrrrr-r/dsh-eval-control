@@ -1,3 +1,5 @@
+import { EvidenceButton } from './evidencePanel.js';
+import { aggregateEvidence, uniqueEvidenceRefs, type EvidenceChain, type EvidenceProps } from './evidence.js';
 /** PRD 3.8: explicit 2–4 session comparison, read-only projection borrows. */
 import { h, useEffect, useRef, useState } from './react-binding.js';
 import { LineChart } from './charts.js';
@@ -36,7 +38,7 @@ export function extractSessionRows(snapshot: unknown): Array<{id:string;title:st
   if (!Array.isArray(ids) || !byId) return [];
   return ids.filter((id):id is string => typeof id==='string' && !!byId[id] && !byId[id]!.blank).map((id)=>({id,title:byId[id]!.displayTitle || '未命名会话',updatedAt:byId[id]!.updatedAt ?? null,running:byId[id]!.running === true})).sort((a,b)=>(b.updatedAt??0)-(a.updatedAt??0));
 }
-export function CompareTab(props: {
+export function CompareTab(props: EvidenceProps & {
   useSessions: ViewProps['useSessions']; sessionId:string|null;
   sessions: {using?:unknown;refreshProjections?:unknown}|null; current:LoadedSession|null;
   onResult?: (sessions:LoadedSession[])=>void;
@@ -92,6 +94,7 @@ export function CompareTab(props: {
         h('strong',{},session.title),h('div',{},session.id),
         h('div',{},session.error??`轮次 ${session.analytics?.turnsEnded??'—'} · 步骤 ${session.analytics?.stepsEnded??'—'} · 模型 ${session.timeline?.model??'未知'}`),
       ]))),
+      h(EvidenceButton,{...props,chain:()=>comparisonEvidence(loaded,focused??'tokens'),label:'查看差异结论证据链'}),
       h('small',{key:'accounting'},'Token 总消耗口径：未缓存输入 + 输出；上下文曲线额外包含缓存读，不等同于计费金额。'),
       h('label',{key:'normalize'},[h('input',{type:'checkbox',checked:normalized,onChange:()=>setNormalized((value)=>!value)}),'归一化显示（Token 按最大值比例；上下文按窗口占用、请求进度对齐）']),
       biggest && biggest.spread>0 ? h('div',{key:'difference'},`差异最大：${biggest.metric.label}，相对差异 ${(biggest.spread*100).toFixed(1)}%（最大值与最小值之差 / 最大值）`) : null,
@@ -99,6 +102,7 @@ export function CompareTab(props: {
         h('button',{onClick:()=>setHighlight(fact.metric.key),'aria-pressed':focused===fact.metric.key},fact.metric.label),
         ...loaded.map((session,index)=>{const value=fact.metric.value(session);return h('div',{key:session.id,style:{marginTop:8}},[
           h('div',{},`${session.title} · ${value===null?'数据不可用':fact.metric.format(value)}${fact.winners.some((winner)=>winner.id===session.id)?' ★ 最低':''}`),
+          h(EvidenceButton,{...props,chain:()=>comparisonEvidence([session],fact.metric.key),label:`查看 ${session.title} ${fact.metric.label} 证据`}),
           value!==null ? h('div',{role:'img','aria-label':`${session.title} ${fact.metric.label} ${fact.metric.format(value)}`,style:{height:10,width:`${fact.max>0?value/fact.max*100:0}%`,background:COMPARE_COLORS[index],minWidth:value>0?2:0}}) : null,
           normalized&&value!==null ? h('small',{},`相对最大值 ${fact.max>0?(value/fact.max*100).toFixed(1):'0'}%`) : null,
         ]);}),
@@ -109,7 +113,7 @@ export function CompareTab(props: {
         normalized && shown.some((session)=>!session.timeline?.contextWindow) ? h('p',{},'缺少窗口上限的会话无法归一化，已从折线中排除；不按 0 处理。') : null,
         h('small',{},'横轴对齐请求顺序，反映同次运行内演化，不代表相同任务阶段。'),
       ]),
-      h(RadarChart,{key:'radar',sessions:loaded,highlight:focused}),
+      h(RadarChart,{...props,key:'radar',sessions:loaded,highlight:focused}),
       h('section',{key:'report',style:panel},[
         h('h4',{},'差异报告'),...comparisonSummary(loaded).map((line,index)=>h('p',{key:index},line)),
         h('button',{onClick:()=>setPractices((value)=>!value),'aria-expanded':practices},'最佳实践'),
@@ -125,7 +129,7 @@ export function CompareTab(props: {
 export function radarRatio(value:number, maximum:number):number {
   return maximum > 0 ? Math.max(0,Math.min(1,value/maximum)) : 0;
 }
-export function RadarChart(props:{sessions:LoadedSession[];highlight?:string}): unknown {
+export function RadarChart(props:EvidenceProps & {sessions:LoadedSession[];highlight?:string}): unknown {
   const [detail,setDetail]=useState<string|null>(null);
   const facts=compareFacts(props.sessions).filter((fact)=>fact.values.length===props.sessions.length);
   if (facts.length<3) return h('section',{style:panel},'多维雷达图：至少需要三个所有会话均可用的指标，当前数据不足。');
@@ -147,7 +151,7 @@ export function RadarChart(props:{sessions:LoadedSession[];highlight?:string}): 
         ]),
       ]);}),
       ...props.sessions.map((session,index)=>h('polygon',{key:session.id,points:facts.map((fact,axis)=>point(axis,105*radarRatio(fact.metric.value(session)!,fact.max)).join(',')).join(' '),fill:COMPARE_COLORS[index],fillOpacity:.08,stroke:COMPARE_COLORS[index],strokeWidth:2,pointerEvents:'none'})),
-      ...props.sessions.flatMap((session,index)=>facts.map((fact,axis)=>{const [cx,cy]=point(axis,105*radarRatio(fact.metric.value(session)!,fact.max));return h('circle',{key:`${session.id}:${fact.metric.key}`,cx,cy,r:5,fill:COMPARE_COLORS[index],stroke:'var(--dsh-eval-surface,Canvas)',strokeWidth:1,tabIndex:0,role:'button','aria-label':label(session,fact),onMouseEnter:()=>setDetail(label(session,fact)),onFocus:()=>setDetail(label(session,fact)),onBlur:()=>setDetail(null)},h('title',{},label(session,fact)));})),
+      ...props.sessions.flatMap((session,index)=>facts.map((fact,axis)=>{const [cx,cy]=point(axis,105*radarRatio(fact.metric.value(session)!,fact.max));return h('circle',{key:`${session.id}:${fact.metric.key}`,cx,cy,r:5,fill:COMPARE_COLORS[index],stroke:'var(--dsh-eval-surface,Canvas)',strokeWidth:1,tabIndex:0,role:'button','aria-label':label(session,fact),onClick:()=>props.onEvidence?.(comparisonEvidence([session],fact.metric.key)),onKeyDown:(event:{key:string;preventDefault:()=>void})=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();props.onEvidence?.(comparisonEvidence([session],fact.metric.key));}},onMouseEnter:()=>setDetail(label(session,fact)),onFocus:()=>setDetail(label(session,fact)),onBlur:()=>setDetail(null)},h('title',{},label(session,fact)));})),
     ]),
     h('div',{role:'status',style:{minHeight:24,fontSize:12}},detail??'悬停或聚焦顶点查看原始值与比例；重叠顶点可在下表核对。'),
     h('small',{},'每轴半径 = 原始值 / 所选会话该项最大值，中心 0%，外圈 100%；全部为零时均位于中心。各轴单位不同，不能比较跨轴数值或用面积评判任务质量。'),
@@ -161,3 +165,14 @@ export function RadarChart(props:{sessions:LoadedSession[];highlight?:string}): 
   ]);
 }
 const panel={border:'1px solid #9994',borderRadius:10,padding:12,minWidth:0} as const;
+
+/** Cross-session references retain their owner; zero and missing values are distinct. */
+export function comparisonEvidence(sessions:LoadedSession[], key:string):EvidenceChain {
+  const metric=COMPARE_METRICS.find(item=>item.key===key) ?? COMPARE_METRICS[0]!;
+  const kind=({tokens:'tokens',frequency:'frequency',errors:'tools',time:'time'} as const)[metric.key as 'tokens'|'frequency'|'errors'|'time'];
+  const sources=sessions.map(session=>aggregateEvidence(session.id,session.title,session.analytics,session.timeline,kind));
+  return {title:`对比依据 · ${metric.label}`,conclusion:sessions.map(session=>`${session.title}：${metric.value(session)===null?'数据不可用':metric.format(metric.value(session)!)}`).join('；'),level:'derived',
+    rule:metric.key==='errors'?'对比工具错误率 = 显式错误数 / 调用数；与诊断契约的「已知结果错误率」分母不同。':metric.key==='tokens'?'总消耗 = 未缓存输入 + 输出；不含缓存读取。':metric.key==='frequency'?'沿用各会话摘要压缩频率契约。':'耗时读取各会话 sessionStats.llmMs。',
+    facts:sessions.flatMap(session=>[{label:session.title,value:metric.value(session)===null?'数据不可用':metric.format(metric.value(session)!),source:`会话 ${session.id} 的对比快照`}, ...(metric.key==='errors'?[{label:'显式错误 / 调用',value:`${session.analytics?.toolErrors??'未知'} / ${session.analytics?.toolCalls??'未知'}`,source:session.id}]:[])]),
+    refs:uniqueEvidenceRefs(sources.flatMap(source=>source.refs)),notes:['不同运行不一定具有相同任务阶段、输入规模或质量；最低消耗不等于最佳质量。', ...sources.flatMap((source,index)=>source.notes.map(note=>`${sessions[index]!.title}：${note}`))]};
+}

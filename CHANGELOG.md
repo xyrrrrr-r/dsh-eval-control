@@ -12,6 +12,70 @@ schema、bundle descriptor 格式、bin 协议），每次都会在下方
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-19
+
+**证据链与团队协作全量落地：统一证据抽屉从结论回溯宿主原始事件，Team 活动新增协作关系图与交互时序，消息与演化页改为全历史采集；仓库文档精简为仅保留用户向文档。**
+
+### Added
+
+- **统一证据链抽屉**（`client-src/evidence.ts`、`evidencePanel.tsx`、`evidenceEventCard.tsx`、
+  `diagnosticEvidence.ts`）：顶部指标卡、告警、指标明细、演化标记、请求选择、消息
+  ⚡/🔻、压缩/注入事件、工具明细、Team 成员与对比指标共用右侧抽屉；固定打开时的
+  数据快照，展示结论、规则、计算输入、样本与分母、证据等级（observed/derived/inferred）
+  与质量提示；关闭后保留原 Tab 的筛选和缩放。
+- **原始事件核查**：关联事件按 `sessionId + seq` 通过 `loadThrough(seq)` 读取宿主持久
+  原始事件，显示目标事件及前后最多 3 条（可折叠），支持 JSON 检查、单条下载、引用
+  搜索与分页（每页 20 条）；15 秒超时、切换即取消，不把 projection 节选当成原始证据。
+- **窗口占用计算卡**：展示“未缓存输入 + 缓存读取 = 请求占用”“请求占用 ÷ 窗口上限”
+  实际数值；每个输入独立绑定用量/配置事件，可核对原始字段与计算快照是否一致，
+  缓存读缺失时保留未知值，不冒充已核实的 0。
+- **Team 活动协作视图**（`client-src/teamActivity.ts`、`teamCollaboration.tsx`）：主子 Agent
+  协作关系图（消息实线 + 任务归属虚线，点击连线按方向筛选）、交互时序图（日期/成员/
+  交互类型筛选）、成员泳道与轮次卡片、共享任务板（待处理/进行中/已完成）、消息往来
+  按消息 ID 合并排队与送达回执；无记录时明确提示，不补画推测关系。
+- **上下文内容估算**（`client-src/contextEstimate.ts`）：按请求拆分消息正文、历史思考、
+  工具调用参数、工具结果正文、系统/开发者内容、图片引用结构与结构开销，每项标注
+  候选输入 / 依路由而定 / 非真实计价。
+- **工具错误分析**（`client-src/toolErrors.ts`）：失败结果标红、错误原文节选和规则化
+  原因分析（权限、路径不存在、超时、网络、参数格式、非零退出）；工具分布图联动失败证据。
+- **总览全链路综合诊断**（`client-src/overviewDiagnosis.ts`）：联合任务进展、上下文、消耗、
+  延迟、工具与团队六个维度生成综合结论与跨阶段证据引用；缺失数据标为未知。
+- **AI 模型诊断服务与客户端**（`src/ai_diagnostic.ts`、`client-src/aiDiagnostic.tsx`，
+  typert remote）：证据尺寸校验、引用字段核查等已实现；**当前宿主未注册该服务，
+  界面不显示 AI 诊断入口**，规则告警、错误文本分析与证据链不受影响。
+- 宿主投影补充证据锚点：`contextWindowSeq`、`toolsSeq`、压缩事件 `evidenceRefs`、
+  `compactionStarts` 保留序号（`src/analytics/contextTimeline.ts`）。
+- 新增证据链、团队协作两张面板 GIF；全部 8 张 GIF 以最新面板重录。
+- 新增用户向文档 `docs/evidence-chain.md`（证据链设计与数据约定）与 `docs/badges/`
+  徽章；`package.json` `files` 增加 `docs/badges`。
+
+### Changed
+
+- **全历史采集**：宿主投影移除 steps/injections/compactions 的 256/64/32 条截断上限，
+  请求、消息及压缩/修剪样本按实际数量采集；消息页默认读取全部可读历史，可切换
+  **最近 N 条**或起止事件序号，叠加角色与单条 Token 范围筛选，列表分页显示覆盖状态。
+- **工具结果回填聚合**（`client-src/feedbackGroups.ts`）：演化页普通工具结果按相邻模型
+  请求区间聚合，默认显示估算 Token 最高的 10 组和全部失败结果，可切换全部区间；
+  失败结果独立标红，通过 `callId` 关联来源调用。
+- 激增检测抽出共用 `spikeInfo`（前 5 条追加消息中位数基线，≥3 样本、≥1000 Token
+  且 ≥3 倍中位数），消息页与演化页口径一致；筛选不重算基线。
+- “仅注入”筛选更名为“上下文注入”，“表面 Token（估算）”更名为“上下文内容估算 Token”。
+- README 首屏徽章与面板 GIF 改为 `raw.githubusercontent.com` 绝对链接（见 Fixed）。
+
+### Removed
+
+- **仓库文档精简**：设计过程文档（PRD、PLAN、tech-design、execution-plan、指标/字段/
+  规范化契约、API 验证报告、指标映射盘点、legacy README、proposals、演示分镜与
+  原始终端录制）从仓库移除并加入 `.gitignore`，仅本地保留；README「更多文档」只保留
+  用户向链接。远程历史提交未改写，旧版本历史中仍可查到这些文档。
+
+### Fixed
+
+- **npm 说明页裂图**（0.3.0 已知问题）：README 的 5 枚徽章与 8 张面板 GIF 由仓库相对
+  路径改为 `https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/...`
+  绝对链接；对应文件已随本版本推送到 `main`，npmjs 说明页图片可正常显示。0.3.0 的
+  说明页仍受影响（已发布版本无法追改）。
+
 ## [0.3.0] - 2026-10-19
 
 **轨迹分析面板全量落地（宿主投影 `contextTimeline` + 客户端多视图），并补齐统一诊断中心、多会话对比与报告分享。**

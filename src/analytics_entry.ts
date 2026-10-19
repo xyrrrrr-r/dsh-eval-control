@@ -1,3 +1,4 @@
+// import { AiDiagnostic } from './ai_diagnostic.js'; // AI 诊断暂时停用
 import type { Context } from '@deepseek-ai/cordis';
 import z from '@deepseek-ai/schemastery';
 import { ReportShare } from './report_share.js';
@@ -13,6 +14,7 @@ export const Config = z.object({});
 
 export function apply(ctx: Context, _config: Record<string, never> = {}): void {
   ctx.plugin(DiagnosticConfig);
+  // ctx.plugin(AiDiagnostic); // 待诊断效果完善后恢复
   ctx.plugin(ReportShare);
   ctx.sessionProjections.register(trajectoryAnalyticsProjection);
   ctx.sessionProjections.register(contextTimelineProjection);

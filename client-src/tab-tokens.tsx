@@ -1,3 +1,6 @@
+import type { InjectionHistory } from './injectionHistory.js';
+import { EvidenceButton } from './evidencePanel.js';
+import { messageEvidence, dropEvidence, spikeInfo, type EvidenceProps } from './evidence.js';
 /**
  * Message tokens tab (PRD §3.3): the message-level token ledger — role icons,
  * excerpts, input/output/cumulative token columns, kind + token-range filters,
@@ -17,7 +20,7 @@ type SortKey = 'time' | 'tokens' | 'output' | 'cumulative' | 'turn';
 
 const KIND_FILTERS: Array<{ id: 'all' | 'injected' | Message['kind']; label: string }> = [
   { id: 'all', label: '全部' },
-  { id: 'injected', label: '仅注入' },
+  { id: 'injected', label: '上下文注入' },
   { id: 'user', label: '用户' },
   { id: 'assistant', label: '助手' },
   { id: 'tool-result', label: '工具结果' },
@@ -48,14 +51,10 @@ interface SpikeInfo { median: number; ratio: number }
 
 function spikeMap(messages: Message[]): Map<number, SpikeInfo> {
   const result = new Map<number, SpikeInfo>();
-  for (let i = 0; i < messages.length; i++) {
-    const window = messages.slice(Math.max(0, i - 5), i).map((message) => message.tokens).sort((a, b) => a - b);
-    if (window.length < 3) continue;
-    const median = window[Math.floor(window.length / 2)]!;
-    const tokens = messages[i]!.tokens;
-    if (tokens >= 1000 && tokens >= median * 3) {
-      result.set(messages[i]!.seq, { median, ratio: median > 0 ? tokens / median : 0 });
-    }
+  const ordered=messages.slice().sort((a,b)=>a.seq-b.seq);
+  for (const [index,message] of ordered.entries()) {
+    const info = spikeInfo(ordered.slice(Math.max(0,index-5),index+1), message.seq);
+    if (info) result.set(message.seq, info);
   }
   return result;
 }
@@ -93,7 +92,7 @@ export function dominantOf(message: Message): { label: string; tokens: number; s
 }
 
 
-export function TokensTab(props: { data: DashboardData; inspectCall?: (callId: string) => void; onOpenCompaction?: () => void }): unknown {
+export function TokensTab(props: EvidenceProps & { data: DashboardData; history?: InjectionHistory; inspectCall?: (callId: string) => void; onOpenCompaction?: () => void }): unknown {
   const { data } = props;
   const [filter, setFilter] = useState<'all' | 'injected' | Message['kind']>('all');
   const [sort, setSort] = useState<SortKey>('time');
@@ -104,7 +103,14 @@ export function TokensTab(props: { data: DashboardData; inspectCall?: (callId: s
   const [showCauses, setShowCauses] = useState(true);
   const [showAllSpikes, setShowAllSpikes] = useState(false);
 
-  const messages = data.messages;
+  const [recentCount,setRecentCount]=useState('100');
+  const [scope,setScope]=useState('all');
+  const [fromSeq,setFromSeq]=useState('');
+  const [toSeq,setToSeq]=useState('');
+  const [page,setPage]=useState(0);
+  const allMessages = props.history?.messages ?? data.messages;
+  const scopeValid = (!fromSeq || (Number.isSafeInteger(Number(fromSeq)) && Number(fromSeq)>=0)) && (!toSeq || (Number.isSafeInteger(Number(toSeq)) && Number(toSeq)>=0)) && (!fromSeq || !toSeq || Number(fromSeq)<=Number(toSeq));
+  const messages = scope === 'recent' ? allMessages.slice(-Math.max(1,Number(recentCount)||1)) : scope === 'custom' ? allMessages.filter(m=>scopeValid && (!fromSeq || m.seq>=Number(fromSeq)) && (!toSeq || m.seq<=Number(toSeq))) : allMessages;
   const min = minTokens.trim() === '' ? null : Number(minTokens);
   const max = maxTokens.trim() === '' ? null : Number(maxTokens);
   const rangeValid = (min === null || Number.isFinite(min)) && (max === null || Number.isFinite(max));
@@ -131,8 +137,8 @@ export function TokensTab(props: { data: DashboardData; inspectCall?: (callId: s
   const topThree = new Set(
     messages.slice().sort((a, b) => b.tokens - a.tokens).slice(0, 3).map((message) => message.seq),
   );
-  const spikes = spikeMap(messages);
-  const drops = dropMap(messages);
+  const spikes = spikeMap(allMessages);
+  const drops = dropMap(allMessages);
   const totalTokens = filtered.reduce((sum, message) => sum + message.tokens, 0);
   const average = filtered.length > 0 ? totalTokens / filtered.length : 0;
   const visibleSpikes = sorted.filter((message) => spikes.has(message.seq)).length;
@@ -140,7 +146,11 @@ export function TokensTab(props: { data: DashboardData; inspectCall?: (callId: s
   const topRows = messages.slice().sort((a, b) => b.tokens - a.tokens).slice(0, 3);
   const spikeRows = messages.filter((message) => spikes.has(message.seq));
   const dropRows = messages.filter((message) => drops.has(message.seq));
+  const pageCount=Math.max(1,Math.ceil(sorted.length/100));
+  const currentPage=Math.min(page,pageCount-1);
   const locate = (seq: number): void => {
+    const index=sorted.findIndex(message=>message.seq===seq);
+    if(index>=0)setPage(Math.floor(index/100));
     setExpanded(seq);
     const row = document.getElementById(`dsh-msg-row-${seq}`);
     if (row !== null && typeof row.scrollIntoView === 'function') row.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -151,6 +161,9 @@ export function TokensTab(props: { data: DashboardData; inspectCall?: (callId: s
       key: 'controls',
       style: { display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' },
     }, [
+      h('label',{key:'scope'},['消息范围 ',h('select',{'aria-label':'消息历史范围',value:scope,onChange:(e:{target:{value:string}})=>{setScope(e.target.value);setPage(0);}},[h('option',{value:'all'},'全部历史'),h('option',{value:'recent'},'最近 N 条'),h('option',{value:'custom'},'自定义事件范围')])]),
+      scope==='recent'?h('label',{key:'recent-count'},['最近条数 ',h('input',{type:'number',min:1,step:1,'aria-label':'最近消息条数',value:recentCount,onInput:(e:{target:{value:string}})=>{setRecentCount(e.target.value);setPage(0);}})]):null,
+      scope==='custom'?h('span',{key:'seq-range'},[h('input',{type:'number',min:0,'aria-label':'起始事件序号',placeholder:'起始序号',value:fromSeq,onInput:(e:{target:{value:string}})=>{setFromSeq(e.target.value);setPage(0);}}),'–',h('input',{type:'number',min:0,'aria-label':'结束事件序号',placeholder:'结束序号',value:toSeq,onInput:(e:{target:{value:string}})=>{setToSeq(e.target.value);setPage(0);}}),!scopeValid?h('span',{role:'alert'},'请输入有效序号，起始不能大于结束'):null]):null,
       h('span', { key: 'title', style: { fontSize: '13px', fontWeight: 500 } }, '消息 Token'),
       h('div', { key: 'filters', style: { display: 'inline-flex', flexWrap: 'wrap', gap: '0', border: '1px solid color-mix(in srgb, currentColor 22%, transparent)', borderRadius: '6px', overflow: 'hidden' } },
         KIND_FILTERS.map((item) => h('button', {
@@ -193,12 +206,13 @@ export function TokensTab(props: { data: DashboardData; inspectCall?: (callId: s
       h('span', { key: 'top', style: { color: 'var(--dsh-eval-red, #d64545)' } }, '👑 红色 = Top 3 Token 消耗'),
       h('span', { key: 'spike', style: { color: 'var(--dsh-eval-yellow, #b98900)' } }, `⚡ 突增 ${visibleSpikes} 条（≥3× 前条中位数且 ≥1K）`),
       h('span', { key: 'drop', style: { color: 'var(--dsh-eval-yellow, #b98900)' } }, `🔻 突降 ${visibleDrops} 条（累计降 ≥1K，压缩/修剪回收）`),
-      h('span', { key: 'cap', style: { opacity: 0.7 } }, data.messageCapNote ? '（最近 64 条，更早消息已截断）' : ''),
+      h('span', { key: 'cap', style: { opacity: 0.7 } }, props.history ? `${props.history.phase==='ready'?'完整可读历史已加载':props.history.phase==='loading'?'历史加载中，统计尚不完整':`历史不完整：${props.history.error??'仍有更早事件'}`} · 事件范围 ${props.history.firstSeq??'?'}–${props.history.lastSeq??'?'}` : ''),
       h('span', { key: 'note', style: { opacity: 0.7 } }, '估算值 · 点击行查看详情'),
     ]),
     renderCausePanel({
-      data, topRows, spikeRows, dropRows, drops, spikes, showCauses, setShowCauses, showAllSpikes, setShowAllSpikes, locate, onOpenCompaction: props.onOpenCompaction,
+      data: {...data,messages}, topRows, spikeRows, dropRows, drops, spikes, showCauses, setShowCauses, showAllSpikes, setShowAllSpikes, locate, onOpenCompaction: props.onOpenCompaction,
     }),
+    h('div',{key:'pagination'},[h('button',{disabled:currentPage===0,onClick:()=>setPage(currentPage-1)},'上一页'),` 第 ${currentPage+1} / ${pageCount} 页 · 每页 100 条 `,h('button',{disabled:currentPage+1>=pageCount,onClick:()=>setPage(currentPage+1)},'下一页')]),
     messages.length === 0
       ? h('div', { key: 'empty', style: emptyStyle }, '暂无消息记录。开始对话后此处列出每条消息的 Token 估算、角色与时间。')
       : h('table', {
@@ -215,7 +229,7 @@ export function TokensTab(props: { data: DashboardData; inspectCall?: (callId: s
           sortableTh('output', '输出 Token', 'output', sort, descending, () => toggleSort('output', setSort, setDescending)),
           sortableTh('cumulative', '累计 Token', 'cumulative', sort, descending, () => toggleSort('cumulative', setSort, setDescending)),
         ])),
-        h('tbody', { key: 'body' }, sorted.map((message) => {
+        h('tbody', { key: 'body' }, sorted.slice(currentPage*100,currentPage*100+100).map((message) => {
           const isTop = topThree.has(message.seq);
           const spike = spikes.get(message.seq) ?? null;
           const isSpike = spike !== null;
@@ -235,13 +249,18 @@ export function TokensTab(props: { data: DashboardData; inspectCall?: (callId: s
             h('td', { key: 'seq', style: { ...tdStyle, whiteSpace: 'nowrap' } }, [
               isTop ? h('span', { key: 'crown', title: 'Top 3 Token 消耗' }, '👑') : null,
               isSpike && spike !== null
-                ? h('span', {
+                ? h('button', {
+                  type: 'button',
+                  'aria-label': `查看突增 #${message.seq} 证据链`,
+                  onClick: (event: {stopPropagation: () => void}) => {event.stopPropagation(); if (props.onEvidence) props.onEvidence(messageEvidence(props.evidenceSessionId ?? data.analytics?.teamInput?.sessionId ?? 'current', message, allMessages, true)); else setExpanded(message.seq);},
                   key: 'spike',
                   title: spikeLabel(spike, message.tokens),
                 }, '⚡')
                 : null,
               drop !== null
-                ? h('span', {
+                ? h('button', {
+                  type:'button', 'aria-label':`查看骤降 #${message.seq} 证据链`,
+                  onClick:(event:{stopPropagation:()=>void})=>{event.stopPropagation();if(props.onEvidence)props.onEvidence(dropEvidence(props.evidenceSessionId ?? 'current',message,allMessages,data.timeline?.compactions ?? []));else setExpanded(message.seq);},
                   key: 'drop',
                   title: `累计上下文骤降 ${formatTokens(drop.drop)} Token（${formatTokens(drop.prev)} → ${formatTokens(drop.next)}，−${drop.pct.toFixed(1)}%）· 压缩/修剪回收`,
                 }, '🔻')
@@ -253,7 +272,7 @@ export function TokensTab(props: { data: DashboardData; inspectCall?: (callId: s
               MESSAGE_KIND_LABELS[message.kind] ?? message.kind,
             ]),
             h('td', { key: 'summary', style: { ...tdStyle, maxWidth: '380px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } },
-              `${message.preview.replace(/\n/g, ' ').slice(0, 50)}${message.preview.length > 50 ? '…' : ''}`),
+              `${(message.preview || (props.history ? '点击证据链查看原始内容' : '')).replace(/\n/g, ' ').slice(0, 50)}${message.preview.length > 50 ? '…' : ''}`),
             h('td', { key: 'turn', style: tdStyle }, message.turn === null ? '—' : String(message.turn)),
             h('td', { key: 'time', style: { ...tdStyle, whiteSpace: 'nowrap' } }, formatTime(message.timeMs)),
             h('td', { key: 'tokens', style: { ...tdStyle, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontWeight: isTop ? 600 : 400 } }, formatFull(message.tokens)),
@@ -271,6 +290,7 @@ export function TokensTab(props: { data: DashboardData; inspectCall?: (callId: s
             }, [
               h('div', { key: 'meta', style: { display: 'flex', flexWrap: 'wrap', gap: '4px 18px', marginBottom: '8px' } }, [
                 h('span', { key: 'seq' }, `事件序号 ${message.seq}`),
+                h(EvidenceButton, { ...props, chain: () => messageEvidence(props.evidenceSessionId ?? data.analytics?.teamInput?.sessionId ?? 'current', message, allMessages, isSpike), label: isSpike ? '查看突增证据链' : '查看消息证据链' }),
                 h('span', { key: 'source' }, `来源 ${sourceLabel(message)}`),
                 h('span', { key: 'turn' }, message.turn === null ? '轮次 —' : `轮次 ${message.turn}`),
                 h('span', { key: 'time' }, `时间 ${formatTime(message.timeMs)}`),
@@ -284,7 +304,7 @@ export function TokensTab(props: { data: DashboardData; inspectCall?: (callId: s
                 }, [
                   h('span', { key: 'icon' }, '🔻'),
                   h('span', { key: 'text' },
-                    `累计上下文骤降：${formatTokens(drop.prev)} → ${formatTokens(drop.next)}（回收 ${formatTokens(drop.drop)} Token，−${drop.pct.toFixed(1)}%）· 此前发生了压缩摘要或历史修剪`),
+                    `累计上下文骤降：${formatTokens(drop.prev)} → ${formatTokens(drop.next)}（回收 ${formatTokens(drop.drop)} Token，−${drop.pct.toFixed(1)}%）· 原因需核对区间内原始事件`),
                   props.onOpenCompaction !== undefined
                     ? h('button', {
                       key: 'open',
@@ -305,7 +325,7 @@ export function TokensTab(props: { data: DashboardData; inspectCall?: (callId: s
                 h('div', {
                   key: 'text',
                   style: { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', lineHeight: 1.55, wordBreak: 'break-word', whiteSpace: 'pre-wrap', maxHeight: '180px', overflowY: 'auto', border: '1px solid color-mix(in srgb, currentColor 10%, transparent)', borderRadius: '6px', padding: '8px 10px' },
-                }, message.preview),
+                }, message.preview || '历史消息内容按需读取，请点击“查看消息证据链”查看原始事件。'),
               ]),
               message.callId !== null && props.inspectCall !== undefined
                 ? h('div', { key: 'linked', style: { marginTop: '8px', display: 'flex', alignItems: 'center', gap: '8px' } }, [

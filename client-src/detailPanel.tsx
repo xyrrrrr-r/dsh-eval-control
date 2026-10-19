@@ -1,3 +1,5 @@
+import { EvidenceButton } from './evidencePanel.js';
+import { metricEvidence, eventRef, type EvidenceProps } from './evidence.js';
 /**
  * Optional diagnostics: data quality, raw event locators and metric evidence.
  * Message analysis lives in the dedicated tokens tab.
@@ -10,7 +12,7 @@ import { METRIC_LABELS, formatMetricValue } from './metricLabels.js';
 import { type DashboardData } from './derive.js';
 import type { MetricResult } from './types.js';
 
-export function DetailPanel(props: {
+export function DetailPanel(props: EvidenceProps & {
   data: DashboardData;
   sessionId?: string | null;
   inspectCall: ((callId: string) => void) | undefined;
@@ -64,15 +66,15 @@ export function DetailPanel(props: {
         h('span', { key: 'count' }, `${events.length} 条事件 · ${metrics.length} 项指标`),
       ]),
       props.sessionId ? h('a', { key: 'download', href: `/api/session.export?sessionId=${encodeURIComponent(props.sessionId)}&includeDescendants=false`, download: true, style: { fontSize: 12 } }, '下载完整日志') : null,
-      section !== 'metrics' ? h('div', { key: 'events', style: { maxHeight: 320, overflow: 'auto' } }, h(EventListSection, { data: filteredData, inspectCall: props.inspectCall })) : null,
-      section !== 'events' ? h('div', { key: 'metrics', style: { maxHeight: 400, overflow: 'auto' } }, h(MetricsDetailSection, { data: filteredData })) : null,
+      section !== 'metrics' ? h('div', { key: 'events', style: { maxHeight: 320, overflow: 'auto' } }, h(EventListSection, { ...props, data: filteredData, inspectCall: props.inspectCall })) : null,
+      section !== 'events' ? h('div', { key: 'metrics', style: { maxHeight: 400, overflow: 'auto' } }, h(MetricsDetailSection, { ...props, data: filteredData })) : null,
     ]) : null,
   ]);
 }
 
 /* ---- 事件列表 --------------------------------------------------------- */
 
-function EventListSection(props: {
+function EventListSection(props: EvidenceProps & {
   data: DashboardData;
   inspectCall: ((callId: string) => void) | undefined;
 }): unknown {
@@ -95,6 +97,7 @@ function EventListSection(props: {
         h('span', { key: 'time', style: { opacity: 0.55, fontVariantNumeric: 'tabular-nums' } }, formatTime(event.time)),
         h('span', { key: 'type', style: { opacity: 0.75 } }, event.type),
         event.label !== undefined ? h('span', { key: 'label', style: { fontWeight: 500 } }, event.label) : null,
+        h(EvidenceButton, {...props, chain: () => ({title:`事件 #${event.seq}`,conclusion:event.type,rule:'从宿主持久事件源核对原始记录。',level:'observed',facts:[],notes:['列表标签是投影摘要，原始内容请点击关联事件读取。'],refs:[eventRef(props.evidenceSessionId ?? data.analytics?.teamInput?.sessionId ?? 'current',event.seq,'原始事件')]})}),
         event.callId !== undefined && inspectCall !== undefined
           ? h('button', {
             key: 'locate',
@@ -112,7 +115,7 @@ function EventListSection(props: {
 
 /* ---- 指标明细 --------------------------------------------------------- */
 
-function MetricsDetailSection(props: { data: DashboardData }): unknown {
+function MetricsDetailSection(props: EvidenceProps & { data: DashboardData }): unknown {
   const { data } = props;
   const [showTurnTrend, setShowTurnTrend] = useState(false);
   const results = data.analytics?.metricResults ?? [];
@@ -140,7 +143,7 @@ function MetricsDetailSection(props: { data: DashboardData }): unknown {
           h('td', { key: 'value', style: { ...tdStyle, fontVariantNumeric: 'tabular-nums' } }, formatMetricValue(result.value)),
           h('td', { key: 'status', style: { ...tdStyle, opacity: result.status === 'available' ? 0.9 : 0.55 } }, result.status),
           h('td', { key: 'samples', style: tdStyle }, `${result.sampleCount}${result.denominator !== undefined ? `/${result.denominator}` : ''}`),
-          h('td', { key: 'evidence', style: tdStyle }, result.evidenceLevel),
+          h('td', { key: 'evidence', style: tdStyle }, [result.evidenceLevel, h(EvidenceButton, {...props, chain: () => metricEvidence(result)})]),
         ]))),
       ]),
     /* 轮次趋势 */

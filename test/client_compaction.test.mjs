@@ -29,6 +29,8 @@ test('missing history degrades explicitly and injection cards show preview and d
  const render=harness();let tree=render(()=>CompactionDetails({event:{...event,detail:undefined}}));assert.match(text(tree),/详情不可用/);
  const message={seq:5,timeMs:1000,kind:'tool-result',sourceKind:'tool',toolName:'shell',turn:1,tokens:30,cumulativeTokens:100,textTokens:30,toolCallTokens:0,fileTokens:0,preview:'tool output'};
  const renderTab=harness();tree=renderTab(()=>CompactionTab({data:{timeline:{compactions:[],compactionTotals:{reclaimedTokens:0,elapsedMs:0}},messages:[message]},sessionId:'s1'}));
+ nodes(tree).find(n=>n.type==='button' && text(n).includes('工具结果回填 1')).props.onClick();
+ tree=renderTab(()=>CompactionTab({data:{timeline:{compactions:[]},messages:[message]},sessionId:'s1'}));
  assert.match(text(tree),/加入前 70 → 加入后 100 Token/);assert.match(text(tree),/tool output/);
  assert.ok(nodes(tree).some(n=>n.type==='details' && n.props.key==='injection-5'));
 });
@@ -72,7 +74,9 @@ test('injections group by displayed second, retain source details, and sum only 
  const base={kind:'tool-result',sourceKind:'tool',toolName:'edit',turn:1,tokens:10,cumulativeTokens:100,textTokens:10,toolCallTokens:0,fileTokens:0,preview:'result'};
  const a={...base,seq:1,timeMs:1001},b={...base,seq:2,timeMs:1999,tokens:20},c={...base,seq:3,timeMs:2000};
  assert.deepEqual(groupInjections([c,b,a]),[[a,b],[c]]);
- const render=harness();const tree=render(()=>CompactionTab({data:{timeline:{compactions:[]},messages:[a,b,c]}}));
- assert.match(text(tree),/注入 · 2 条已聚合/);assert.match(text(tree),/合计 \+30 Token/);assert.match(text(tree),/工具结果 \/ edit ×2/);
+ const render=harness();let tree=render(()=>CompactionTab({data:{timeline:{compactions:[]},messages:[a,b,c]}}));
+ nodes(tree).find(n=>n.type==='button' && text(n).includes('工具结果回填 3')).props.onClick();
+ tree=render(()=>CompactionTab({data:{timeline:{compactions:[]},messages:[a,b,c]}}));
+ assert.match(text(tree),/工具结果回填 · 2 条已聚合/);assert.match(text(tree),/合计 \+30 Token/);assert.match(text(tree),/工具结果 \/ edit ×2/);
  assert.equal(nodes(tree).filter(n=>n.type==='details' && /^injection-\d/.test(n.props.key)).length,3);
 });

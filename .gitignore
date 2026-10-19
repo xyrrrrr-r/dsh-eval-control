@@ -6,3 +6,19 @@ dist/
 .vscode/
 .DS_Store
 *.tgz
+.npm-cache-tmp/
+
+# 设计过程文档：仅本地保留，不推送远程
+docs/PLAN-*.md
+docs/PRD-*.md
+docs/prd-*-implementation.md
+docs/tech-design-*.md
+docs/execution-plan.md
+docs/trajectory-*.md
+docs/aeval-dsh-metric-mapping.md
+docs/dsh-api-verification.md
+docs/README-legacy.md
+docs/proposals/
+docs/demo/STORYBOARD.md
+docs/demo/record-demo.sh
+docs/demo/recording/

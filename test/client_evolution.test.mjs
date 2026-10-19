@@ -102,3 +102,58 @@ test('comparison scaling uses full extent or fitted data, with the same drag and
   nodes(tree).find(n=>n.type==='svg').props.onDoubleClick();
   tree=render(()=>LineChart(props));assert.ok(!nodes(tree).some(n=>n.children.includes('重置缩放')));
 });
+
+test('context injection and tool feedback have separate counts and filters', () => {
+  const render = harness();
+  const messages = [message(12,'tool-result','tool'),message(13,'system','system-prompt'),message(14,'user','user'),message(15,'assistant','agent')];
+  const data = {contextWindow:10000, steps:[step(10,1),step(20,1)], timeline:{injections:messages,compactions:[]}};
+  let tree = render(() => EvolutionTab({data}));
+  let chart = nodes(tree).find(n => n.type === LineChart);
+  assert.deepEqual(chart.props.markers.map(m => m.kind).sort(), ['feedback','injection']);
+  const text = n => (n.children ?? []).flat(Infinity).map(c => typeof c === 'string' ? c : c && typeof c === 'object' ? text(c) : '').join('');
+  const feedbackButton = nodes(tree).find(n => n.type === 'button' && text(n).includes('共 1 次'));
+  assert.ok(feedbackButton);
+  assert.ok(nodes(tree).some(n => n.type === 'button' && text(n).includes('上下文注入 1')));
+  feedbackButton.props.onClick();
+  tree = render(() => EvolutionTab({data}));
+  chart = nodes(tree).find(n => n.type === LineChart);
+  assert.deepEqual(chart.props.markers.map(m => m.kind), ['injection']);
+});
+
+test('full history supplies old spikes, injections and pruning independently of the short projection',()=>{
+ const render=harness();
+ const messages=[message(1,'user','user'),message(2,'assistant','agent'),message(3,'user','user'),{...message(4,'assistant','agent'),tokens:5000},message(5,'developer','developer')];
+ const prune={seq:6,timeMs:600,id:'prune-6',kind:'prune',beforeTokens:null,afterTokens:null,reclaimedTokens:null,reclaimRatio:null,elapsedMs:null,turn:1};
+ const data={contextWindow:10000,steps:[step(10,1),step(20,1)],timeline:{injections:[],compactions:[]}};
+ const tree=render(()=>EvolutionTab({data,injectionHistory:{phase:'ready',messages,compactions:[prune]}}));
+ const markers=nodes(tree).find(n=>n.type===LineChart).props.markers;
+ assert.deepEqual(markers.map(m=>m.kind).sort(),['injection','prune','spike']);
+});
+test('feedback is grouped by requests, failures stay red, and spikes link to exact tool calls',()=>{
+ const render=harness();let evidence;
+ const messages=[message(11,'tool-result','tool'),message(12,'tool-result','tool'),message(13,'tool-result','tool'),{...message(14,'tool-result','tool'),tokens:5000,callId:'c',toolName:'shell'}];
+ const data={contextWindow:10000,steps:[step(10,1),step(20,1)],timeline:{injections:[],compactions:[]}};
+ const history={phase:'ready',messages,toolCalls:[{seq:9,callId:'c',name:'shell'}],toolFailures:[{name:'shell',callId:'f',callSeq:8,resultSeq:13,excerpt:'failed',analysis:'unknown'}]};
+ const tree=render(()=>EvolutionTab({data,injectionHistory:history,onEvidence:chain=>evidence=chain}));
+ const markers=nodes(tree).find(n=>n.type===LineChart).props.markers;
+ const feedback=markers.filter(m=>m.kind==='feedback');assert.equal(feedback.length,2);assert.equal(feedback.filter(m=>m.failed).length,1);assert.match(feedback.find(m=>!m.failed).title,/回填 3 次/);
+ markers.find(m=>m.kind==='spike').onEvidence();assert.ok(evidence.refs.some(r=>r.seq===9));assert.ok(evidence.facts.some(f=>f.label==='工具结果与激增的关联'));
+ feedback.find(m=>m.failed).onEvidence();assert.ok(evidence.refs.every(r=>r.failed));
+});
+
+test('default feedback highlights ten intervals while all mode preserves full history',()=>{
+ const render=harness();const requests=Array.from({length:21},(_,i)=>step(i*10+10,1));
+ const messages=Array.from({length:20},(_,i)=>({...message(i*10+11,'tool-result','tool'),tokens:(i+1)*10}));
+ const props={data:{contextWindow:10000,steps:requests,timeline:{injections:messages,compactions:[]}}};
+ let tree=render(()=>EvolutionTab(props));let chart=nodes(tree).find(n=>n.type===LineChart);
+ assert.equal(chart.props.markers.filter(m=>m.kind==='feedback').length,10);
+ nodes(tree).find(n=>n.props['aria-label']==='回填显示范围').props.onChange({target:{value:'all'}});
+ tree=render(()=>EvolutionTab(props));chart=nodes(tree).find(n=>n.type===LineChart);assert.equal(chart.props.markers.filter(m=>m.kind==='feedback').length,20);
+});
+test('full-history curve uses every request instead of the last 256 projection samples',()=>{
+ const render=harness();const requests=Array.from({length:553},(_,i)=>step(i+1,1));
+ const data={contextWindow:10000,steps:requests.slice(-256),timeline:{injections:[],compactions:[]}};
+ const tree=render(()=>EvolutionTab({data,injectionHistory:{phase:'ready',messages:[],requests}}));
+ const chart=nodes(tree).find(n=>n.type===LineChart);
+ assert.equal(chart.props.series[0].points.length,553);assert.equal(chart.props.series[0].points[0].x,1);assert.equal(chart.props.series[0].points.at(-1).x,553);
+});

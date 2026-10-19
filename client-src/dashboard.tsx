@@ -1,3 +1,8 @@
+import { overviewDiagnosticChain } from './overviewDiagnosis.js';
+import { AiDiagnosis } from './aiDiagnostic.js';
+import { useInjectionHistory } from './injectionHistory.js';
+import { EvidencePanel } from './evidencePanel.js';
+import { aggregateEvidence, alertEvidence, type EvidenceChain } from './evidence.js';
 import { ReportActions } from './reportActions.js';
 import type { LoadedSession } from './tab-compare.js';
 import { configurationRemote, type ConfigurationConnection } from './configuration.js';
@@ -59,11 +64,16 @@ export function createDashboardView(ctx: {
     const [showThresholds, setShowThresholds] = useState(false);
     const [alertState, setAlertState] = useState(() => loadAlertState(sessionKey));
     const [imageError, setImageError] = useState<string | null>(null);
+    const [evidence, setEvidence] = useState<EvidenceChain | null>(null);
+    useEffect(() => setEvidence(null), [sessionKey]);
+    const evidenceProps = { onEvidence: setEvidence, evidenceSessionId: sessionKey };
     const [comparison, setComparison] = useState<LoadedSession[]>([]);
     useEffect(() => setComparison([]), [sessionKey]);
     const containerRef = useRef<HTMLElement | null>(null);
 
     const data = deriveDashboardData(analytics ?? null, timeline ?? null, stats ?? null, pressure ?? null);
+
+    const injectionHistory = useInjectionHistory(ctx.sessions as import('./types.js').SessionsService | undefined, sessionKey, tab === 'evolution' || tab === 'tools' || tab === 'tokens');
 
     /* Team member summaries: loaded once per member set. */
     const [teamState, setTeamState] = useState<{ phase: string; members: MemberEntry[] }>({ phase: 'idle', members: [] });
@@ -187,7 +197,7 @@ export function createDashboardView(ctx: {
         metricCard('input', 'Token 消耗', formatTokens((analytics?.inputTokens ?? 0) + (stats?.decodeTokens ?? 0)), `输入 ${formatTokens(analytics?.inputTokens ?? 0)} · 输出 ${formatTokens(stats?.decodeTokens ?? 0)}`, trendOf(data.steps.map((step) => stepContextOf(step)))),
         metricCard('tools', '工具调用', String(analytics?.toolCalls ?? 0), `显式错误 ${analytics?.toolErrors ?? 0}`, trendOf((analytics?.turnTrend ?? []).map((turn) => turn.toolCalls))),
         metricCard('compactions', '压缩频率', alertInput.compactionFrequency === null ? '—' : `${alertInput.compactionFrequency.toFixed(3)} 次/千 Token`, '摘要压缩口径 · 修剪另行统计', trendOf((analytics?.turnTrend ?? []).map((turn) => turn.compactionStarts))),
-        metricCard('errors', '工具错误率', alertInput.toolErrorRate === null ? '—' : `${(alertInput.toolErrorRate * 100).toFixed(1)}%`, `${analytics?.toolErrors ?? 0} / ${analytics?.toolCalls ?? 0} 次调用`, trendOf((analytics?.turnTrend ?? []).map((turn) => turn.toolCalls > 0 ? turn.toolErrors / turn.toolCalls : 0))),
+        metricCard('errors', '工具错误率', alertInput.toolErrorRate === null ? '—' : `${(alertInput.toolErrorRate * 100).toFixed(1)}%`, `分母：${analytics?.metricResults.find(item => item.metricId === 'tool.failure_rate')?.denominator ?? '—'} 个已知结果`, trendOf((analytics?.turnTrend ?? []).map((turn) => turn.toolCalls > 0 ? turn.toolErrors / turn.toolCalls : 0))),
       ]),
 
       /* ---------- Tab bar ---------- */
@@ -226,13 +236,14 @@ export function createDashboardView(ctx: {
       h('div', { key: 'chart-export', style: { display: 'flex', gap: 12, justifyContent: 'flex-end', fontSize: 11 } }, [h('button', { key: 'png', onClick: () => { setImageError(null); void exportPng(contentRef.current, `trajectory-${tab}.png`).catch((error: unknown) => setImageError(String((error as Error).message))); } }, '导出当前图表 PNG'), imageError ? h('span', { key: 'error', role: 'status' }, imageError) : null]),
       /* ---------- Tab content ---------- */
       h('div', { key: `content-${tab}`, ref: contentRef as unknown as string, className: 'dsh-eval-tab-content', role: 'tabpanel', style: { minHeight: '120px', scrollMarginTop: 90 } }, renderTab()),
+      evidence ? h(EvidencePanel, { key: sessionKey + JSON.stringify(evidence), chain: evidence, connection: ctx.connection, sessions: ctx.sessions, currentSessionId: sessionKey, inspectCall: props.inspectCall, onClose: () => setEvidence(null) }) : null,
 
 
     ]);
 
     function metricCard(key: string, label: string, value: string, sub: string, trend: 'up' | 'down' | 'stable' | null): unknown {
       return h('button', {
-        key, type: 'button', onClick: () => navigate(key === 'input' ? 'tokens' : key === 'compactions' ? 'compaction' : 'tools'),
+        key, type: 'button', onClick: () => { const chain = aggregateEvidence(sessionKey, label + ' · ' + value, analytics ?? null, timeline ?? null, key === 'input' ? 'tokens' : key === 'compactions' ? 'frequency' : key === 'errors' ? 'errors' : 'tools'); setEvidence({...chain, conclusion: `${label} ${value} · ${sub}`, facts: [...chain.facts, ...(key === 'input' ? [{label:'累计输出',value:String(stats?.decodeTokens ?? '未知'),source:'sessionStats.decodeTokens'}] : [])]}); },
         style: {
           border: '1px solid color-mix(in srgb, currentColor 14%, transparent)', borderRadius: '10px',
           background: 'transparent', color: 'inherit', textAlign: 'left', cursor: 'pointer', font: 'inherit',
@@ -258,35 +269,41 @@ export function createDashboardView(ctx: {
         case 'overview':
           return h('div', { className: 'dsh-eval-overview-layout' }, [
             h('div', { key: 'analysis', style: { minWidth: 0 } }, h(OverviewTab, {
-              data, alerts: activeAlerts, thresholds, dismissed: alertState.dismissed,
+              ...evidenceProps, data, alerts: activeAlerts, thresholds, dismissed: alertState.dismissed,
               onDismiss: dismissAlert, onResolve: resolveAlert, teamState, team,
               onOpenEvolution: () => navigate('evolution'), inspectCall: props.inspectCall,
             })),
             h('aside', { key: 'diagnostics', className: 'dsh-eval-overview-diagnostics', 'aria-label': '总览诊断' }, [
               h('strong', { key: 'heading', style: { fontSize: 14 } }, '诊断中心'),
+              h(AiDiagnosis,{key:`ai-${sessionKey}`,label:'AI 全链路诊断',currentSessionId:sessionKey,inspectCall:props.inspectCall,onSelectRef:(ref:import('./evidence.js').EvidenceRef)=>setEvidence({title:'轨迹证据',conclusion:ref.role,rule:'原始事件定位',level:'observed',facts:[],notes:[],refs:[ref]}),connection:ctx.connection,sessions:ctx.sessions,chain:overviewDiagnosticChain(sessionKey,data,allAlerts)}),
               h(AlertsDrawer, { key: 'alerts', configuration: configurationRemote(ctx.connection), inline: true, open: true, input: alertInput, thresholds,
                 alerts: allAlerts, dismissed: alertState.dismissed, resolved: alertState.resolved,
                 onClose: () => {}, onDismiss: dismissAlert, onResolve: resolveAlert,
+                onEvidence: (id: string) => {
+                  const alert = allAlerts.find(item => item.id === id);
+                  const measurement = id === 'context-overload' ? [alertInput.utilization, thresholds.contextOverloadRatio] : id === 'frequent-compaction' ? [alertInput.compactionFrequency, thresholds.compactionFrequencyPer1k] : id === 'high-error-rate' ? [alertInput.toolErrorRate, thresholds.toolErrorRate] : id === 'token-waste' ? [alertInput.repeatGroups, thresholds.repeatCallGroups] : [alertInput.longGapCount, thresholds.longGapSegments];
+                  setEvidence(alertEvidence(sessionKey, id, alert?.title ?? id, alert?.detail ?? '', analytics ?? null, timeline ?? null, measurement[0] ?? null, measurement[1] ?? 0));
+                },
                 onView: (id: string) => { if (id === 'long-gaps') { setDetailOpen(true); setTimeout(() => containerRef.current?.querySelector('[aria-label="搜索诊断数据"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0); } else navigate(id === 'context-overload' ? 'evolution' : id === 'frequent-compaction' ? 'compaction' : 'tools'); },
                 onSettings: () => setShowThresholds((value) => !value),
               }),
               showThresholds ? h(ThresholdSettings, { key: 'settings', thresholds, onChange: updateThresholds, onClose: () => setShowThresholds(false) }) : null,
-              h(DetailPanel, { key: 'detail', sessionId: sessionKey, data, inspectCall: props.inspectCall, open: detailOpen, onToggle: () => setDetailOpen((value) => !value) }),
+              h(DetailPanel, { key: 'detail', ...evidenceProps, sessionId: sessionKey, data, inspectCall: props.inspectCall, open: detailOpen, onToggle: () => setDetailOpen((value) => !value) }),
             ]),
           ]);
         case 'evolution':
-          return h(EvolutionTab, { data });
+          return h(EvolutionTab, { ...evidenceProps, data, injectionHistory });
         case 'tokens':
-          return h(TokensTab, { data, inspectCall: props.inspectCall, onOpenCompaction: () => setTab('compaction') });
+          return h(TokensTab, { key: sessionKey, ...evidenceProps, data, history: injectionHistory, inspectCall: props.inspectCall, onOpenCompaction: () => setTab('compaction') });
         case 'compaction':
-          return h(CompactionTab, { key: props.sessionId ?? analytics?.teamInput?.sessionId ?? 'current', data, sessionId: props.sessionId ?? analytics?.teamInput?.sessionId ?? null });
+          return h(CompactionTab, { ...evidenceProps, key: props.sessionId ?? analytics?.teamInput?.sessionId ?? 'current', data, sessionId: props.sessionId ?? analytics?.teamInput?.sessionId ?? null });
         case 'tools':
-          return h(ToolsTab, { data });
+          return h(ToolsTab, { ...evidenceProps, data, history: injectionHistory });
         case 'team':
-          return h(TeamTab, { data, teamState, team });
+          return h(TeamTab, { ...evidenceProps, sessions:ctx.sessions, data, teamState, team });
         case 'compare':
           return h(CompareTab, {
-            key: sessionKey, onResult: setComparison,
+            ...evidenceProps, key: sessionKey, onResult: setComparison,
             useSessions: props.useSessions,
             sessionId: props.sessionId ?? (analytics?.teamInput?.sessionId ?? null),
             sessions: (ctx.sessions ?? null) as never,

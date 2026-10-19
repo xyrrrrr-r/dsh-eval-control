@@ -14,7 +14,7 @@
  *   semantics of the token meter: a usage sample is stamped BEFORE the same
  *   event joins the surface, so it reflects the surface its request saw).
  * - Message-level token ledger (PRD §3.3): every surface append priced and
- *   bounded; the §3.5 "injection" view is the client-side filter over the
+ *   retained; the §3.5 "injection" view is the client-side filter over the
  *   same rows (non-direct origins, excluding assistant output).
  * - Compaction events: `compaction/summary`/`compaction/prune` shadow prices
  *   paired with the immediately following surface replace (before/after/
@@ -79,6 +79,7 @@ export interface CompactionDetail {
 }
 
 export interface ContextTimelineCompaction {
+  evidenceRefs?: Array<{seq:number; role:string}> | undefined;
   detail?: CompactionDetail | undefined;
   seq: number;
   timeMs: number;
@@ -131,6 +132,7 @@ export interface ContextTimelineSegment {
 
 export interface ContextTimelineView {
   contextWindow: number | null;
+  contextWindowSeq: number | null;
   provider: string | null;
   model: string | null;
   surface: ContextTimelineSurface;
@@ -156,7 +158,9 @@ export interface ContextTimelineState {
     callTool: string | null;
   }>;
   toolsTokens: number;
+  toolsSeq: number | null;
   contextWindow: number | null;
+  contextWindowSeq: number | null;
   provider: string | null;
   model: string | null;
   steps: ContextTimelineStep[];
@@ -169,7 +173,7 @@ export interface ContextTimelineState {
   compactionElapsedMs: number;
   tools: Array<{ name: string; calls: number; errors: number }>;
   toolNameByCallId: Array<[string, string]>;
-  compactionStarts: Array<[string, number, number | null]>;
+  compactionStarts: Array<[string, number, number | null, number]>;
   pendingClaim: { id: string; index: number; start: number; end: number } | null;
   /** Bounded excerpt of the latest request/header tool schemas. */
   toolsPreview: string;
@@ -350,8 +354,8 @@ function segmentsOf(state: ContextTimelineState): ContextTimelineSegment[] {
   const files = (node: ContextTimelineState['nodes'][number]): number => node.fileTokens;
   const kind = (k: ContextTimelineState['nodes'][number]['kind']) => state.nodes.filter((node) => node.kind === k);
 
-  const definitions: ContextTimelineSegmentNode[] = state.toolsTokens > 0
-    ? [{ seq: 0, label: 'request/header.tools', tokens: state.toolsTokens, preview: state.toolsPreview, turn: null, callId: null, callTool: null }]
+  const definitions: ContextTimelineSegmentNode[] = state.toolsTokens > 0 && state.toolsSeq !== null
+    ? [{ seq: state.toolsSeq!, label: 'request/header.tools', tokens: state.toolsTokens, preview: state.toolsPreview, turn: null, callId: null, callTool: null }]
     : [];
 
   return [
@@ -369,17 +373,9 @@ function segmentsOf(state: ContextTimelineState): ContextTimelineSegment[] {
 /* Bounded-collection helpers.                                         */
 /* ------------------------------------------------------------------ */
 
-const MAX_STEPS = 256;
-const MAX_INJECTIONS = 64;
-const MAX_COMPACTIONS = 32;
 const MAX_TOOLS = 128;
 const MAX_CALL_IDS = 512;
 const MAX_COMPACTION_STARTS = 16;
-
-function pushBounded<T>(list: T[], item: T, cap: number): T[] {
-  const next = [...list, item];
-  return next.length > cap ? next.slice(next.length - cap) : next;
-}
 
 function setMapEntry(entries: Array<[string, string]>, key: string, value: string, cap: number): Array<[string, string]> {
   const next = entries.filter(([k]) => k !== key);
@@ -387,9 +383,9 @@ function setMapEntry(entries: Array<[string, string]>, key: string, value: strin
   return next.length > cap ? next.slice(next.length - cap) : next;
 }
 
-function startTimeEntries(entries: Array<[string, number, number | null]>, key: string, value: number, turn: number | null): Array<[string, number, number | null]> {
+function startTimeEntries(entries: Array<[string, number, number | null, number]>, key: string, value: number, turn: number | null, seq: number): Array<[string, number, number | null, number]> {
   const next = entries.filter(([k]) => k !== key);
-  next.push([key, value, turn]);
+  next.push([key, value, turn, seq]);
   return next.length > MAX_COMPACTION_STARTS ? next.slice(next.length - MAX_COMPACTION_STARTS) : next;
 }
 
@@ -500,6 +496,7 @@ const compactionDetailSchema = z.object({
 }).strict();
 
 const compactionSchema = z.object({
+  evidenceRefs: z.array(z.object({seq:z.number().int().nonnegative(),role:z.string()}).strict()).max(4).optional(),
   detail: compactionDetailSchema.optional(),
   seq: z.number().int().nonnegative(),
   timeMs: z.number().nonnegative(),
@@ -526,14 +523,16 @@ const stateSchema = z.object({
     callTool: z.string().nullable(),
   }).strict()),
   toolsTokens: z.number().int().nonnegative(),
+  toolsSeq: z.number().int().nonnegative().nullable(),
   contextWindow: z.number().int().positive().nullable(),
+  contextWindowSeq: z.number().int().nonnegative().nullable(),
   provider: z.string().nullable(),
   model: z.string().nullable(),
-  steps: z.array(stepSchema).max(MAX_STEPS),
-  injections: z.array(injectionSchema).max(MAX_INJECTIONS),
+  steps: z.array(stepSchema),
+  injections: z.array(injectionSchema),
   injectionCount: z.number().int().nonnegative(),
   injectionTokens: z.number().int().nonnegative(),
-  compactions: z.array(compactionSchema).max(MAX_COMPACTIONS),
+  compactions: z.array(compactionSchema),
   compactionCount: z.number().int().nonnegative(),
   reclaimedTokens: z.number().int().nonnegative(),
   compactionElapsedMs: z.number().nonnegative(),
@@ -543,7 +542,7 @@ const stateSchema = z.object({
     errors: z.number().int().nonnegative(),
   }).strict()).max(MAX_TOOLS),
   toolNameByCallId: z.array(z.tuple([z.string(), z.string()])),
-  compactionStarts: z.array(z.tuple([z.string(), z.number().nonnegative(), z.number().int().nonnegative().nullable()])),
+  compactionStarts: z.array(z.tuple([z.string(), z.number().nonnegative(), z.number().int().nonnegative().nullable(), z.number().int().nonnegative()])),
   toolsPreview: z.string(),
   pendingClaim: z.object({
     id: z.string().min(1),
@@ -572,6 +571,7 @@ const segmentSchema = z.object({
 
 const viewSchema = z.object({
   contextWindow: z.number().int().positive().nullable(),
+  contextWindowSeq: z.number().int().nonnegative().nullable(),
   provider: z.string().nullable(),
   model: z.string().nullable(),
   surface: z.object({
@@ -584,10 +584,10 @@ const viewSchema = z.object({
     compactionSummary: z.number().int().nonnegative(),
     other: z.number().int().nonnegative(),
   }).strict(),
-  steps: z.array(stepSchema).max(MAX_STEPS),
-  injections: z.array(injectionSchema).max(MAX_INJECTIONS),
+  steps: z.array(stepSchema),
+  injections: z.array(injectionSchema),
   injectionTotals: z.object({ count: z.number().int().nonnegative(), tokens: z.number().int().nonnegative() }).strict(),
-  compactions: z.array(compactionSchema).max(MAX_COMPACTIONS),
+  compactions: z.array(compactionSchema),
   compactionTotals: z.object({
     count: z.number().int().nonnegative(),
     reclaimedTokens: z.number().int().nonnegative(),
@@ -635,6 +635,7 @@ function armCompactionRow(
       summary: event.type === 'compaction/summary' ? event.data.summary.map((block) => 'text' in block ? block.text : `[${block.type}]`).join('\n').slice(0, 4000) : '将命中的历史范围替换为修剪结果，具体内容见前后对比。',
       before: snapshotOf(state.nodes, shadowedRange), after: null,
     },
+    evidenceRefs: [...(start ? [{seq:start[3],role:'压缩开始'}] : []), {seq:event.seq,role:kind === 'summary' ? '摘要生成' : '历史修剪'}],
     seq: event.seq,
     timeMs: event.time,
     id,
@@ -646,7 +647,7 @@ function armCompactionRow(
     elapsedMs: null,
     turn: kind === 'summary' && start !== undefined ? start[2] : null,
   };
-  const compactions = pushBounded(state.compactions, row, MAX_COMPACTIONS);
+  const compactions = [...state.compactions, row];
   return {
     ...state,
     compactions,
@@ -663,6 +664,7 @@ function backfillCompaction(state: ContextTimelineState, afterTokens: number, af
   const reclaimed = row.beforeTokens === null ? null : Math.max(0, row.beforeTokens - afterTokens);
   const next: ContextTimelineCompaction = {
     ...row,
+    evidenceRefs: [...(row.evidenceRefs ?? []), ...(replacementSeq !== undefined ? [{seq:replacementSeq,role:'上下文替换操作'}] : [])],
     ...(row.detail ? { detail: { ...row.detail, after: snapshotOf(afterNodes.map((node) => node.seq === replacementSeq ? { ...node, preview: replacementPreview } : node), null, replacementSeq) } } : {}),
     afterTokens,
     reclaimedTokens: reclaimed,
@@ -682,13 +684,15 @@ function backfillCompaction(state: ContextTimelineState, afterTokens: number, af
 
 export const contextTimelineProjection = {
   key: 'contextTimeline',
-  /* v5: preserve up to 4000 chars of the actual replacement message. */
-  stateVersion: 5,
+  /* v7: retain actual session samples; rebuild previously truncated projection caches. */
+  stateVersion: 7,
   stateSchema,
   init: () => ({
     nodes: [],
     toolsTokens: 0,
+    toolsSeq: null,
     contextWindow: null,
+    contextWindowSeq: null,
     provider: null,
     model: null,
     steps: [],
@@ -713,10 +717,11 @@ export const contextTimelineProjection = {
       const window = typeof event.data.contextWindow === 'number' ? event.data.contextWindow : null;
       if (window !== state.contextWindow
         || event.data.provider !== state.provider
-        || event.data.model !== state.model) {
+        || event.data.model !== state.model || event.seq !== state.contextWindowSeq) {
         next = {
           ...next,
           contextWindow: window,
+          contextWindowSeq: event.seq,
           provider: event.data.provider,
           model: event.data.model,
         };
@@ -725,8 +730,8 @@ export const contextTimelineProjection = {
 
     /* Tool schemas: the tool-definition segment (PRD §3.2). */
     const toolsTokens = estimateToolsTokens(event);
-    if (toolsTokens !== null && toolsTokens !== next.toolsTokens) {
-      next = { ...next, toolsTokens };
+    if (toolsTokens !== null) {
+      next = { ...next, toolsTokens, toolsSeq: event.seq };
     }
     const toolsPreview = toolsPreviewOf(event);
     if (toolsPreview !== null && toolsPreview !== next.toolsPreview) {
@@ -738,7 +743,7 @@ export const contextTimelineProjection = {
       const usage = event.data.usage;
       next = {
         ...next,
-        steps: pushBounded(next.steps, {
+        steps: [...next.steps, {
           turn: event.data.turn,
           step: event.data.step,
           seq: event.seq,
@@ -748,7 +753,7 @@ export const contextTimelineProjection = {
           cacheReadTokens: typeof usage.cacheReadTokens === 'number' ? usage.cacheReadTokens : null,
           cacheWriteTokens: typeof usage.cacheWriteTokens === 'number' ? usage.cacheWriteTokens : null,
           surfaceTokens: surfaceTotal(next),
-        }, MAX_STEPS),
+        }],
       };
     }
 
@@ -756,7 +761,7 @@ export const contextTimelineProjection = {
     if (event.type === 'compaction/start') {
       next = {
         ...next,
-        compactionStarts: startTimeEntries(next.compactionStarts, event.data.compactionId, event.time, event.data.turn),
+        compactionStarts: startTimeEntries(next.compactionStarts, event.data.compactionId, event.time, event.data.turn, event.seq),
       };
     }
     if (event.type === 'compaction/end') {
@@ -767,7 +772,7 @@ export const contextTimelineProjection = {
         const compactions = next.compactions.map((row) => {
           if (row.id !== event.data.compactionId || row.elapsedMs !== null) return row;
           updated = true;
-          return { ...row, elapsedMs: elapsed };
+          return { ...row, elapsedMs: elapsed, evidenceRefs: [...(row.evidenceRefs ?? []), {seq:event.seq,role:'压缩结束'}] };
         });
         if (updated) {
           next = {
@@ -834,7 +839,7 @@ export const contextTimelineProjection = {
           if (injection !== null) {
             injected = {
               ...injected,
-              injections: pushBounded(injected.injections, injection, MAX_INJECTIONS),
+              injections: [...injected.injections, injection],
               injectionCount: injected.injectionCount + 1,
               injectionTokens: injected.injectionTokens + injection.tokens,
             };
@@ -892,6 +897,7 @@ export const contextTimelineProjection = {
     viewSchema,
     view: (state): ContextTimelineView => ({
       contextWindow: state.contextWindow,
+      contextWindowSeq: state.contextWindowSeq,
       provider: state.provider,
       model: state.model,
       surface: surfaceTotalsOf(state),

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { build } from 'esbuild';
-const result=await build({stdin:{contents:`export * from './client-src/alerts'; export {ConfigurationAction} from './client-src/configuration'; export {bindReact} from './client-src/react-binding'; export {createDashboardView} from './client-src/dashboard'; export {AlertsDrawer,ThresholdSettings} from './client-src/alertsPanel'; export {DetailPanel} from './client-src/detailPanel';`,resolveDir:process.cwd()},bundle:true,format:'esm',write:false});
+const result=await build({stdin:{contents:`export * from './client-src/alerts'; export {ConfigurationAction} from './client-src/configuration'; export {bindReact} from './client-src/react-binding'; export {createDashboardView} from './client-src/dashboard'; export {AlertsDrawer,ThresholdSettings} from './client-src/alertsPanel'; export {DetailPanel} from './client-src/detailPanel'; export {EvidencePanel} from './client-src/evidencePanel';`,resolveDir:process.cwd()},bundle:true,format:'esm',write:false});
 const m=await import(`data:text/javascript;base64,${Buffer.from(result.outputFiles[0].text).toString('base64')}`);
 function harness(){let cursor=0;const states=[];m.bindReact({createElement:(type,props,...children)=>({type,props:props??{},children}),useState:initial=>{const i=cursor++;if(!(i in states))states[i]=typeof initial==='function'?initial():initial;return[states[i],v=>states[i]=typeof v==='function'?v(states[i]):v];},useRef:initial=>{const i=cursor++;return states[i]??(states[i]={current:initial});},useEffect:()=>{},useMemo:fn=>fn(),Fragment:'fragment'});return fn=>{cursor=0;return fn();};}
 const nodes=tree=>tree&&typeof tree==='object'?[tree,...(tree.children??[]).flat(Infinity).flatMap(nodes)]:[];
@@ -46,6 +46,9 @@ test('dashboard shows four clickable metrics, sticky status and collapsed diagno
  assert.equal(nodes(tree).find(n=>n.type===m.AlertsDrawer).props.inline,true);
  assert.ok(!nodes(tree).some(n=>n.props['aria-label']?.startsWith('智能告警：')));
  nodes(tree).find(n=>n.props.key==='tools').props.onClick();
+ tree=render(()=>view(props));assert.ok(nodes(tree).some(n=>n.type===m.EvidencePanel));
+ nodes(tree).find(n=>n.type===m.EvidencePanel).props.onClose();
+ nodes(tree).find(n=>n.props.role==='tab'&&text(n).includes('工具分布')).props.onClick();
  tree=render(()=>view(props));assert.ok(!nodes(tree).some(n=>n.type===m.DetailPanel||n.type===m.AlertsDrawer));assert.equal(nodes(tree).find(n=>n.props.role==='tab'&&text(n).includes('工具分布')).props['aria-selected'],true);
 });
 

@@ -100,7 +100,7 @@ export function deriveDashboardData(
     segmentDetail,
     surfaceTotal: surface?.totalTokens ?? 0,
     messages,
-    messageCapNote: messages.length >= 64,
+    messageCapNote: false,
     steps,
     wallMs,
     running: Array.isArray(analytics?.teamInput?.turnIntervals)
@@ -118,9 +118,9 @@ export const MESSAGE_KIND_LABELS: Record<string, string> = {
   developer: '开发者',
 };
 
-/** §3.5 injection view: non-direct origins, excluding assistant output. */
+/** Context injection excludes ordinary tool-result feedback and assistant output. */
 export function isInjected(message: { kind: string; sourceKind: string }): boolean {
-  if (message.kind === 'assistant') return false;
+  if (message.kind === 'assistant' || message.kind === 'tool-result') return false;
   if (message.kind === 'user') return message.sourceKind !== 'user';
   return true;
 }

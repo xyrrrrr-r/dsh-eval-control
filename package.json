@@ -1,6 +1,6 @@
 {
   "name": "dsh-eval-control",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "DSH plugin for aeval evaluation control and realtime, projection-based personal trajectory analytics.",
   "license": "Apache-2.0",
   "keywords": [
@@ -53,6 +53,7 @@
     "locale",
     "icon.svg",
     "cordis.patch.yml",
+    "docs/badges",
     "README.md",
     "CHANGELOG.md",
     "LICENSE"

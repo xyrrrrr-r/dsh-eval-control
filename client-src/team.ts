@@ -78,7 +78,7 @@ export function teamAggregate(rootInput: TeamInput, memberEntries: MemberEntry[]
       sweep.push([pair[1], -1]);
     }
   }
-  sweep.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
+  sweep.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
   let peak = 0;
   let cursor = 0;
   for (const entry of sweep) {

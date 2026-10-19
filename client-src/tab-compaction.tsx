@@ -1,3 +1,5 @@
+import { EvidenceButton } from './evidencePanel.js';
+import { compactionEvidence, messageEvidence, eventRef, type EvidenceProps } from './evidence.js';
 /** PRD §3.5: expandable event cards and historical surface comparison. */
 import { h, useRef, useState } from './react-binding.js';
 import { formatDateTime, formatFull, formatMs, formatPercent, formatTokens } from './format.js';
@@ -9,15 +11,17 @@ const card = { border: '1px solid color-mix(in srgb, currentColor 18%, transpare
 const summaryStyle = { cursor: 'pointer', lineHeight: 1.8 };
 const preStyle = { whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', margin: 0, font: 'inherit', lineHeight: 1.6 };
 
-export function CompactionTab(props: { data: DashboardData; sessionId?: string | null }): unknown {
+export function CompactionTab(props: EvidenceProps & { data: DashboardData; sessionId?: string | null }): unknown {
   const { data, sessionId } = props;
-  const [filter, setFilter] = useState<'injected' | 'direct'>('injected');
+  const [filter, setFilter] = useState<'injected' | 'feedback' | 'direct'>('injected');
   const compactions = data.timeline?.compactions ?? [];
   const groups = groupCompactions(compactions);
   const totals = data.timeline?.compactionTotals;
   const injected = data.messages.filter(isInjected);
+  const feedback = data.messages.filter((message) => message.kind === 'tool-result');
   const direct = data.messages.filter((message) => message.kind === 'user' && message.sourceKind === 'user');
-  const shown = filter === 'injected' ? injected : direct;
+  const shown = filter === 'injected' ? injected : filter === 'feedback' ? feedback : direct;
+  const categoryLabel = filter === 'injected' ? '上下文注入' : filter === 'feedback' ? '工具结果回填' : '直接输入';
   return h('div', { style: { display: 'flex', flexDirection: 'column', gap: 12 } }, [
     h('div', { key: 'totals', style: { display: 'flex', flexWrap: 'wrap', gap: '8px 20px', fontSize: 12 } }, [
       h('strong', { key: 'title' }, '压缩与注入'),
@@ -27,7 +31,7 @@ export function CompactionTab(props: { data: DashboardData; sessionId?: string |
     ]),
     h('p', { key: 'hint', style: { margin: 0, fontSize: 11, opacity: 0.65 } }, '点击卡片展开详情。历史快照为有界内容节选，Token 为消息表面估算值；累计统计可能包含已超出保留范围的事件。'),
     ...(groups.length ? groups.slice().reverse().map((group) => {
-      if (group.length === 1) return eventCard(group[0]!, sessionId);
+      if (group.length === 1) return eventCard(group[0]!, sessionId, props);
       const first = group[0]!;
       const last = group[group.length - 1]!;
       const reclaimed = first.beforeTokens !== null && last.afterTokens !== null ? Math.max(0, first.beforeTokens - last.afterTokens) : null;
@@ -37,17 +41,18 @@ export function CompactionTab(props: { data: DashboardData; sessionId?: string |
           h('strong', { key: 'title' }, `✂️ 历史修剪 · ${group.length} 次已聚合 · ${formatDateTime(first.timeMs)}`),
           h('div', { key: 'impact', style: { marginLeft: 16 } }, `${token(first.beforeTokens)} → ${token(last.afterTokens)} Token · 合计回收 ${token(reclaimed)} · 回收率 ${formatPercent(ratio)}`),
         ]),
+        h(EvidenceButton, {...props, chain: () => compactionEvidence(sessionId ?? 'current', group), label: '查看修剪组证据链'}),
         h('p', { key: 'rule', style: { opacity: 0.65 } }, '按连续事件、2 秒内发生且前后 Token 衔接聚合展示；不代表宿主记录了同一事务。展开下列条目查看各次替换。'),
-        h('div', { key: 'items', style: { display: 'grid', gap: 8 } }, group.map((event) => eventCard(event, sessionId))),
+        h('div', { key: 'items', style: { display: 'grid', gap: 8 } }, group.map((event) => eventCard(event, sessionId, props))),
       ]);
     }) : [h('div', { key: 'empty', style: card }, '暂无压缩或历史修剪事件。')]),
     h('div', { key: 'filters', style: { display: 'flex', gap: 8, alignItems: 'center' } }, [
-      h('strong', { key: 'title' }, '注入事件'),
-      ...(['injected', 'direct'] as const).map((value) => h('button', { key: value, type: 'button', 'aria-pressed': filter === value, onClick: () => setFilter(value), style: { cursor: 'pointer', opacity: filter === value ? 1 : 0.55 } }, value === 'injected' ? `注入 ${injected.length}` : `直接输入 ${direct.length}`)),
+      h('strong', { key: 'title' }, '上下文追加事件'),
+      ...(['injected', 'feedback', 'direct'] as const).map((value) => h('button', { key: value, type: 'button', 'aria-pressed': filter === value, onClick: () => setFilter(value), style: { cursor: 'pointer', opacity: filter === value ? 1 : 0.55 } }, value === 'injected' ? `上下文注入 ${injected.length}` : value === 'feedback' ? `工具结果回填 ${feedback.length}` : `直接输入 ${direct.length}`)),
     ]),
-    h('p', { key: 'injection-grouping', style: { margin: 0, fontSize: 11, opacity: 0.65 } }, '按显示时间（秒）聚合；数量与 Token 为组内事件合计，展开查看各次注入的原始顺序与详情。'),
+    h('p', { key: 'injection-grouping', style: { margin: 0, fontSize: 11, opacity: 0.65 } }, '工具结果回填按结果消息计数，通过 callId 关联工具调用，不保证数量严格一一对应。上下文注入不含工具结果、助手输出及用户直接输入。按秒聚合，Token 为消息估算值，不等于请求窗口实际增量。'),
     ...(shown.length ? groupInjections(shown).slice().reverse().map((group) => {
-      if (group.length === 1) return injectionCard(group[0]!, sessionId);
+      if (group.length === 1) return injectionCard(group[0]!, sessionId, props);
       const sources = new Map<string, number>();
       for (const message of group) {
         const label = `${MESSAGE_KIND_LABELS[message.kind] ?? message.kind} / ${message.toolName ?? message.sourceKind}`;
@@ -55,12 +60,13 @@ export function CompactionTab(props: { data: DashboardData; sessionId?: string |
       }
       return h('details', { key: `injection-group-${Math.floor(group[0]!.timeMs / 1000)}`, style: card }, [
         h('summary', { key: 'summary', style: summaryStyle }, [
-          h('strong', { key: 'title' }, `📥 ${filter === 'injected' ? '注入' : '直接输入'} · ${group.length} 条已聚合 · ${formatDateTime(group[0]!.timeMs)}`),
+          h('strong', { key: 'title' }, `📥 ${categoryLabel} · ${group.length} 条已聚合 · ${formatDateTime(group[0]!.timeMs)}`),
           h('div', { key: 'total', style: { marginLeft: 16 } }, `合计 +${formatFull(group.reduce((sum, message) => sum + message.tokens, 0))} Token · ${[...sources].map(([source, count]) => `${source} ×${count}`).join(' · ')}`),
         ]),
-        h('div', { key: 'items', style: { display: 'grid', gap: 8, marginTop: 8 } }, group.map((message) => injectionCard(message, sessionId))),
+        h(EvidenceButton, {...props, chain: () => ({title:`同秒${categoryLabel}证据`,conclusion:`${group.length} 条 · ${group.reduce((sum,item)=>sum+item.tokens,0)} Token`,level:'derived',rule:'按显示时间（秒）分组；不表示同一事务或因果关系。',facts:[],notes:['组内保留事件原始顺序。'],refs:group.map(item=>eventRef(sessionId ?? 'current',item.seq,categoryLabel))}),label:`查看${categoryLabel}组证据链`}),
+        h('div', { key: 'items', style: { display: 'grid', gap: 8, marginTop: 8 } }, group.map((message) => injectionCard(message, sessionId, props))),
       ]);
-    }) : [h('div', { key: 'no-injections', style: card }, filter === 'injected' ? '暂无注入事件。' : '暂无直接输入。')]),
+    }) : [h('div', { key: 'no-injections', style: card }, `暂无${categoryLabel}事件。`)]),
   ]);
 }
 
@@ -167,13 +173,14 @@ export function groupCompactions(events: Compaction[]): Compaction[][] {
   return groups;
 }
 
-function eventCard(event: Compaction, sessionId?: string | null): unknown {
+function eventCard(event: Compaction, sessionId?: string | null, evidence: EvidenceProps = {}): unknown {
   return h('details', { key: event.id, style: card }, [
       h('summary', { key: 'summary', style: summaryStyle }, [
         h('strong', { key: 'kind' }, `${event.kind === 'summary' ? '📦 摘要压缩' : '✂️ 历史修剪'} · ${formatDateTime(event.timeMs)}`),
         h('div', { key: 'tokens', style: { marginLeft: 16 } }, `${token(event.beforeTokens)} → ${token(event.afterTokens)} Token · 回收 ${token(event.reclaimedTokens)} · 回收率 ${formatPercent(event.reclaimRatio)} · 耗时 ${formatMs(event.elapsedMs)}`),
         h('div', { key: 'reason', style: { marginLeft: 16, opacity: 0.65 } }, `触发原因：${triggerLabel(event)}${event.turn !== null ? ` · 第 ${event.turn} 轮` : ''}`),
       ]),
+      h(EvidenceButton, {...evidence, chain: () => compactionEvidence(sessionId ?? 'current', [event])}),
       h(CompactionDetails, { key: 'detail', event, sessionId }),
     ]);
 }
@@ -190,12 +197,14 @@ export function groupInjections(messages: Injection[]): Injection[][] {
   }
   return [...groups.entries()].sort(([a], [b]) => a - b).map(([, group]) => group);
 }
-function injectionCard(message: Injection, sessionId?: string | null): unknown {
+function injectionCard(message: Injection, sessionId?: string | null, evidence: EvidenceProps = {}): unknown {
   return h('details', { key: `injection-${message.seq}`, style: card }, [
       h('summary', { key: 'summary', style: summaryStyle }, `📥 ${MESSAGE_KIND_LABELS[message.kind] ?? message.kind} · ${message.sourceKind}${message.toolName ? ` / ${message.toolName}` : ''} · ${formatDateTime(message.timeMs)} · +${formatFull(message.tokens)} Token`),
       h('div', { key: 'detail', style: { marginTop: 12, display: 'grid', gap: 10 } }, [
+        h(EvidenceButton, {...evidence, chain: () => messageEvidence(sessionId ?? 'current', message, [message])}),
         h('div', { key: 'source' }, `来源：${MESSAGE_KIND_LABELS[message.kind] ?? message.kind} / ${message.sourceKind}${message.toolName ? ` / ${message.toolName}` : ''} · 事件 #${message.seq}${message.turn !== null ? ` · 第 ${message.turn} 轮` : ''}`),
-        h('div', { key: 'delta' }, `加入前 ${formatFull(Math.max(0, message.cumulativeTokens - message.tokens))} → 加入后 ${formatFull(message.cumulativeTokens)} Token（增加 ${formatFull(message.tokens)}）`),
+        h('div', { key: 'call' }, message.kind === 'tool-result' ? `关联工具调用 callId：${message.callId ?? '未提供'}（按结果消息计数）` : '上下文消息追加'),
+        h('div', { key: 'delta' }, `加入前 ${formatFull(Math.max(0, message.cumulativeTokens - message.tokens))} → 加入后 ${formatFull(message.cumulativeTokens)} Token（消息表面估算，增加 ${formatFull(message.tokens)}；非请求窗口实际增量）`),
         h('div', { key: 'split' }, `文本 ${formatFull(message.textTokens)} · 工具调用 ${formatFull(message.toolCallTokens)} · 文件/图像 ${formatFull(message.fileTokens)} Token`),
         h('div', { key: 'preview', style: { maxHeight: 240, overflowY: 'auto', padding: 10, background: 'color-mix(in srgb, currentColor 4%, transparent)', borderRadius: 6 } }, h('pre', { style: preStyle }, message.preview || '详情不可用：宿主未提供内容预览。')),
         h('span', { key: 'limit', style: { opacity: 0.6 } }, '预览最多 1000 字符；完整内容请下载会话日志。'),

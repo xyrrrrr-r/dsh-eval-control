@@ -1,45 +1,57 @@
 # dsh-eval-control
 
+[![源码版本 0.4.0](https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/badges/version.svg)](package.json)
+[![License Apache-2.0](https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/badges/license.svg)](LICENSE)
+[![验证环境 DSH 0.2.0-rc.2](https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/badges/dsh.svg)](#环境要求)
+[![Node.js 22.19.x–22.x 或 24+](https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/badges/node.svg)](package.json)
+[![TypeScript 6.0.3](https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/badges/typescript.svg)](package.json)
+
 DSH 轨迹分析与 aeval 评测控制插件。
 
-在会话中查看上下文如何增长、哪些消息消耗 Token、压缩替换了什么，以及工具和 Team 的运行情况；对比不同会话，下载差异报告，或生成带有效期与密码的只读分享链接。
+在会话中查看上下文如何增长、哪些消息消耗 Token、压缩替换了什么，以及工具错误的原始证据；通过团队协作关系图、交互时序图和任务板，看清主子 Agent 的沟通与任务交接。对比不同会话，下载差异报告，或生成带有效期与密码的只读分享链接。
 
 同时提供 aeval 所需的变量注入、预算控制、fork 血统校验和证据描述文件。普通轨迹分析与评测控制独立工作：查看面板不需要配置评测试次。
 
-本文对应仓库当前实现，`package.json` 版本为 `0.3.0`。发行包的功能取决于实际安装版本。
+[快速开始](#快速开始) · [面板功能](#面板功能) · [团队协作](#团队协作关系图与交互时序) · [证据链](#证据链从结论回到原始事件) · [导出报告](#导出与报告模板)
+
+本文对应仓库当前实现，`package.json` 版本为 `0.4.0`。发行包的功能取决于实际安装版本。
 
 ## 面板 GIF 演示
 
-以下动图使用当前面板组件和演示数据，由关键操作截图合成循环 GIF；不包含真实会话内容。点击折叠项可查看其他面板。
+以下动图由演示数据的关键操作截图合成循环 GIF，不包含真实会话内容。本轮已使用最新面板重新录制，包含协作关系图、交互时序、全历史消息和工具错误证据。点击折叠项可查看其他面板。
 
 **上下文演化**：切换步骤 / 轮次、选中压缩事件、适配纵轴范围。
 
-![上下文演化：轮次切换、事件定位与纵轴适配](docs/demo/panels/context-evolution.gif)
+![上下文演化：轮次切换、事件定位与纵轴适配](https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/demo/panels/context-evolution.gif)
+
+**团队协作**：主子与子子 Agent 关系、交接方向筛选、消息原文、轨迹证据和共享任务板。
+
+![团队协作关系图、交互时序、消息证据与任务板（合成数据）](https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/demo/panels/team-collaboration.gif)
 
 <details>
 <summary>总览诊断与消息 Token</summary>
 
 查看窗口占用和右侧告警，展开诊断建议，切换消息台账与注入筛选。
 
-![总览告警与消息 Token 筛选](docs/demo/panels/overview-messages.gif)
+![总览告警与消息 Token 筛选](https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/demo/panels/overview-messages.gif)
 
 </details>
 
 <details>
 <summary>压缩替换详情与聚合事件</summary>
 
-展开摘要压缩，查看替换手段、历史内容与检查点的对应关系，以及聚合后的历史修剪和同秒注入事件。
+展开摘要压缩，查看替换手段、历史内容与检查点的对应关系，以及聚合后的历史修剪和注入来源。
 
-![压缩替换关系、替换手段和事件聚合](docs/demo/panels/compression-injection.gif)
+![压缩替换关系、替换手段和事件聚合](https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/demo/panels/compression-injection.gif)
 
 </details>
 
 <details>
-<summary>工具分布与 Team 活动</summary>
+<summary>工具分布与失败证据</summary>
 
-查看工具调用及错误分布，放大图表，切换成员忙碌时间和并发统计。
+查看工具调用及错误分布、放大图表，再打开失败标红、错误原文和规则原因分析。
 
-![工具调用分布与 Team 成员活动](docs/demo/panels/tools-team.gif)
+![工具调用分布、缩放和失败原因证据](https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/demo/panels/tools-team.gif)
 
 </details>
 
@@ -48,7 +60,7 @@ DSH 轨迹分析与 aeval 评测控制插件。
 
 比较两次运行，查看资源消耗雷达图、原始值与差异报告。
 
-![会话对比、雷达图和差异报告](docs/demo/panels/session-comparison.gif)
+![会话对比、雷达图和差异报告](https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/demo/panels/session-comparison.gif)
 
 </details>
 
@@ -57,7 +69,7 @@ DSH 轨迹分析与 aeval 评测控制插件。
 
 切换报告格式，查看只读分享的有效期与访问权限选项。此演示未创建分享链接。
 
-![报告导出格式与只读分享配置](docs/demo/panels/export-share.gif)
+![报告导出格式与只读分享配置](https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/demo/panels/export-share.gif)
 
 </details>
 
@@ -113,11 +125,11 @@ dsh plugin --profile web add /absolute/path/to/dsh-eval-control
 | Tab | 可以查看或执行的操作 |
 | --- | --- |
 | 总览 | 上下文窗口占用、组成拆解、会话摘要；右侧集中展示智能告警、规则设置和可折叠诊断数据 |
-| 上下文演化 | 按步骤、轮次或时间查看输入占用、表面 Token 和输出 Token；区分摘要压缩、历史修剪、注入与激增 |
-| 消息 Token | 消息级 Token 台账、类型和范围筛选、排序、高消耗与异常消息定位 |
+| 上下文演化 | 按步骤、轮次或时间查看输入占用、上下文内容估算 Token 和输出 Token；区分摘要压缩、历史修剪、注入与激增 |
+| 消息 Token | 默认全部历史，可选最近 N 条或事件范围；角色、Token 范围、排序与高消耗消息定位 |
 | 压缩与注入 | 事件聚合、压缩前后对比、替换关系、替换手段、注入来源和内容节选 |
-| 工具分布 | 调用次数、显式错误、工具分布图及调用明细 |
-| Team 活动 | 成员活动、忙碌时间、并发情况和任务相关信息；无成员时显示空状态 |
+| 工具分布 | 调用次数、显式错误、分布图与调用明细；失败标红、规则原因分析及原生工具卡片定位 |
+| Team 活动 | 主子 Agent 协作关系图、交互时序、成员分工与活动泳道、任务板和消息交接；支持筛选与证据跳转 |
 | 对比分析 | 选择 2–4 个会话，生成资源消耗对比、上下文折线、雷达图、差异报告与建议 |
 
 顶部关键指标卡可打开计算口径与事件证据；其他 Tab 可通过 **总览诊断** 返回诊断中心。
@@ -128,17 +140,23 @@ dsh plugin --profile web add /absolute/path/to/dsh-eval-control
 
 抽屉显示结论、规则、实际计算输入、样本与分母、证据等级和数据质量提示。突增同时展示前 5 条已保留消息的基线中位数、相邻消息体积差、主导成分、服务商输出用量和时间间隔；这些数值分别标明来源，不将消息估算等同于模型输出，也不将时间相邻当成因果关系。
 
-点击关联事件，按 `sessionId + seq` 读取宿主原始持久事件，高亮目标行、展示前后最多 3 条事件，并可查看 JSON 或下载本条记录。关联引用支持搜索和分页，跨会话引用保留所属会话。工具事件还可使用宿主的 **Trajectory 定位工具调用**。
+窗口占用证据额外展示“未缓存输入 + 缓存读取 = 请求占用”和“请求占用 ÷ 窗口上限”的实际数值公式；每个输入分别关联事件与原始字段。点击来源后可核对原始值是否与计算快照一致，回复正文和输出不计入请求占用。
+
+点击关联事件，按 `sessionId + seq` 读取宿主原始持久事件，显示目标事件，并可折叠查看前后最多 3 条事件、检查 JSON 或下载本条记录。关联引用支持搜索和分页，跨会话引用保留所属会话。工具事件还可使用宿主的 **Trajectory 定位工具调用**。关联事件卡片展示工具名、命令或路径摘要、轮次、步骤和时间；`seq` 与 `callId` 收入定位详情，调用和结果通过同一 `callId` 关联。当前会话且宿主支持时可打开原生工具卡片，跨会话或缺少调用 ID 时使用原始事件查看器。
 
 当前宿主尚不支持任意序号在原生 Trajectory 中定位，因此普通事件在抽屉内的 **原始轨迹** 区查看。引用和投影均有保留上限；缺失、读取失败、未知分母或未记录的耗时起止会明确提示，不会用相邻事件代替。关闭抽屉保留原 Tab 的筛选和缩放。
 
-![异常结论、检测依据与原始轨迹定位（演示数据）](docs/demo/panels/evidence-chain.gif)
+![窗口占用公式、原始用量来源和相邻事件核查（演示数据）](https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/demo/panels/evidence-chain.gif)
 
 实现和数据约定见 [证据链设计](docs/evidence-chain.md)。
 
 ### 上下文演化与缩放
 
-演化图保留轮次内的请求样本，事件依据发生顺序定位。事件标记分行显示，摘要压缩和历史修剪独立计数、独立筛选；注入和激增按钮也展示数量。悬停查看详情，点击可固定事件；密集标记使用聚合气泡展示。
+演化图保留轮次内的请求样本，事件依据发生顺序定位。事件标记分行显示，摘要压缩和历史修剪独立计数、独立筛选；上下文注入、工具结果回填和激增按钮分别展示数量并独立筛选。上下文注入排除工具结果、助手输出和用户直接输入；普通工具结果按相邻模型请求区间聚合，默认显示估算 Token 最高的 10 组和全部失败结果，也可切换全部回填区间。按钮区分可见组数、全部普通区间组数与原始结果数；每组显示结果次数、Token、工具贡献与最大结果。失败结果独立标红，不计入普通聚合。通过 `callId` 关联调用，不保证结果数与调用数严格一一对应。两类消息的 Token 均为估算值，不等于请求窗口实际增量。悬停查看详情，点击可固定事件；密集标记使用聚合气泡展示。
+
+事件标记和激增基线读取宿主当前可读的原始会话历史，向前加载至日志起点，并按序号去重。请求、消息及压缩/修剪样本按实际数量采集，不再固定截断为 64 或 256 条；页面显示加载进度与覆盖范围。未保留前后 Token 的旧压缩事件显示未知，不能恢复已清理的原始日志。
+
+**上下文内容估算**可按请求拆成消息正文、历史思考、工具调用参数、工具结果正文、系统/开发者内容、图片引用结构和其他结构开销。每项说明是否为候选输入、依路由而定或非真实计价；历史思考包含在内容估算中，但不保证实际发送。工具定义及协议转换等额外开销不在合计内。没有完整序列化请求体时，不能将估算成分视为实际请求清单；窗口占用以服务商用量为准。
 
 上下文演化与对比折线使用相同的缩放交互：
 
@@ -150,6 +168,12 @@ dsh plugin --profile web add /absolute/path/to/dsh-eval-control
 
 滚轮正常滚动页面，不触发图表缩放。
 
+### 消息 Token：默认全部历史
+
+消息页默认读取全部可读历史，可切换 **最近 N 条**（数量可输入），或设置起止事件序号，再叠加角色和单条 Token 范围筛选。列表每页 100 条；分页不会缩减统计范围，历史未加载完整时显示覆盖状态。正文通过证据链按需读取。
+
+激增基线使用该条消息之前 5 条追加消息的 Token 中位数，至少需要 3 条基线；当前消息达到 1,000 Token 且至少为基线的 3 倍时标记激增。筛选不会改变基线。工具结果激增通过 `callId` 关联来源调用；助手长文本等其他成分也可能激增，不一概归因为工具调用。
+
 ### 压缩、修剪与注入详情
 
 压缩详情把受影响的旧消息与替换后的内容分组关联，提供前后 Token、回收量、内容节选及替换手段。保留消息可按需显示；前后两列支持比例同步滚动。
@@ -159,6 +183,25 @@ dsh plugin --profile web add /absolute/path/to/dsh-eval-control
 连续且满足时间与 Token 连续性条件的历史修剪会聚合为一个条目。同一显示秒内的注入事件也会聚合，展开后保留各原始事件的顺序与来源。
 
 历史快照和节选有容量上限。需要完整事件记录时，可从总览右侧 **诊断数据** 使用宿主日志导出入口。
+
+### 团队协作：关系图与交互时序
+
+打开 **Team 活动**，先看“谁与谁协作”，再沿时间查看“何时分派、沟通和交接”。
+
+| 视图 | 交互与含义 |
+| --- | --- |
+| 协作关系图 | 主 Agent、子 Agent 与共享任务板作为节点；定向连线显示消息数量、任务归属和状态事件，点击连线按方向筛选 |
+| 交互时序图 | 从早到晚展示成员加入、任务分配/改派、任务状态和消息；支持日期、成员、交互类型筛选，每段最多 30 条 |
+| 交互详情 | 点击箭头展开发送方、接收方、发生时间、原文和轨迹证据；消息引用同时保留排队与送达事件 |
+| 成员泳道与卡片 | 查看轮次重叠、空档、分工、忙碌时长、输入 Token、工具错误及首活动延迟；点击轮次核查开始/结束证据 |
+| 共享任务板 | 待处理、进行中、已完成三列，展示负责人、依赖和任务详情；成员筛选同步作用于任务与消息 |
+| 消息往来 | 按消息 ID 合并排队和送达回执，展示收发方向、送达耗时、完整正文与证据；可逐批加载 |
+
+**主 Agent 如何分派？** 点击主 Agent → 子 Agent 的连线，再选择时序中的消息，阅读实际指令和任务说明；反向连线查看子 Agent 的汇报。子 Agent 之间有直接消息时显示对应箭头，没有记录时明确提示，不补画推测关系。
+
+蓝色实线表示有明确发送方和接收方的消息；任务归属使用橙色虚线连接共享任务板与负责人。任务快照没有操作人字段，**负责人变化不能证明由主 Agent 下发，也可能是成员认领**。送达回执仅证明消息被接收，不证明任务已完成。时序图纵向等距，真实时间间隔以时间戳为准。
+
+成员累计忙碌时间可能重叠；活动跨度包含跨天和轮次间的空档，不能等同于持续执行耗时。主会话协作记录按需读取，成员活动仍受可用投影覆盖范围影响；缺少子会话时显示不可读状态，无 Team 成员时显示空状态。
 
 ## 智能告警与配置应用
 
@@ -184,6 +227,8 @@ dsh plugin --profile web add /absolute/path/to/dsh-eval-control
 **预设中的配置修改对新建会话生效，现有会话保留原预设版本。** 界面会显示目标配置的生效范围。
 
 工具错误、重复调用和延迟建议提供配置文件路径与手动处理指引；这些聚合指标不足以自动确定可靠的工具参数修复或缓存策略。
+
+**AI 模型诊断暂时停用。** 总览、证据链与单次工具失败详情不显示 AI 诊断入口，宿主未注册该服务；现有规则告警、错误文本分析、证据链和配置建议继续可用。
 
 ## 会话对比与差异报告
 
@@ -256,12 +301,12 @@ dsh plugin --profile web add /absolute/path/to/dsh-eval-control
 | --- | --- |
 | 顶部及对比中的 Token 消耗 | 未缓存输入 + 输出，不等于计费金额 |
 | 上下文窗口占用 | 请求输入占用，包含缓存读 |
-| 表面 Token、消息组成与节选 Token | 启发式估算，与 `dsh-token-meter` 的镜像算法一致，`CHARS_PER_TOKEN = 4` |
+| 上下文内容估算 Token、消息组成与节选 Token | 启发式估算，与 `dsh-token-meter` 的镜像算法一致，`CHARS_PER_TOKEN = 4` |
 | 压缩频率 | 摘要压缩次数 / 千输入 Token；历史修剪单独统计 |
-| 工具错误率 | 已观察到的显式工具错误 / 工具调用数 |
+| 工具错误率 | 已观察到的显式工具错误 / 已知工具结果数；缺失结果不算成功 |
 | 雷达及最低值排名 | 所选会话内的资源表现；比较时应同时考虑任务规模、模型与完成质量 |
 
-分析基于宿主提交的会话事件和投影。缓存与历史记录有上限，无法获取的内容会显示缺失状态。历史会话读取借用宿主只读会话引用，不启动 Agent。
+分析基于宿主提交的会话事件和投影。原始历史按当前可读日志采集，部分聚合投影、证据引用和内容节选仍有容量边界；无法获取的内容会显示缺失状态。历史会话读取借用宿主只读会话引用，不启动 Agent。
 
 本插件的分析与分享数据保存在本地。内容节选、复制、JSON 和完整日志导出可能包含原会话中已保留的路径或正文，分享前应核对所选导出内容。诊断中的配置应用由用户显式触发；该操作会持久化修改对应宿主配置。
 
@@ -317,7 +362,7 @@ npm test               # 构建与完整测试流程
 ```bash
 npm run typecheck:client
 npm run build:client
-node --test test/client_dashboard.test.mjs test/client_evolution.test.mjs test/client_compaction.test.mjs test/client_compare_report.test.mjs
+node --test test/client_*.test.mjs
 ```
 
 宿主配置与分享测试需先编译测试源码：
@@ -333,6 +378,7 @@ node --test .test-dist/test/diagnostic_config.test.js .test-dist/test/report_sha
 | --- | --- |
 | `client-src/` | 面板、图表、诊断配置操作、对比、报告与分享 UI |
 | `client/client.js` | esbuild 生成的浏览器入口 |
+| `client-src/teamActivity.ts`、`client-src/teamCollaboration.tsx` | 协作事件重建、关系图与交互时序 |
 | `src/analytics/` | 轨迹指标与上下文时间线投影 |
 | `src/analytics_entry.ts` | 分析服务入口 |
 | `src/diagnostic_config.ts` | 可验证的压缩配置读取与应用 |
@@ -357,7 +403,7 @@ node --test .test-dist/test/diagnostic_config.test.js .test-dist/test/report_sha
 
 **为什么两条 Token 曲线不同？**
 
-窗口占用包含缓存读，表面 Token 是消息内容估算，顶部消耗则采用未缓存输入加输出。它们回答的问题不同。
+窗口占用包含缓存读，上下文内容估算包括历史思考、工具参数等保留内容，且与实际请求序列化和模型分词不同；顶部消耗采用未缓存输入加输出。可在演化页按请求查看估算成分与参与情况。
 
 **为什么配置应用成功后，当前会话还没变化？**
 
@@ -373,13 +419,9 @@ node --test .test-dist/test/diagnostic_config.test.js .test-dist/test/report_sha
 
 ## 更多文档
 
-- [PRD v1.0](docs/PRD-v1.0.md)
-- [压缩与注入实现说明](docs/prd-3.5-implementation.md)
-- [Dashboard 与告警实现说明](docs/prd-3.6-3.7-implementation.md)
-- [对比、导出与分享实现说明](docs/prd-3.8-3.9-implementation.md)
-- [轨迹指标契约](docs/trajectory-metrics-contract.md)
 - [市场安装到评测报告](docs/MARKET-TO-REPORT.md)
-- [旧版 README 与历史接线记录](docs/README-legacy.md)
+- [证据链设计与数据约定](docs/evidence-chain.md)
+- [面板动图录制说明](docs/demo/panels/README.md)
 - [变更记录](CHANGELOG.md)
 
 文档链接相对仓库根目录；从 npm 页面阅读时，可进入 [GitHub 仓库](https://github.com/xyrrrrr-r/dsh-eval-control) 查看完整文档。

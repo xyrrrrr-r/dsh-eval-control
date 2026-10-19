@@ -1,3 +1,6 @@
+import type { InjectionHistory } from './injectionHistory.js';
+import { EvidenceButton } from './evidencePanel.js';
+import { aggregateEvidence, toolEvidence, type EvidenceProps } from './evidence.js';
 /**
  * Tool distribution tab (PRD §3.6): call counts with error overlay, from the
  * contextTimeline projection's bounded top-20 tool table.
@@ -8,7 +11,7 @@ import { formatFull } from './format.js';
 import { BarChart, ChartViewport } from './charts.js';
 import type { DashboardData } from './derive.js';
 
-export function ToolsTab(props: { data: DashboardData }): unknown {
+export function ToolsTab(props: EvidenceProps & { data: DashboardData; history?: InjectionHistory }): unknown {
   const { data } = props;
   const [showOk, setShowOk] = useState(true);
   const [showErrors, setShowErrors] = useState(true);
@@ -26,6 +29,7 @@ export function ToolsTab(props: { data: DashboardData }): unknown {
       key: 'stats',
       style: { display: 'flex', flexWrap: 'wrap', gap: '8px 24px', fontSize: '12.5px', alignItems: 'baseline' },
     }, [
+      h(EvidenceButton, {...props, chain: () => { const chain=aggregateEvidence(props.evidenceSessionId ?? 'current', '工具调用与错误', data.analytics, data.timeline, 'tools'); const failures=props.history?.toolFailures??[]; return {...chain,toolFailures:failures,refs:[...failures.flatMap(f=>[...(f.callSeq!==undefined?[{sessionId:props.evidenceSessionId??'current',seq:f.callSeq,role:'失败工具调用',failed:true}]:[]),{sessionId:props.evidenceSessionId??'current',seq:f.resultSeq,role:'错误结果',failed:true}]),...chain.refs]}; }}),
       h('span', { key: 'title', style: { fontSize: '13px', fontWeight: 500 } }, '工具调用分布'),
       h('span', { key: 'calls' }, `调用 ${formatFull(totalCalls)} 次`),
       h('span', { key: 'errors' }, `错误 ${formatFull(totalErrors)} 次${totalCalls > 0 ? `（${((totalErrors / totalCalls) * 100).toFixed(1)}%）` : ''}`),
@@ -56,6 +60,8 @@ export function ToolsTab(props: { data: DashboardData }): unknown {
         padding: '10px 14px', fontSize: '12px', display: 'flex', flexWrap: 'wrap', gap: '6px 22px',
       },
     }, [
+      h(EvidenceButton, {...props, chain: () => toolEvidence(props.evidenceSessionId ?? 'current', selectedTool.name, data.analytics, data.timeline, props.history?.toolFailures)}),
+      h('span', { key: 'history-status', role: 'status' }, props.history?.phase === 'ready' ? '错误分析来自完整可读历史' : '历史错误证据加载中或不完整'),
       h('span', { key: 'name', style: { fontWeight: 600 } }, selectedTool.name),
       h('span', { key: 'calls' }, `调用 ${selectedTool.calls} 次`),
       h('span', { key: 'errors' }, `错误 ${selectedTool.errors} 次`),

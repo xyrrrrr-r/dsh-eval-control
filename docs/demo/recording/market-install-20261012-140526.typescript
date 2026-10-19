@@ -1,77 +1,0 @@
-Script started on 2026-10-12 14:05:26+00:00 [COMMAND="bash /root/e2e/accept/demo/out/session.sh" <not executed on terminal>]
-echo "=== artifacts:"; ls -la "$DEMO/out"
-export PATH="$(npm prefix -g)/bin:$PATH"
-echo "=== installed tools: pnpm=$(pnpm --version) dsh=$(dsh --version) npm=$(npm --version)"
-
-=== 市场安装：社区用户真正会做的那条路（先把工具装上） ===
-$ export PATH=/root/e2e/tools/node-v24.20.0-linux-arm64/bin:/root/e2e/tools/node-v24.20.0-linux-arm64/bin:/root/src/aeval/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
-$ npm i -g --allow-scripts=pnpm,@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs pnpm @deepseek-ai/dsh
-⠙[1G[0K⠹[1G[0K⠸[1G[0K⠼[1G[0K⠴[1G[0K⠦[1G[0K⠧[1G[0K⠇[1G[0K⠏[1G[0K⠋[1G[0K⠙[1G[0K⠹[1G[0K⠸[1G[0K⠼[1G[0K⠴[1G[0K⠦[1G[0K⠧[1G[0K⠇[1G[0K⠏[1G[0K⠋[1G[0K⠙[1G[0K⠹[1G[0K⠸[1G[0K⠼[1G[0K⠴[1G[0K⠦[1G[0K⠧[1G[0K⠇[1G[0K⠏[1G[0K⠋[1G[0K⠙[1G[0K⠹[1G[0K⠸[1G[0K⠼[1G[0K⠴[1G[0K⠦[1G[0K⠧[1G[0K⠇[1G[0K⠏[1G[0K⠋[1G[0K⠙[1G[0K⠹[1G[0K⠸[1G[0K⠼[1G[0K⠴[1G[0K⠦[1G[0K⠧[1G[0K⠇[1G[0K⠏[1G[0K⠋[1G[0K[1mnpm[22m [33mwarn[39m [94mdeprecated[39m node-domexception@1.0.0: Use your platform's native DOMException instead
-⠋[1G[0K⠙[1G[0K⠹[1G[0K⠸[1G[0K⠼[1G[0K⠴[1G[0K⠦[1G[0K⠧[1G[0K⠇[1G[0K⠏[1G[0K⠋[1G[0K⠙[1G[0K⠹[1G[0K⠸[1G[0K⠼[1G[0K⠴[1G[0K⠦[1G[0K⠧[1G[0K⠇[1G[0K⠏[1G[0K⠋[1G[0K⠙[1G[0K⠹[1G[0K⠸[1G[0K⠼[1G[0K⠴[1G[0K⠦[1G[0K⠧[1G[0K⠇[1G[0K⠏[1G[0K⠋[1G[0K⠙[1G[0K⠹[1G[0K⠸[1G[0K⠼[1G[0K⠴[1G[0K⠦[1G[0K⠧[1G[0K⠇[1G[0K⠏[1G[0K⠋[1G[0K
-added 540 packages in 13s
-⠋[1G[0K
-⠋[1G[0K63 packages are looking for funding
-⠋[1G[0K  run `npm fund` for details
-⠋[1G[0K$ pnpm --version
-12.11.2
-$ dsh --version
-0.2.0-rc.2
-
-=== 指定自己的 DSH_HOME（默认是 ~/.dsh —— 这里绝不碰它） ===
-$ export DSH_HOME=/root/e2e/accept/demo/dsh-home
-
-=== 一键安装插件到 profile: web（DSH 会在首次使用时初始化该 profile） ===
-$ dsh plugin --profile web add dsh-eval-control
-dsh: initialized profile web at /root/e2e/accept/demo/dsh-home/profiles/web
-
-[K[0J[1APackages are hard linked from the content-addressable store to the virtual store.[0K
-  Content-addressable store is at: /root/.local/share/pnpm/store/v11[0K
-  Virtual store is at:             node_modules/.pnpm[0K
-Progress: resolved [96m2[39m, reused [96m2[39m, downloaded [96m0[39m, added [96m0[39m[0K
-[0K[K[0J[1APackages: [32m+2[39m[0K
-[32m+[39m[32m+[39m
-Progress: resolved [96m2[39m, reused [96m2[39m, downloaded [96m0[39m, added [96m2[39m
-[K[0J[1AProgress: resolved [96m2[39m, reused [96m2[39m, downloaded [96m0[39m, added [96m2[39m, done
-[K[0J[33;43m[[0m[30;43mWARN[0m[33;43m][0m Issues with peer dependencies found. Run "pnpm peers check" to list them.
-[K[0J
-[96mdependencies:[39m
-[32m+[39m dsh-eval-control [90m0.2.3[39m
-[K[0J
-Done in 26ms using pnpm v12.11.2
-[K[0J
-=== 安装结果：包装进了 profile（下面这行读的就是 profile 里的那份） ===
-$ node -p require('/root/e2e/accept/demo/dsh-home/profiles/web/node_modules/dsh-eval-control/package.json').version
-0.2.3
-
-=== profile 默认 autoInstallPeers: false，插件声明的 peer 不会跟着装 —— 补上，否则插件加载不了 ===
-$ cd /root/e2e/accept/demo/dsh-home/profiles/web
-$ pnpm config set auto-install-peers true --location project
-$ pnpm install --no-frozen-lockfile
-
-[K[0J[1A[32m✓[39m Lockfile passes supply-chain policies (verified 107ms ago)
-[K[0JProgress: resolved [96m0[39m, reused [96m397[39m, downloaded [96m0[39m, added [96m0[39m
-[K[0J[1A[33;43m[[0m[30;43mWARN[0m[33;43m][0m [31m1 deprecated subdependencies found:[39m node-domexception@1.0.0
-Progress: resolved [96m0[39m, reused [96m534[39m, downloaded [96m0[39m, added [96m0[39m
-[K[0J[1APackages: [32m+532[39m[0K
-[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m[32m+[39m
-Progress: resolved [96m532[39m, reused [96m535[39m, downloaded [96m0[39m, added [96m532[39m
-[K[0J[1AProgress: resolved [96m532[39m, reused [96m535[39m, downloaded [96m0[39m, added [96m532[39m, done
-[K[0JError: ERR_PNPM_IGNORED_BUILDS
-
-  × installing dependencies
-  ╰─▶ Ignored build scripts: @deepseek-ai/dsh-subprocess-local@0.2.0-rc.2,
-      @google/genai@2.21.0, koffi@3.1.1, node-pty@1.2.0-beta.15,
-      protobufjs@7.6.6
-  help: Run "pnpm approve-builds" to pick which dependencies should be allowed
-        to run scripts.
-
-
-=== 装完默认 standalone（设计，不是故障） ===
-$ ./node_modules/.bin/aeval-dsh-control-selfcheck
-dsh-eval-control self-check — mode: standalone
-  [ok] node            v24.20.0
-  [ok] session-reader  /root/e2e/accept/demo/dsh-home/profiles/web/node_modules/dsh-eval-control/dist/session_reader.js
-  [ok] config          none — standalone (nothing is mounted, no model call is redirected)
-  hint: set --config <path> or AEVAL_CONTROL_CONFIG to check a configured deployment
-
-Script done on 2026-10-12 14:05:42+00:00 [COMMAND_EXIT_CODE="0"]

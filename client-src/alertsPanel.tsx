@@ -230,7 +230,7 @@ export function AlertsDrawer(props: {
   input?: AlertInput; thresholds?: AlertThresholds;
   open: boolean; alerts: Alert[]; dismissed: string[]; resolved: string[];
   onClose: () => void; onDismiss: (id: string) => void; onResolve: (id: string) => void;
-  onView: (id: string) => void; onSettings: () => void;
+  onEvidence?: (id: string) => void; onView: (id: string) => void; onSettings: () => void;
 }): unknown {
   const [status, setStatus] = useState('pending');
   const [level, setLevel] = useState('all');
@@ -249,6 +249,7 @@ export function AlertsDrawer(props: {
     h('p', { key: 'detail' }, alert.detail),
     h('div', { key: 'time', style: { fontSize: 11, opacity: 0.65 } }, `首次检测：${alert.timeMs ? new Date(alert.timeMs).toLocaleString() : '等待记录'} · 状态：${statusOf(alert.id) === 'pending' ? '未处理' : statusOf(alert.id) === 'ignored' ? '已忽略' : '已处理'}`),
     h('div', { key: 'actions', style: { display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 } }, [
+      props.onEvidence ? h('button', { key: 'evidence', onClick: () => props.onEvidence?.(alert.id), style: buttonStyle }, '查看证据链') : null,
       h('button', { key: 'view', onClick: () => props.onView(alert.id), style: buttonStyle }, alert.id === 'long-gaps' ? '查看相关指标' : '查看相关图表'),
       statusOf(alert.id) === 'pending' ? h('button', { key: 'ignore', onClick: () => props.onDismiss(alert.id), style: buttonStyle }, '忽略') : null,
       statusOf(alert.id) === 'pending' ? h('button', { key: 'resolve', onClick: () => props.onResolve(alert.id), style: buttonStyle }, '标记已处理') : null,

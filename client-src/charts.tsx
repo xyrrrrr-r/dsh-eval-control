@@ -213,8 +213,10 @@ export interface LineSeries {
 }
 
 export interface ChartMarker {
+  failed?: boolean;
+  onEvidence?: (() => void) | undefined;
   x: number;
-  kind: 'compaction' | 'prune' | 'injection' | 'spike' | 'retry';
+  kind: 'compaction' | 'prune' | 'injection' | 'feedback' | 'spike' | 'retry';
   title: string;
 }
 
@@ -224,18 +226,20 @@ export function LineChart(props: {
   /** Full-window vertical extent without implying a single shared limit line. */
   scaleMax?: number | undefined;
   markers?: ChartMarker[];
+  onPointEvidence?: ((index: number) => void) | undefined;
   limit?: { value: number; label: string } | null;
   height?: number;
   yLabel?: string;
   xLabel?: string;
   formatY?: (value: number) => string;
   formatX?: (value: number) => string;
+  xTickValues?: number[];
   hidden?: Set<string>;
   onToggle?: (key: string) => void;
 }): unknown {
   const height = props.height ?? 260;
   const width = 720;
-  const padding = { top: props.eventLanes === false ? 24 : 104, right: 16, bottom: 30, left: 56 };
+  const padding = { top: props.eventLanes === false ? 24 : 126, right: 16, bottom: 30, left: 56 };
   const plotW = width - padding.left - padding.right;
   /* hover: pointer position (svg units) + the nearest sample index. */
   const [hover, setHover] = useState<{ px: number; py: number; index: number } | null>(null);
@@ -308,7 +312,7 @@ export function LineChart(props: {
   const bucketSize = 10;
   const buckets = new Map<string, Array<{ marker: ChartMarker; key: string }>>();
   for (const entry of visibleMarkers) {
-    const bucket = `${entry.marker.kind}:${Math.round(toSvgX(entry.marker.x) / bucketSize)}`;
+    const bucket = `${entry.marker.kind}:${entry.marker.failed?'failed':'normal'}:${Math.round(toSvgX(entry.marker.x) / bucketSize)}`;
     const list = buckets.get(bucket);
     if (list === undefined) buckets.set(bucket, [entry]);
     else list.push(entry);
@@ -316,7 +320,7 @@ export function LineChart(props: {
   const singles: Array<{ marker: ChartMarker; key: string }> = [];
   const clusters: Array<{ key: string; markers: ChartMarker[]; keys: string[]; cx: number }> = [];
   for (const members of buckets.values()) {
-    if (members.length > 3) {
+    if (members.length > 3 && !members.some(entry=>entry.marker.failed)) {
       const cx = members.reduce((sum, entry) => sum + toSvgX(entry.marker.x), 0) / members.length;
       clusters.push({
         key: `cluster:${members[0]!.marker.kind}:${Math.round(cx)}`,
@@ -393,7 +397,7 @@ export function LineChart(props: {
       onDoubleClick: () => setRange(null),
     }, [
       selection !== null ? h('rect', { key: 'selection', x: toSvgX(Math.min(selection.from, selection.to)), y: padding.top, width: Math.abs(toSvgX(selection.to) - toSvgX(selection.from)), height: height - padding.top - padding.bottom, fill: '#4285f4', opacity: 0.18, pointerEvents: 'none' }) : null,
-      ...(props.eventLanes === false ? [] : ['compaction', 'prune', 'injection', 'spike'] as const).map((kind) => h('g', { key: `lane-${kind}` }, [
+      ...(props.eventLanes === false ? [] : ['compaction', 'prune', 'injection', 'feedback', 'spike'] as const).map((kind) => h('g', { key: `lane-${kind}` }, [
         h('line', { x1: padding.left, x2: width - padding.right, y1: markerLane(kind), y2: markerLane(kind), stroke: 'currentColor', opacity: 0.06 }),
         h('text', { x: padding.left - 6, y: markerLane(kind) + 3, textAnchor: 'end', fontSize: 9, fill: MARKER_STYLE[kind].color }, MARKER_STYLE[kind].label),
       ])),
@@ -410,7 +414,7 @@ export function LineChart(props: {
         }, formatY(value)),
       ])),
       /* X labels */
-      ...(xTicks(xMin, xMax).map((value, index) => h('text', {
+      ...((props.xTickValues ? props.xTickValues.filter(value=>value>=xMin&&value<=xMax).filter((_,index,array)=>index===0 || index===array.length-1 || index%Math.max(1,Math.ceil(array.length/6))===0) : xTicks(xMin, xMax)).map((value, index) => h('text', {
         key: `xtick-${index}`,
         x: toSvgX(value).toFixed(1), y: height - 10, textAnchor: 'middle', fontSize: '10',
         fill: 'currentColor', opacity: 0.55,
@@ -465,14 +469,16 @@ export function LineChart(props: {
         })),
       ]) : null,
     ]),
-    eventDetail !== null && openCluster === null ? h('div', { key: 'event-detail', role: pinned ? 'region' : 'tooltip', style: { ...(pinned ? { marginTop: 8 } : { position: 'absolute', top: 102, left: `${Math.min(65, Math.max(0, (toSvgX(eventDetail.x) / width) * 100 - 15))}%`, width: 'min(380px, 90%)', zIndex: 8, pointerEvents: 'none', boxShadow: '0 4px 16px #0002' }), padding: '10px 12px', border: `1px solid ${MARKER_STYLE[eventDetail.kind].color}`, borderRadius: 8, fontSize: 12, lineHeight: 1.6, background: 'var(--dsh-eval-surface, Canvas)' } }, [
+    eventDetail !== null && openCluster === null ? h('div', { key: 'event-detail', role: pinned ? 'region' : 'tooltip', style: { ...(pinned ? { marginTop: 8 } : { position: 'absolute', top: 102, left: `${Math.min(65, Math.max(0, (toSvgX(eventDetail.x) / width) * 100 - 15))}%`, width: 'min(380px, 90%)', zIndex: 8, pointerEvents: 'none', boxShadow: '0 4px 16px #0002' }), padding: '10px 12px', border: `1px solid ${(eventDetail.failed ? 'var(--dsh-eval-red, #e5484d)' : MARKER_STYLE[eventDetail.kind].color)}`, borderRadius: 8, fontSize: 12, lineHeight: 1.6, background: 'var(--dsh-eval-surface, Canvas)' } }, [
       h('div', { key: 'header', style: { display: 'flex', gap: 12, alignItems: 'center' } }, [
-        h('strong', { key: 'kind', style: { color: MARKER_STYLE[eventDetail.kind].color } }, MARKER_STYLE[eventDetail.kind].label),
+        h('strong', { key: 'kind', style: { color: (eventDetail.failed ? 'var(--dsh-eval-red, #e5484d)' : MARKER_STYLE[eventDetail.kind].color) } }, MARKER_STYLE[eventDetail.kind].label),
         h('span', { key: 'state', style: { opacity: 0.6 } }, pinned ? '已固定选中' : '点击标记固定详情'),
         pinned ? h('button', { key: 'close', type: 'button', onClick: () => { setPinned(null); setActiveMarker(null); }, style: { marginLeft: 'auto', cursor: 'pointer' } }, '取消选中') : null,
       ]),
       h('div', { key: 'body' }, eventDetail.title),
+      pinned && eventDetail.onEvidence ? h('button', {key:'evidence',type:'button',onClick:eventDetail.onEvidence}, '查看证据链') : null,
     ]) : null,
+    props.onPointEvidence ? h('label', {key:'point-evidence',style:{fontSize:12}}, ['请求证据 ', h('select', {'aria-label':'选择请求查看证据', value:'', onChange:(event:{target:{value:string}})=>{if(event.target.value!=='')props.onPointEvidence?.(Number(event.target.value));}}, [h('option',{value:''},'选择请求…'), ...(props.series[0]?.points ?? []).map((point,index)=>h('option',{key:index,value:String(index)},`${props.formatX?.(point.x) ?? point.x}`))])]) : null,
     /* Tooltip: follows the pointer, flips near the right/bottom edges. */
     hover !== null && hoverPoints.length > 0 && eventDetail === null && openCluster === null ? h('div', {
       key: 'tooltip',
@@ -538,7 +544,7 @@ export function LineChart(props: {
           onKeyDown: (event: { key: string }) => { if (event.key === 'Enter') { setPinned(marker); setOpenCluster(null); } },
           style: { display: 'flex', alignItems: 'baseline', gap: '6px' },
         }, [
-          h('span', { key: 'dot', style: { width: '7px', height: '7px', borderRadius: kindDotRadius(marker.kind), background: MARKER_STYLE[marker.kind].color, flexShrink: 0 } }),
+          h('span', { key: 'dot', style: { width: '7px', height: '7px', borderRadius: kindDotRadius(marker.kind), background: marker.failed ? '#e5484d' : MARKER_STYLE[marker.kind].color, flexShrink: 0 } }),
           h('span', { key: 'text', style: { opacity: 0.85, whiteSpace: 'normal' } }, marker.title),
         ])),
       ]);
@@ -584,7 +590,8 @@ export function LineChart(props: {
 const MARKER_STYLE: Record<ChartMarker['kind'], { color: string; label: string }> = {
   compaction: { color: 'var(--dsh-eval-green, #30a46c)', label: '摘要压缩' },
   prune: { color: '#0891b2', label: '历史修剪' },
-  injection: { color: 'var(--dsh-eval-orange, #e8791a)', label: '注入' },
+  injection: { color: 'var(--dsh-eval-orange, #e8791a)', label: '上下文注入' },
+  feedback: { color: '#64748b', label: '工具回填' },
   spike: { color: 'var(--dsh-eval-red, #e5484d)', label: '激增' },
   retry: { color: 'var(--dsh-eval-purple, #9b59b6)', label: '重试' },
 };
@@ -617,11 +624,11 @@ function renderGuide(
       stroke: MARKER_STYLE[marker.kind].color, strokeWidth: '1',
       strokeDasharray: '3 3', opacity: 0.35 * (activeKey === null ? 1 : dim),
     }
-    : marker.kind === 'injection'
+    : (marker.kind === 'injection' || marker.kind === 'feedback')
       ? {
         x1: x, x2: x,
         y1: markerLane(marker.kind), y2: height - paddingBottom,
-        stroke: 'var(--dsh-eval-orange, #e8791a)', strokeWidth: '1',
+        stroke: MARKER_STYLE[marker.kind].color, strokeWidth: '1',
         strokeDasharray: '2 4', opacity: 0.22 * (activeKey === null ? 1 : dim),
       }
       : activeKey === key ? { x1: x, x2: x, y1: markerLane(marker.kind), y2: height - paddingBottom, stroke: MARKER_STYLE[marker.kind].color, strokeWidth: 1, strokeDasharray: '3 3', opacity: 0.6 } : null;
@@ -643,15 +650,15 @@ function renderMarkerShape(
 ): unknown {
   const x = toSvgX(marker.x);
   const y = markerLane(marker.kind);
-  const color = MARKER_STYLE[marker.kind].color;
+  const color = marker.failed ? 'var(--dsh-eval-red, #e5484d)' : MARKER_STYLE[marker.kind].color;
   const attrs: Record<string, string | number> = marker.kind === 'compaction'
     ? { d: `M ${x - 7} ${y + 6} L ${x + 7} ${y + 6} L ${x} ${y - 8} Z` }
-    : marker.kind === 'injection'
+    : (marker.kind === 'injection' || marker.kind === 'feedback')
       ? { cx: +x.toFixed(1), cy: +y.toFixed(1), r: 5.5 }
       : marker.kind === 'spike'
         ? { d: `M ${x} ${y - 8} L ${x + 8} ${y} L ${x} ${y + 8} L ${x - 8} ${y} Z` }
         : { x: +((x - 4.5).toFixed(1)), y: +((y - 4.5).toFixed(1)), width: 9, height: 9, rx: 2 };
-  const shape = h(marker.kind === 'injection' || marker.kind === 'retry' || marker.kind === 'prune' ? (marker.kind === 'injection' ? 'circle' : 'rect') : 'path', {
+  const shape = h((marker.kind === 'injection' || marker.kind === 'feedback') || marker.kind === 'retry' || marker.kind === 'prune' ? ((marker.kind === 'injection' || marker.kind === 'feedback') ? 'circle' : 'rect') : 'path', {
     key: `marker-${key}`, role: 'button', tabIndex: 0, 'aria-label': marker.title, style: { cursor: 'pointer' },
     onMouseDown: (event: { stopPropagation: () => void }) => event.stopPropagation(),
     onClick: () => onSelect(marker),
@@ -825,7 +832,7 @@ function sampleLine(points: Array<{ x: number; y: number }>): Array<{ x: number;
 }
 
 function markerLane(kind: ChartMarker['kind']): number {
-  return kind === 'compaction' ? 16 : kind === 'prune' ? 38 : kind === 'injection' ? 60 : 82;
+  return kind === 'compaction' ? 16 : kind === 'prune' ? 38 : kind === 'injection' ? 60 : kind === 'feedback' ? 82 : 104;
 }
 
 /** Category charts enlarge horizontally; drag the enlarged viewport to pan. */

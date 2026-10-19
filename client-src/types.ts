@@ -118,6 +118,7 @@ export interface CompactionDetail {
 }
 
 export interface ContextTimeline {
+  contextWindowSeq?: number | null;
   contextWindow: number | null;
   provider: string | null;
   model: string | null;
@@ -141,6 +142,7 @@ export interface ContextTimeline {
     cacheReadTokens: number | null;
     cacheWriteTokens: number | null;
     surfaceTokens: number;
+    estimateParts?: import('./contextEstimate.js').EstimateParts;
   }>;
   injections: Array<{
     seq: number;
@@ -161,6 +163,7 @@ export interface ContextTimeline {
   }>;
   injectionTotals: { count: number; tokens: number };
   compactions: Array<{
+    evidenceRefs?: Array<{seq:number;role:string}>;
     detail?: CompactionDetail;
     seq: number;
     timeMs: number;
@@ -226,7 +229,7 @@ export interface ViewProps {
 /* ---- Slot registration context ---------------------------------------- */
 
 export interface SessionsService {
-  using?: (target: string, options: { source: string }, operation: (reference: unknown) => Promise<unknown>) => Promise<unknown>;
+  using?: (target: string, options: { source: string; signal?: AbortSignal | undefined }, operation: (reference: unknown) => Promise<unknown>) => Promise<unknown>;
   refreshProjections?: (sessionId: string) => Promise<unknown>;
 }
 

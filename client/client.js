@@ -221,40 +221,40 @@
   }
   function panelFor(t, modeKind, diag) {
     const anomalies = diag ? diag.anomalies : [];
-    const panel2 = [
+    const panel3 = [
       h("div", { key: "mode", style: { fontWeight: 600 } }, `${t("mode")}: ${modeKind}`),
       h("div", { key: "modeText" }, modeTextOf(t, modeKind))
     ];
-    if (modeKind === "standalone") panel2.push(h("div", { key: "design", style: { marginTop: "0.4em" } }, t("standaloneIsDesign")));
+    if (modeKind === "standalone") panel3.push(h("div", { key: "design", style: { marginTop: "0.4em" } }, t("standaloneIsDesign")));
     if (modeKind === "standalone" || modeKind === "unknown") {
-      panel2.push(h("div", { key: "stepTitle", style: { marginTop: "0.4em", fontWeight: 600 } }, t("stepTitle")));
-      panel2.push(h("div", { key: "stepEnv" }, `1. ${t("stepEnv")}`));
-      panel2.push(h("div", { key: "stepPatch" }, `2. ${t("stepPatch")}`));
-      panel2.push(h("pre", {
+      panel3.push(h("div", { key: "stepTitle", style: { marginTop: "0.4em", fontWeight: 600 } }, t("stepTitle")));
+      panel3.push(h("div", { key: "stepEnv" }, `1. ${t("stepEnv")}`));
+      panel3.push(h("div", { key: "stepPatch" }, `2. ${t("stepPatch")}`));
+      panel3.push(h("pre", {
         key: "patchBody",
         style: { margin: "0.2em 0", whiteSpace: "pre-wrap", font: "inherit" }
       }, t("patchBody")));
-      panel2.push(h("div", { key: "controlRow" }, t("controlRowNote")));
+      panel3.push(h("div", { key: "controlRow" }, t("controlRowNote")));
     }
     if (modeKind === "not-mounted") {
-      panel2.push(h("div", { key: "stepInstallTitle", style: { marginTop: "0.4em", fontWeight: 600 } }, t("stepInstallTitle")));
-      panel2.push(h("div", { key: "stepInstall" }, t("stepInstall")));
+      panel3.push(h("div", { key: "stepInstallTitle", style: { marginTop: "0.4em", fontWeight: 600 } }, t("stepInstallTitle")));
+      panel3.push(h("div", { key: "stepInstall" }, t("stepInstall")));
     }
     if (modeKind === "failed") {
-      panel2.push(h("div", { key: "stepFailedTitle", style: { marginTop: "0.4em", fontWeight: 600 } }, t("stepFailedTitle")));
-      panel2.push(h("div", { key: "stepFailed" }, t("stepFailed")));
+      panel3.push(h("div", { key: "stepFailedTitle", style: { marginTop: "0.4em", fontWeight: 600 } }, t("stepFailedTitle")));
+      panel3.push(h("div", { key: "stepFailed" }, t("stepFailed")));
     }
     if (anomalies.length > 0) {
-      panel2.push(h("div", { key: "anomaliesTitle", style: { marginTop: "0.4em", fontWeight: 600 } }, t("anomalies")));
-      panel2.push(h(
+      panel3.push(h("div", { key: "anomaliesTitle", style: { marginTop: "0.4em", fontWeight: 600 } }, t("anomalies")));
+      panel3.push(h(
         "ul",
         { key: "anomalies", style: { margin: "0.2em 0", paddingLeft: "1.2em" } },
         anomalies.map((line, index) => h("li", { key: index }, line))
       ));
     }
-    panel2.push(h("div", { key: "peerHint", style: { marginTop: "0.4em", opacity: 0.8 } }, t("peerHint")));
-    panel2.push(h("div", { key: "readonly", style: { marginTop: "0.4em", opacity: 0.8 } }, t("readonly")));
-    return panel2;
+    panel3.push(h("div", { key: "peerHint", style: { marginTop: "0.4em", opacity: 0.8 } }, t("peerHint")));
+    panel3.push(h("div", { key: "readonly", style: { marginTop: "0.4em", opacity: 0.8 } }, t("readonly")));
+    return panel3;
   }
 
   // client-src/i18n.ts
@@ -366,7 +366,7 @@
         ...rows.map((row) => `${t("rows")} ${labelOf(row)} enabled=${String(row.enabled)} phase=${String(row.phase)}`),
         ...anomalies.map((line) => `! ${line}`)
       ].join("\n");
-      const panel2 = panelFor(t, modeKind, diag ?? null);
+      const panel3 = panelFor(t, modeKind, diag ?? null);
       const chip = h("button", {
         type: "button",
         "aria-label": `${t("label")}: ${modeKind}`,
@@ -418,7 +418,7 @@
             whiteSpace: "normal",
             boxShadow: "0 4px 12px rgba(0, 0, 0, 0.25)"
           }
-        }, panel2)
+        }, panel3)
       ]);
     };
   }
@@ -471,6 +471,12 @@
         ].join("\n")
       };
     };
+  }
+
+  // client-src/overviewDiagnosis.ts
+  function overviewDiagnosticChain(sessionId, data, alerts) {
+    const a = data.analytics;
+    return { diagnosisScope: "overview", title: "\u5168\u94FE\u8DEF\u7EFC\u5408\u8BCA\u65AD", conclusion: "\u7EFC\u5408\u5224\u65AD\u5F53\u524D\u8FDB\u5C55\u3001\u4E3B\u8981\u74F6\u9888\u548C\u4E0B\u4E00\u6B65\uFF0C\u4E0D\u4EE5\u5355\u4E2A\u5DE5\u5177\u9519\u8BEF\u4EE3\u8868\u6574\u4E2A\u4F1A\u8BDD\u3002", level: "derived", rule: "\u8054\u5408\u4EFB\u52A1\u8FDB\u5C55\u3001\u4E0A\u4E0B\u6587\u3001\u6D88\u8017\u3001\u5EF6\u8FDF\u3001\u5DE5\u5177\u4E0E\u56E2\u961F\u516D\u4E2A\u7EF4\u5EA6\uFF1B\u7F3A\u5931\u6570\u636E\u5FC5\u987B\u6807\u4E3A\u672A\u77E5\u3002", facts: alerts.map((a2) => ({ label: a2.title, value: a2.detail, source: "\u89C4\u5219\u8BCA\u65AD" })), notes: ["\u5B8C\u6210\u72B6\u6001\u9700\u6838\u67E5\u4EFB\u52A1\u76EE\u6807\u4E0E\u6700\u7EC8\u4EA7\u7269\uFF1B\u52A9\u624B\u58F0\u79F0\u5B8C\u6210\u4E0D\u7B49\u4E8E\u5DF2\u7ECF\u9A8C\u6536\u3002"], refs: [...a?.teamInput?.lastEventRef ? [{ ...a.teamInput.lastEventRef, role: "\u6700\u65B0\u4F1A\u8BDD\u4E8B\u4EF6" }] : [], ...(a?.recentEvents ?? []).slice(-1).map((e) => ({ sessionId, seq: e.seq, role: "\u6700\u65B0\u8F68\u8FF9" }))], overviewSnapshot: { sessionId, stats: data.stats, utilization: data.utilization, contextWindow: data.contextWindow, analytics: a ? { turnsStarted: a.turnsStarted, turnsEnded: a.turnsEnded, stepsStarted: a.stepsStarted, stepsEnded: a.stepsEnded, toolCalls: a.toolCalls, toolErrors: a.toolErrors, inputTokens: a.inputTokens, retries: a.retries, compactions: a.compactionSummaries, prunes: a.prunePasses, queuedTeamMessages: a.queuedTeamMessages, deliveredTeamMessages: a.deliveredTeamMessages, memberCount: a.teamInput?.memberIds?.length ?? 0 } : null, metrics: [...new Map((a?.metricResults ?? []).filter((m) => /context|model|tool|team/.test(m.metricId)).map((m) => [m.metricId, m])).values()].slice(0, 12).map((m) => ({ metricId: m.metricId, status: m.status, value: (JSON.stringify(m.value) ?? "\u672A\u63D0\u4F9B").slice(0, 800), sampleCount: m.sampleCount, qualityRefs: m.qualityRefs, refs: m.evidenceRefs.slice(0, 2) })) } };
   }
 
   // client-src/format.ts
@@ -586,6 +592,714 @@
     return String(value);
   }
 
+  // client-src/evidence.ts
+  var eventRef = (sessionId, seq, role) => ({ sessionId, seq, role });
+  function uniqueEvidenceRefs(refs) {
+    const map = /* @__PURE__ */ new Map();
+    for (const ref of refs) {
+      if (!ref.sessionId || !Number.isSafeInteger(ref.seq) || ref.seq < 0) continue;
+      const key = JSON.stringify([ref.sessionId, ref.seq]);
+      const previous = map.get(key);
+      if (previous && ref.failed) previous.failed = true;
+      if (previous) previous.role = [.../* @__PURE__ */ new Set([...previous.role.split(" / "), ...ref.role.split(" / ")])].join(" / ");
+      else map.set(key, { ...ref });
+    }
+    return [...map.values()];
+  }
+  function metricEvidence(metric) {
+    return {
+      title: METRIC_LABELS[metric.metricId] ?? metric.metricId,
+      conclusion: JSON.stringify(metric.value) ?? "\u65E0\u53EF\u7528\u6570\u503C",
+      level: metric.evidenceLevel ?? "inferred",
+      rule: `${METRIC_RULES[metric.metricId] ?? "\u6309\u5BBF\u4E3B\u6307\u6807\u5951\u7EA6\u8BA1\u7B97\uFF1B\u5173\u8054\u4E8B\u4EF6\u7528\u4E8E\u6838\u5BF9\u5B9E\u9645\u8F93\u5165\uFF0C\u5F53\u524D\u754C\u9762\u4E0D\u63A8\u65AD\u672A\u8BB0\u5F55\u7684\u4E2D\u95F4\u503C\u3002"} \u6307\u6807\u5951\u7EA6 ${metric.metricId} \xB7 v${metric.contractVersion ?? "\u672A\u77E5"} \xB7 \u5BF9\u8C61 ${metric.subjectId}`,
+      facts: [
+        { label: "\u72B6\u6001", value: metric.status ?? "\u672A\u8BB0\u5F55", source: "\u6307\u6807\u6295\u5F71" },
+        { label: "\u6837\u672C\u6570", value: String(metric.sampleCount ?? "\u672A\u77E5"), source: "\u6307\u6807\u6295\u5F71" },
+        ...metric.denominator !== void 0 ? [{ label: "\u5206\u6BCD", value: String(metric.denominator), source: "\u6307\u6807\u6295\u5F71" }] : []
+      ],
+      refs: uniqueEvidenceRefs((metric.evidenceRefs ?? []).map((ref) => ({ ...ref, role: "\u6307\u6807\u8BA1\u7B97\u4F9D\u636E" }))),
+      notes: [
+        "\u5173\u8054\u5F15\u7528\u4E3A\u6295\u5F71\u4FDD\u7559\u7684\u6709\u754C\u8BC1\u636E\uFF0C\u4E0D\u4FDD\u8BC1\u5305\u542B\u7D2F\u8BA1\u7EDF\u8BA1\u7684\u5168\u90E8\u539F\u59CB\u4E8B\u4EF6\u3002",
+        ...(metric.qualityRefs ?? []).map((code) => `\u6570\u636E\u8D28\u91CF\uFF1A${code}`),
+        ...metric.evidenceRefs?.length ? [] : ["\u6B64\u6307\u6807\u672A\u63D0\u4F9B\u4E8B\u4EF6\u5F15\u7528\uFF0C\u65E0\u6CD5\u5B9A\u4F4D\u539F\u59CB\u4F9D\u636E\u3002"]
+      ]
+    };
+  }
+  function spikeInfo(messages, seq) {
+    const ordered = messages.slice().sort((a, b) => a.seq - b.seq);
+    const index = ordered.findIndex((message) => message.seq === seq);
+    if (index < 0) return null;
+    const baseline = ordered.slice(Math.max(0, index - 5), index);
+    if (baseline.length < 3) return null;
+    const values = baseline.map((message) => message.tokens).sort((a, b) => a - b);
+    const median = values[Math.floor(values.length / 2)];
+    const current = ordered[index];
+    return current.tokens >= 1e3 && current.tokens >= median * 3 ? { median, ratio: median > 0 ? current.tokens / median : Infinity, baseline } : null;
+  }
+  function messageEvidence(sessionId, message, messages, anomaly = false) {
+    const ordered = messages.slice().sort((a, b) => a.seq - b.seq);
+    const previous = ordered[ordered.findIndex((item) => item.seq === message.seq) - 1];
+    const spike = anomaly ? spikeInfo(messages, message.seq) : null;
+    const components = [["\u6587\u672C", message.textTokens], ["\u5DE5\u5177\u8C03\u7528", message.toolCallTokens], ["\u6587\u4EF6/\u56FE\u50CF", message.fileTokens]];
+    const componentTotal = components.reduce((sum, [, value]) => sum + value, 0);
+    const dominant = components.slice().sort((a, b) => b[1] - a[1])[0];
+    const facts = [
+      { label: "\u6D88\u606F\u5185\u5BB9\u4F30\u7B97 Token", value: formatTokens(message.tokens), source: "\u6D88\u606F\u5185\u5BB9\u4F30\u7B97\uFF08\u975E\u670D\u52A1\u5546\u8F93\u51FA\u7528\u91CF\uFF09" },
+      { label: "\u4E3B\u5BFC\u6210\u5206", value: `${dominant[0]} ${componentTotal > 0 ? (dominant[1] / componentTotal * 100).toFixed(1) : 0}%\uFF08${formatTokens(dominant[1])}\uFF09`, source: "\u6D88\u606F\u6210\u5206\u4F30\u7B97\uFF08\u5206\u6BCD\u4E3A\u6587\u672C\u3001\u5DE5\u5177\u8C03\u7528\u3001\u6587\u4EF6/\u56FE\u50CF\u4E4B\u548C\uFF09" },
+      { label: "\u6A21\u578B\u8F93\u51FA\u7528\u91CF", value: message.outputTokens === null || message.outputTokens === void 0 ? "\u672A\u8BB0\u5F55" : formatTokens(message.outputTokens), source: "\u540C\u4E00\u6D88\u606F\u8BB0\u5F55\u4E2D\u7684\u670D\u52A1\u5546 usage" }
+    ];
+    if (previous) {
+      facts.push({ label: `#${previous.seq} \u2192 #${message.seq} \u6D88\u606F\u4F53\u79EF\u5DEE`, value: `${message.tokens - previous.tokens} Token`, source: "\u4E24\u6761\u5DF2\u4FDD\u7559\u6D88\u606F\u7684\u8868\u9762\u4F30\u7B97\u503C\u4E4B\u5DEE\uFF1B\u4E0D\u662F\u4E0A\u4E0B\u6587\u51C0\u589E\u91CF" });
+      facts.push({ label: "\u76F8\u90BB\u6D88\u606F\u65F6\u95F4\u95F4\u9694", value: message.timeMs >= previous.timeMs ? formatMs(message.timeMs - previous.timeMs) : "\u65F6\u95F4\u5012\u5E8F\uFF0C\u65E0\u6CD5\u8BA1\u7B97", source: `\u5DF2\u4FDD\u7559\u6D88\u606F #${previous.seq} \u4E0E #${message.seq} \u7684\u65F6\u95F4\u6233\uFF1B\u4E0D\u4EE3\u8868\u751F\u6210\u8017\u65F6` });
+    }
+    if (spike) facts.push({ label: "\u68C0\u6D4B\u57FA\u7EBF", value: `${spike.baseline.length} \u6761\u6D88\u606F\u4E2D\u4F4D\u6570 ${formatTokens(spike.median)} \xB7 ${Number.isFinite(spike.ratio) ? spike.ratio.toFixed(1) + "\xD7" : "\u57FA\u7EBF\u4E3A 0"}`, source: "\u6309\u4E8B\u4EF6\u987A\u5E8F\u7684\u524D 5 \u6761\u5DF2\u4FDD\u7559\u6D88\u606F\uFF08\u81F3\u5C11 3 \u6761\uFF09" });
+    return {
+      title: `${spike ? "\u7A81\u589E" : "\u6D88\u606F"} #${message.seq}`,
+      conclusion: `${message.kind} \xB7 ${formatTokens(message.tokens)} Token`,
+      level: "derived",
+      rule: anomaly ? "\u5355\u6761\u6D88\u606F \u2265 1,000 Token \u4E14 \u2265 \u524D 5 \u6761\u6D88\u606F\u4E2D\u4F4D\u6570\u7684 3 \u500D\uFF1B\u81F3\u5C11 3 \u6761\u57FA\u7EBF\u6837\u672C\u3002" : "\u6D88\u606F\u4F53\u79EF\u548C\u6210\u5206\u6765\u81EA\u8868\u9762\u5185\u5BB9\u4F30\u7B97\uFF1B\u6A21\u578B\u8F93\u51FA\u7528\u91CF\u72EC\u7ACB\u5C55\u793A\u3002",
+      facts,
+      refs: uniqueEvidenceRefs([eventRef(sessionId, message.seq, "\u5F53\u524D\u6D88\u606F"), ...(spike?.baseline ?? (previous ? [previous] : [])).map((item) => eventRef(sessionId, item.seq, spike ? "\u7A81\u589E\u57FA\u7EBF" : "\u76F8\u90BB\u5DF2\u4FDD\u7559\u6D88\u606F"))]),
+      notes: ["\u4EC5\u4F7F\u7528\u5DF2\u4FDD\u7559\u6D88\u606F\uFF0C\u4E0D\u4FDD\u8BC1\u4E8B\u4EF6\u5E8F\u53F7\u8FDE\u7EED\u3002\u65F6\u95F4\u76F8\u90BB\u4E0D\u6784\u6210\u56E0\u679C\u5173\u7CFB\u3002", ...anomaly && !spike ? ["\u5F53\u524D\u4FDD\u7559\u7A97\u53E3\u4E0D\u8DB3\u4EE5\u590D\u73B0\u7A81\u589E\u89C4\u5219\uFF0C\u4E0D\u80FD\u786E\u8BA4\u8BE5\u5F02\u5E38\u3002"] : []]
+    };
+  }
+  function stepEvidence(sessionId, step, steps) {
+    const index = steps.findIndex((item) => item.seq === step.seq);
+    const previous = steps[index - 1];
+    const occupancy = step.inputTokens + (step.cacheReadTokens ?? 0);
+    return {
+      title: `\u8BF7\u6C42 #${step.seq}`,
+      conclusion: `\u4E0A\u4E0B\u6587\u5360\u7528 ${formatTokens(occupancy)} Token`,
+      level: "derived",
+      rule: "\u4E0A\u4E0B\u6587\u5360\u7528 = \u672A\u7F13\u5B58\u8F93\u5165 + \u7F13\u5B58\u8BFB\u53D6\uFF1B\u8F93\u51FA\u4E0E\u8868\u9762\u4F30\u7B97\u5206\u522B\u5C55\u793A\u3002",
+      facts: [
+        { label: "\u672A\u7F13\u5B58\u8F93\u5165", value: formatTokens(step.inputTokens), source: "\u670D\u52A1\u5546 usage" },
+        { label: "\u7F13\u5B58\u8BFB\u53D6", value: step.cacheReadTokens === null ? "\u672A\u8BB0\u5F55\uFF08\u66F2\u7EBF\u6309 0 \u56DE\u9000\uFF09" : formatTokens(step.cacheReadTokens), source: "\u670D\u52A1\u5546 usage" },
+        { label: "\u8F93\u51FA", value: formatTokens(step.outputTokens), source: "\u670D\u52A1\u5546 usage" },
+        { label: "\u8868\u9762\u5185\u5BB9", value: formatTokens(step.surfaceTokens), source: "\u8BF7\u6C42\u524D\u8868\u9762\u4F30\u7B97" },
+        ...previous ? [{ label: `\u76F8\u5BF9\u8BF7\u6C42 #${previous.seq}`, value: `${occupancy - previous.inputTokens - (previous.cacheReadTokens ?? 0)} Token`, source: "\u8BF7\u6C42\u5360\u7528\u4E4B\u5DEE\uFF0C\u4E0D\u76F4\u63A5\u5F52\u56E0\u4E8E\u533A\u95F4\u5185\u67D0\u4E2A\u4E8B\u4EF6" }] : []
+      ],
+      refs: [eventRef(sessionId, step.seq, "\u5F53\u524D\u8BF7\u6C42\u7528\u91CF"), ...previous ? [eventRef(sessionId, previous.seq, "\u524D\u6B21\u8BF7\u6C42\u7528\u91CF")] : []],
+      notes: ["\u8BF7\u6C42\u6837\u672C\u5E8F\u53F7\u4E0E\u56FE\u4E2D\u8BF7\u6C42\u5E8F\u6570\u4E0D\u540C\uFF1B\u6B64\u5904\u4F7F\u7528\u539F\u59CB\u4E8B\u4EF6\u5E8F\u53F7\u3002"]
+    };
+  }
+  function compactionEvidence(sessionId, events) {
+    const refs = events.flatMap((event) => [
+      ...(event.evidenceRefs ?? []).map((ref) => eventRef(sessionId, ref.seq, ref.role)),
+      eventRef(sessionId, event.seq, event.kind === "summary" ? "\u6458\u8981\u538B\u7F29" : "\u5386\u53F2\u4FEE\u526A"),
+      ...event.detail?.before.nodes.filter((node) => node.changed).map((node) => eventRef(sessionId, node.seq, "\u88AB\u66FF\u6362\u6D88\u606F")) ?? [],
+      ...event.detail?.after?.nodes.filter((node) => node.changed).map((node) => eventRef(sessionId, node.seq, "\u66FF\u4EE3\u6D88\u606F / \u66FF\u6362\u64CD\u4F5C")) ?? []
+    ]);
+    return {
+      title: events.length === 1 ? `\u538B\u7F29\u4E8B\u4EF6 #${events[0].seq}` : `\u538B\u7F29\u8BC1\u636E \xB7 ${events.length} \u6B21`,
+      conclusion: `\u5DF2\u4FDD\u7559\u56DE\u6536\u91CF ${formatTokens(events.reduce((sum, event) => sum + (event.reclaimedTokens ?? 0), 0))} Token`,
+      level: "derived",
+      rule: "\u6BCF\u6B21\u56DE\u6536\u91CF\u6765\u81EA\u538B\u7F29\u524D\u540E\u8868\u9762\u4F30\u7B97\u503C\uFF1B\u5C55\u793A\u805A\u5408\u4E0D\u8868\u793A\u540C\u4E00\u5BBF\u4E3B\u4E8B\u52A1\u3002",
+      facts: events.flatMap((event) => [{ label: `#${event.seq}`, value: `${event.beforeTokens ?? "\u672A\u77E5"} \u2192 ${event.afterTokens ?? "\u672A\u77E5"} Token`, source: event.detail?.algorithm ?? "\u65E0\u5386\u53F2\u5FEB\u7167" }, { label: "\u538B\u7F29\u8017\u65F6", value: event.elapsedMs === null || event.elapsedMs === void 0 ? "\u672A\u8BB0\u5F55" : formatMs(event.elapsedMs), source: "\u5339\u914D compaction/start \u4E0E compaction/end \u65F6\u95F4\u6233" }]),
+      refs: uniqueEvidenceRefs(refs),
+      notes: [...events.some((event) => !event.evidenceRefs?.length) ? ["\u65E7\u6295\u5F71\u672A\u8BB0\u5F55\u751F\u547D\u5468\u671F\u5F15\u7528\uFF1B\u5237\u65B0\u6295\u5F71\u540E\u53EF\u8FFD\u6EAF\u5F00\u59CB\u3001\u66FF\u6362\u4E0E\u7ED3\u675F\u4E8B\u4EF6\u3002"] : [], "\u5386\u53F2\u5FEB\u7167\u6709\u754C\uFF1B\u7F3A\u5931\u6216\u622A\u65AD\u65F6\u65E0\u6CD5\u5217\u51FA\u5168\u90E8\u88AB\u66FF\u6362\u6D88\u606F\u3002", ...events.some((event) => event.reclaimedTokens === null) ? ["\u90E8\u5206\u56DE\u6536\u91CF\u672A\u56DE\u586B\uFF0C\u5408\u8BA1\u4EC5\u5305\u542B\u5DF2\u77E5\u503C\u3002"] : []]
+    };
+  }
+  function aggregateEvidence(sessionId, title, analytics, timeline, kind) {
+    if (kind === "context") return contextOccupancyEvidence(sessionId, title, timeline);
+    const metricId = { tokens: "", tools: "", errors: "tool.failure_rate", frequency: "context.compaction_frequency_per_1k_input_tokens", time: "", context: "context.input_window_utilization" }[kind];
+    const metrics = analytics?.metricResults?.filter((item) => item.metricId === metricId) ?? [];
+    if (metrics.length) {
+      const metric = metrics.find((item) => item.subjectId === sessionId) ?? metrics[metrics.length - 1];
+      return { ...metricEvidence(metric), title };
+    }
+    const steps = timeline?.steps ?? [];
+    const events = analytics?.recentEvents ?? [];
+    const refs = kind === "tokens" || kind === "time" ? steps.map((step) => eventRef(sessionId, step.seq, "\u8BF7\u6C42\u7528\u91CF\u6837\u672C")) : events.filter((event) => event.type === "tool/call" || event.type === "tool/result").map((event) => eventRef(sessionId, event.seq, event.type));
+    const facts = kind === "tools" || kind === "errors" ? [{ label: "\u8C03\u7528 / \u663E\u5F0F\u9519\u8BEF", value: `${analytics?.toolCalls ?? "\u672A\u77E5"} / ${analytics?.toolErrors ?? "\u672A\u77E5"}`, source: "\u4F1A\u8BDD\u7D2F\u8BA1\u6295\u5F71" }] : [{ label: "\u672A\u7F13\u5B58\u8F93\u5165\u7D2F\u8BA1", value: String(analytics?.inputTokens ?? "\u672A\u77E5"), source: "\u4F1A\u8BDD\u7D2F\u8BA1\u6295\u5F71" }, { label: "\u5DF2\u4FDD\u7559\u8BF7\u6C42\u7528\u91CF\u6837\u672C", value: String(steps.length), source: "\u6709\u754C\u4E0A\u4E0B\u6587\u6295\u5F71" }];
+    return {
+      title,
+      conclusion: "\u67E5\u770B\u8BA1\u7B97\u53E3\u5F84\u4E0E\u5173\u8054\u539F\u59CB\u4E8B\u4EF6",
+      level: "derived",
+      rule: kind === "tokens" ? "\u603B Token = \u7D2F\u8BA1\u672A\u7F13\u5B58\u8F93\u5165 + \u7D2F\u8BA1\u8F93\u51FA\uFF1B\u4E0D\u5305\u542B\u7F13\u5B58\u8BFB\u53D6\u3002" : kind === "time" ? "\u6A21\u578B\u8017\u65F6\u6765\u81EA sessionStats.llmMs\uFF1B\u7528\u91CF\u6D88\u606F\u4EC5\u7528\u4E8E\u5B9A\u4F4D\u76F8\u5173\u8BF7\u6C42\uFF0C\u4E0D\u662F\u8017\u65F6\u8D77\u6B62\u8BC1\u636E\u3002" : "\u8C03\u7528\u4E0E\u663E\u5F0F\u9519\u8BEF\u6765\u81EA tool/call \u548C tool/result\uFF1B\u4E0D\u80FD\u5C06\u7ED3\u679C\u7F3A\u5931\u5F53\u6210\u6210\u529F\u3002",
+      facts,
+      refs,
+      notes: ["\u7D2F\u8BA1\u7EDF\u8BA1\u4E0E\u6709\u754C\u5173\u8054\u5217\u8868\u8986\u76D6\u8303\u56F4\u4E0D\u540C\uFF1B\u4EE5\u4E0B\u5E76\u975E\u5B8C\u6574\u8BA1\u7B97\u6837\u672C\u3002", ...kind === "time" ? ["\u5F53\u524D\u6295\u5F71\u6CA1\u6709\u63D0\u4F9B\u7D2F\u8BA1\u6A21\u578B\u8017\u65F6\u7684\u5B8C\u6574\u8D77\u6B62\u5F15\u7528\uFF0C\u65E0\u6CD5\u4ECE\u8FD9\u4E9B\u5F15\u7528\u91CD\u7B97\u8017\u65F6\u3002"] : []]
+    };
+  }
+  function toolEvidence(sessionId, name, analytics, timeline, failures) {
+    const tool = timeline?.tools.find((item) => item.name === name);
+    const calls = (analytics?.recentEvents ?? []).filter((event) => event.type === "tool/call" && event.label === name);
+    const callIds = new Set(calls.map((event) => event.callId).filter(Boolean));
+    const results = (analytics?.recentEvents ?? []).filter((event) => event.type === "tool/result" && !!event.callId && callIds.has(event.callId));
+    const metrics = (analytics?.metricResults ?? []).filter((metric) => metric.metricId === "tool.call_elapsed_ms" && callIds.has(metric.subjectId));
+    const matched = failures?.filter((item) => item.name === name);
+    return {
+      toolFailures: matched ?? [],
+      title: `\u5DE5\u5177 ${name}`,
+      conclusion: `\u8C03\u7528 ${tool?.calls ?? "\u672A\u77E5"} \u6B21 \xB7 \u663E\u5F0F\u9519\u8BEF ${tool?.errors ?? "\u672A\u77E5"} \u6B21`,
+      level: "derived",
+      rule: "\u5F53\u524D\u5DE5\u5177\u7D2F\u8BA1\u8BA1\u6570\uFF1B\u9519\u8BEF\u7387 = \u663E\u5F0F\u9519\u8BEF / \u8C03\u7528\u6570\u3002\u5173\u8054\u7ED3\u679C\u6309 callId \u5339\u914D\u3002",
+      facts: [{ label: "\u5DF2\u4FDD\u7559\u8C03\u7528 / \u7ED3\u679C", value: `${calls.length} / ${results.length}`, source: "\u6700\u8FD1\u4E8B\u4EF6\u7A97\u53E3\uFF0C\u4E0D\u662F\u5168\u90E8\u8C03\u7528\u5386\u53F2" }],
+      refs: uniqueEvidenceRefs([...(matched ?? []).flatMap((failure) => [...failure.callSeq !== void 0 ? [{ ...eventRef(sessionId, failure.callSeq, "\u5931\u8D25\u5DE5\u5177\u8C03\u7528"), failed: true }] : [], { ...eventRef(sessionId, failure.resultSeq, "\u9519\u8BEF\u7ED3\u679C"), failed: true }]), ...calls.map((event) => eventRef(sessionId, event.seq, "\u5DE5\u5177\u8C03\u7528")), ...results.map((event) => eventRef(sessionId, event.seq, "\u5339\u914D\u8C03\u7528\u7ED3\u679C")), ...metrics.flatMap((metric) => (metric.evidenceRefs ?? []).map((ref) => ({ ...ref, role: "\u8C03\u7528\u8017\u65F6\u8D77\u6B62" })))]),
+      notes: ["\u672A\u5339\u914D\u7684\u7ED3\u679C\u4E0D\u4F1A\u89C6\u4F5C\u6210\u529F\uFF1B\u7A97\u53E3\u5916\u8C03\u7528\u548C\u9519\u8BEF\u9700\u67E5\u9605\u5B8C\u6574\u65E5\u5FD7\u3002"]
+    };
+  }
+  var METRIC_RULES = {
+    "tool.failure_rate": "\u5206\u5B50\uFF1A\u53BB\u91CD\u4E14\u9519\u8BEF\u6807\u8BB0\u5DF2\u77E5\u7684\u5931\u8D25\u7ED3\u679C\uFF1B\u5206\u6BCD\uFF1A\u53BB\u91CD\u4E14\u9519\u8BEF\u6807\u8BB0\u5DF2\u77E5\u7684\u5168\u90E8\u7ED3\u679C\u3002\u91CD\u590D\u7ED3\u679C\u548C\u7F3A\u5931\u6807\u8BB0\u4F1A\u964D\u4F4E\u8BC1\u636E\u5B8C\u6574\u6027\u3002",
+    "context.compaction_frequency_per_1k_input_tokens": "\u6458\u8981\u538B\u7F29\u5468\u671F\u6570 / \u672A\u7F13\u5B58\u8F93\u5165 Token \xD7 1,000\uFF1B\u5386\u53F2\u4FEE\u526A\u4E0D\u8BA1\u5165\u6458\u8981\u538B\u7F29\u6B21\u6570\u3002",
+    "model.long_gap_segments": "\u6309\u4E8B\u5B9E\u4E8B\u4EF6\u65F6\u95F4\u6233\u68C0\u6D4B \u226530 \u79D2\u95F4\u9694\uFF0C\u5E76\u6263\u9664\u53EF\u5F52\u56E0\u7684\u5DE5\u5177\u3001\u5BA1\u6279\u548C\u538B\u7F29\u533A\u95F4\uFF1B\u672A\u5F52\u56E0\u90E8\u5206\u662F\u63A8\u65AD\u3002",
+    "tool.repeat_loop": "\u6309\u89C4\u8303\u5316\u8C03\u7528\u6458\u8981\u8BC6\u522B\u8FDE\u7EED\u91CD\u590D\u8C03\u7528\uFF1B\u91CD\u590D\u4E0D\u7B49\u4E8E\u65E0\u6548\u8C03\u7528\uFF0C\u4E1A\u52A1\u5408\u7406\u6027\u9700\u8981\u6838\u5BF9\u539F\u59CB\u53C2\u6570\u3002",
+    "tool.call_elapsed_ms": "\u540C\u4E00 callId \u7684\u8C03\u7528\u4E0E\u7ED3\u679C\u4E8B\u4EF6\u65F6\u95F4\u5DEE\uFF1B\u7F3A\u5931\u914D\u5BF9\u6216\u91CD\u590D\u7ED3\u679C\u65F6\u4E0D\u80FD\u786E\u8BA4\u5B8C\u6574\u8017\u65F6\u3002",
+    "context.input_window_utilization": "\u8BF7\u6C42\u672A\u7F13\u5B58\u8F93\u5165 + \u7F13\u5B58\u8BFB\u53D6\uFF0C\u518D\u9664\u4EE5\u8BE5\u8BF7\u6C42\u5BF9\u5E94\u7684\u4E0A\u4E0B\u6587\u7A97\u53E3\u4E0A\u9650\u3002"
+  };
+  function alertEvidence(sessionId, id, title, detail, analytics, timeline, observed, threshold) {
+    const metricId = { "frequent-compaction": "context.compaction_frequency_per_1k_input_tokens", "high-error-rate": "tool.failure_rate", "token-waste": "tool.repeat_loop", "long-gaps": "model.long_gap_segments" };
+    const metric = (analytics?.metricResults ?? []).find((item) => item.metricId === metricId[id]);
+    const chain = metric ? metricEvidence(metric) : aggregateEvidence(sessionId, title, analytics, timeline, id === "context-overload" ? "context" : "tools");
+    return {
+      ...chain,
+      title,
+      conclusion: detail,
+      rule: `\u544A\u8B66\u89C4\u5219 ${id}\uFF1B\u89E6\u53D1\u6761\u4EF6\u4EE5\u5F53\u524D\u89C4\u5219\u8BBE\u7F6E\u4E3A\u51C6\u3002 ${chain.rule}`,
+      facts: [
+        { label: "\u544A\u8B66\u68C0\u6D4B\u503C", value: observed === null ? "\u6570\u636E\u4E0D\u53EF\u7528" : String(observed), source: "\u4E0E\u544A\u8B66\u8BA1\u7B97\u4F7F\u7528\u540C\u4E00\u8F93\u5165\u5FEB\u7167" },
+        { label: "\u9608\u503C", value: String(threshold), source: "\u7528\u6237\u89C4\u5219\u8BBE\u7F6E\uFF08\u4E25\u683C\u8D85\u8FC7\u9608\u503C\u89E6\u53D1\uFF1B\u91CD\u590D\u8C03\u7528\u89C4\u5219\u6BD4\u8F83\u6700\u5927\u8FDE\u7EED\u957F\u5EA6\uFF09" },
+        ...chain.facts
+      ],
+      notes: [...chain.notes, ...!metric && id !== "context-overload" ? ["\u8BE5\u544A\u8B66\u7684\u5951\u7EA6\u6307\u6807\u7F3A\u5931\uFF0C\u65E0\u6CD5\u63D0\u4F9B\u5B8C\u6574\u68C0\u6D4B\u8BC1\u636E\u3002"] : []]
+    };
+  }
+  function dropEvidence(sessionId, message, messages, compactions) {
+    const ordered = messages.slice().sort((a, b) => a.seq - b.seq);
+    const previous = ordered[ordered.findIndex((item) => item.seq === message.seq) - 1];
+    const matches = previous ? compactions.filter((event) => event.seq > previous.seq && event.seq <= message.seq) : [];
+    return {
+      title: `\u4E0A\u4E0B\u6587\u9AA4\u964D #${message.seq}`,
+      conclusion: previous ? `${previous.cumulativeTokens} \u2192 ${message.cumulativeTokens} Token` : "\u7F3A\u5C11\u524D\u6B21\u6D88\u606F\uFF0C\u65E0\u6CD5\u91CD\u7B97",
+      level: matches.length ? "derived" : "inferred",
+      rule: "\u76F8\u90BB\u5DF2\u4FDD\u7559\u6D88\u606F\u7684\u7D2F\u8BA1\u8868\u9762\u4F30\u7B97\u4E0B\u964D \u22651,000 Token\uFF1B\u533A\u95F4\u5185\u538B\u7F29\u4E8B\u4EF6\u4F5C\u4E3A\u76F8\u5173\u8BC1\u636E\uFF0C\u4E0D\u5C06\u51C0\u4E0B\u964D\u76F4\u63A5\u7B49\u540C\u4E8E\u538B\u7F29\u56DE\u6536\u603B\u91CF\u3002",
+      facts: [{ label: "\u533A\u95F4\u5185\u5DF2\u4FDD\u7559\u538B\u7F29 / \u4FEE\u526A", value: String(matches.length), source: "\u6309\u4E8B\u4EF6\u5E8F\u53F7\u5339\u914D\uFF1B\u4E0D\u6309\u65F6\u95F4\u76F8\u90BB\u731C\u6D4B" }],
+      refs: uniqueEvidenceRefs([...previous ? [eventRef(sessionId, previous.seq, "\u4E0B\u964D\u524D\u6D88\u606F")] : [], eventRef(sessionId, message.seq, "\u4E0B\u964D\u540E\u6D88\u606F"), ...compactionEvidence(sessionId, matches).refs]),
+      notes: ["\u51C0\u4E0B\u964D\u8FD8\u53D7\u533A\u95F4\u5185\u65B0\u589E\u6D88\u606F\u5F71\u54CD\uFF0C\u53EF\u80FD\u5C0F\u4E8E\u538B\u7F29\u56DE\u6536\u91CF\u3002", ...matches.length ? [] : ["\u672A\u5339\u914D\u5230\u538B\u7F29\u4E8B\u4EF6\uFF0C\u4E0D\u80FD\u786E\u8BA4\u4E0B\u964D\u539F\u56E0\u3002"]]
+    };
+  }
+  function contextOccupancyEvidence(sessionId, title, timeline) {
+    const step = timeline?.steps?.[timeline.steps.length - 1];
+    const window2 = typeof timeline?.contextWindow === "number" && timeline.contextWindow > 0 ? timeline.contextWindow : null;
+    const usageRef = step ? eventRef(sessionId, step.seq, "\u672C\u6B21\u8BF7\u6C42\u8F93\u5165\u7528\u91CF\uFF08\u5206\u5B50\uFF09") : void 0;
+    const windowRef = timeline?.contextWindowSeq !== void 0 && timeline.contextWindowSeq !== null ? eventRef(sessionId, timeline.contextWindowSeq, "\u7A97\u53E3\u4E0A\u9650\uFF08\u5206\u6BCD\uFF09") : void 0;
+    const input = step?.inputTokens ?? null;
+    const cache = step?.cacheReadTokens ?? null;
+    const occupancy = input !== null ? input + (cache ?? 0) : null;
+    const ratio = occupancy !== null && window2 !== null ? occupancy / window2 : null;
+    const fields = [
+      { label: "\u672A\u7F13\u5B58\u8F93\u5165", path: "data.usage.inputTokens", value: input, eventType: "assistant/message", ...usageRef ? { ref: usageRef } : {} },
+      { label: "\u7F13\u5B58\u8BFB\u53D6", path: "data.usage.cacheReadTokens", value: cache, eventType: "assistant/message", ...usageRef ? { ref: usageRef } : {} },
+      { label: "\u7A97\u53E3\u4E0A\u9650", path: "data.contextWindow", value: window2, eventType: "request/context", ...windowRef ? { ref: windowRef } : {} }
+    ];
+    return {
+      title,
+      conclusion: ratio === null ? "\u8BF7\u6C42\u5360\u7528\u7387\u65E0\u6CD5\u5B8C\u6574\u6838\u9A8C" : `\u7A97\u53E3\u5360\u7528 ${(ratio * 100).toFixed(1)}%`,
+      level: "derived",
+      rule: "\u8BF7\u6C42\u4E0A\u4E0B\u6587\u5360\u7528 = \u672A\u7F13\u5B58\u8F93\u5165 + \u7F13\u5B58\u8BFB\u53D6\uFF1B\u5360\u7528\u7387 = \u8BF7\u6C42\u4E0A\u4E0B\u6587\u5360\u7528 \xF7 \u7A97\u53E3\u4E0A\u9650\u3002",
+      contextCalculation: { fields, occupancy, window: window2, ratio },
+      facts: [],
+      refs: [usageRef, windowRef].filter((ref) => ref !== void 0),
+      notes: [
+        ...step ? [`#${step.seq} \u662F assistant/message\uFF1A\u5176\u4E2D\u7684 usage \u8BB0\u5F55\u751F\u6210\u8FD9\u6761\u56DE\u590D\u6240\u7528\u8BF7\u6C42\u7684\u8F93\u5165\u7528\u91CF\uFF1B\u56DE\u590D\u6B63\u6587\u548C\u8F93\u51FA Token \u4E0D\u8BA1\u5165\u4E0A\u8FF0\u5206\u5B50\u3002`] : ["\u7F3A\u5C11\u8BF7\u6C42\u7528\u91CF\u6837\u672C\uFF1B\u9762\u677F\u53EF\u80FD\u56DE\u9000\u5230\u8868\u9762\u4F30\u7B97\uFF0C\u5F53\u524D\u65E0\u6CD5\u636E\u6B64\u9A8C\u8BC1\u5B9E\u9645\u8BF7\u6C42\u5360\u7528\u3002"],
+        ...step && cache === null ? ["\u670D\u52A1\u5546\u672A\u4E0A\u62A5\u7F13\u5B58\u8BFB\u53D6\uFF0C\u9762\u677F\u6309 0 \u56DE\u9000\uFF1B\u8FD9\u4E0D\u7B49\u4E8E\u539F\u59CB\u8BB0\u5F55\u5DF2\u786E\u8BA4\u7F13\u5B58\u8BFB\u53D6\u4E3A 0\u3002"] : [],
+        ...window2 === null ? ["\u7A97\u53E3\u4E0A\u9650\u672A\u8BB0\u5F55\uFF0C\u65E0\u6CD5\u8BA1\u7B97\u5360\u7528\u7387\u3002"] : [],
+        ...window2 !== null && !windowRef ? ["\u7A97\u53E3\u4E0A\u9650\u6570\u503C\u5DF2\u77E5\uFF0C\u4F46\u65E7\u6295\u5F71\u6CA1\u6709\u4FDD\u5B58\u5B83\u7684\u6765\u6E90\u4E8B\u4EF6\uFF1B\u4E0D\u4F1A\u7528\u7528\u91CF\u4E8B\u4EF6\u4EE3\u66FF\u7A97\u53E3\u914D\u7F6E\u6765\u6E90\u3002"] : []
+      ]
+    };
+  }
+
+  // client-src/evidencePanel.tsx
+  function EvidenceButton(props) {
+    return props.onEvidence ? h("button", { type: "button", onClick: () => props.onEvidence?.(props.chain()), style: { font: "inherit", fontSize: 12, cursor: "pointer" }, "aria-label": props.label ?? "\u67E5\u770B\u8BC1\u636E\u94FE" }, props.label ?? "\u67E5\u770B\u8BC1\u636E\u94FE") : null;
+  }
+  function abortable(operation, signal) {
+    if (!signal) return Promise.resolve(operation);
+    return new Promise((resolve, reject) => {
+      const abort = () => reject(signal.reason ?? new DOMException("Aborted", "AbortError"));
+      if (signal.aborted) {
+        abort();
+        return;
+      }
+      signal.addEventListener("abort", abort, { once: true });
+      Promise.resolve(operation).then(resolve, reject).finally(() => signal.removeEventListener("abort", abort));
+    });
+  }
+  async function readEvidenceEvents(sessions, ref, signal, fullHistory = false) {
+    if (!sessions?.using) throw Error("\u4F1A\u8BDD\u670D\u52A1\u4E0D\u53EF\u7528\uFF1B\u53EF\u4E0B\u8F7D\u65E5\u5FD7\u540E\u6309\u4E8B\u4EF6\u5E8F\u53F7\u67E5\u627E\u3002");
+    if (!ref.sessionId || !Number.isSafeInteger(ref.seq) || ref.seq < 0) throw Error("\u65E0\u6548\u7684\u4E8B\u4EF6\u5F15\u7528");
+    return await sessions.using(ref.sessionId, { source: "dsh-eval-control-analytics", signal }, async (reference) => {
+      const held = reference;
+      await abortable(held.ready, signal);
+      signal?.throwIfAborted();
+      const binding = held.binding;
+      if (!binding?.eventSource) throw Error("\u5F53\u524D\u5BBF\u4E3B\u672A\u63D0\u4F9B\u539F\u59CB\u4E8B\u4EF6\u6E90\u3002");
+      if (binding.session?.loadThrough) await abortable(binding.session.loadThrough(fullHistory ? 0 : ref.seq), signal);
+      signal?.throwIfAborted();
+      const entries = binding.eventSource.getSnapshot().entries.filter((entry) => entry.type === "event").map((entry) => entry.event);
+      const index = entries.findIndex((event) => event.seq === ref.seq);
+      if (index < 0) throw Error(`\u539F\u59CB\u4E8B\u4EF6 #${ref.seq} \u4E0D\u5728\u53EF\u8BFB\u53D6\u65E5\u5FD7\u4E2D\uFF0C\u53EF\u80FD\u5DF2\u88AB\u6E05\u7406\u6216\u5F53\u524D\u6743\u9650\u4E0D\u53EF\u8BFB\uFF1B\u4E0D\u4F1A\u7528\u76F8\u90BB\u4E8B\u4EF6\u4EE3\u66FF\u3002`);
+      if (fullHistory && binding.eventSource.getSnapshot().hasMore) throw Error("\u539F\u59CB\u5386\u53F2\u672A\u8BFB\u5B8C\u6574\uFF0C\u4E0D\u80FD\u5224\u65AD\u5168\u7A0B\u91CD\u8BD5\u4E0E\u6062\u590D");
+      return fullHistory ? entries : entries.slice(Math.max(0, index - 3), index + 4);
+    });
+  }
+  function calculationFieldChecks(fields, sessionId, event) {
+    return fields.filter((field) => field.ref?.sessionId === sessionId && field.ref.seq === event.seq).map((field) => {
+      let actual = event;
+      for (const key of field.path.split(".")) actual = actual !== null && typeof actual === "object" ? actual[key] : void 0;
+      const status = event.type !== field.eventType ? "\u4E8B\u4EF6\u7C7B\u578B\u4E0D\u7B26" : actual === void 0 || actual === null ? "\u539F\u59CB\u5B57\u6BB5\u672A\u8BB0\u5F55" : field.value === null ? "\u5FEB\u7167\u672A\u8BB0\u5F55\u6B64\u503C" : actual === field.value ? "\u4E0E\u8BA1\u7B97\u8F93\u5165\u4E00\u81F4" : "\u4E0E\u8BA1\u7B97\u5FEB\u7167\u4E0D\u4E00\u81F4";
+      return { field, actual, status };
+    });
+  }
+  function ContextCalculationView(props) {
+    const { fields, occupancy, window: window2, ratio } = props.calculation;
+    const input = fields[0]?.value ?? null;
+    const cache = fields[1]?.value ?? null;
+    const number = (value) => value === null ? "\u672A\u77E5" : formatFull(value);
+    return h("section", { "aria-label": "\u7A97\u53E3\u5360\u7528\u8BA1\u7B97\u4F9D\u636E", style: { border: "1px solid #4285f466", borderRadius: 8, padding: 12, margin: "12px 0", background: "#4285f408" } }, [
+      h("h4", { style: { margin: "0 0 8px" } }, "\u8BA1\u7B97\u4F9D\u636E"),
+      h("table", { style: { width: "100%", fontSize: 12, borderCollapse: "collapse" } }, h("tbody", {}, fields.map((field) => h("tr", { key: field.path, style: { borderBottom: "1px solid #9993" } }, [
+        h("th", { style: { textAlign: "left", padding: "8px 4px", fontWeight: 500 } }, field.label),
+        h("td", { style: { padding: "8px 4px", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" } }, field.value === null && field.ref && field.path === "data.usage.cacheReadTokens" ? "\u672A\u4E0A\u62A5 \xB7 \u6309 0 \u56DE\u9000" : number(field.value)),
+        h("td", { style: { padding: "8px 4px", overflowWrap: "anywhere" } }, [
+          field.ref ? h("button", { type: "button", onClick: () => props.onSelect(field.ref), "aria-label": `\u67E5\u770B${field.label}\u6765\u6E90 #${field.ref.seq}` }, `#${field.ref.seq} \xB7 ${field.ref.role}`) : h("span", {}, "\u6765\u6E90\u4E8B\u4EF6\u672A\u8BB0\u5F55"),
+          h("code", { style: { display: "block", fontSize: 11, opacity: 0.7, marginTop: 3 } }, field.path)
+        ])
+      ])))),
+      h("div", { style: { marginTop: 10, fontVariantNumeric: "tabular-nums" }, "aria-label": "\u8BF7\u6C42\u5360\u7528\u6C42\u548C" }, occupancy === null ? "\u7F3A\u5C11\u8BF7\u6C42\u7528\u91CF\uFF0C\u65E0\u6CD5\u6838\u9A8C\u6C42\u548C" : `${number(input)} + ${cache === null ? "0\uFF08\u7F13\u5B58\u8BFB\u53D6\u672A\u4E0A\u62A5\uFF0C\u56DE\u9000\uFF09" : number(cache)} = ${number(occupancy)} Token`),
+      h("strong", { style: { display: "block", fontSize: 16, marginTop: 6 }, "aria-label": "\u7A97\u53E3\u5360\u7528\u7387\u516C\u5F0F" }, occupancy === null || window2 === null || ratio === null ? "\u5360\u7528\u7387\uFF1A\u7F3A\u5C11\u8BA1\u7B97\u8F93\u5165\uFF0C\u65E0\u6CD5\u5B8C\u6574\u6838\u9A8C" : `${number(occupancy)} \xF7 ${number(window2)} \xD7 100% = ${(ratio * 100).toFixed(1)}%`),
+      h("small", { style: { display: "block", marginTop: 6, opacity: 0.7 } }, "\u70B9\u51FB\u6765\u6E90\u53EF\u6838\u5BF9\u539F\u59CB\u5B57\u6BB5\uFF1B\u56DE\u590D\u6B63\u6587\u4E0E\u8F93\u51FA Token \u4E0D\u53C2\u4E0E\u672C\u6B21\u5360\u7528\u7387\u8BA1\u7B97\u3002")
+    ]);
+  }
+  function EvidencePanel(props) {
+    const [page, setPage] = useState(0);
+    const [target, setTarget] = useState(null);
+    const [raw, setRaw] = useState({ phase: "idle", events: [] });
+    const [query, setQuery] = useState("");
+    const [selectedSeq, setSelectedSeq] = useState(null);
+    const closeRef = useRef(null);
+    const rootRef = useRef(null);
+    const rawRef = useRef(null);
+    useEffect(() => {
+      const previous = typeof document !== "undefined" ? document.activeElement : null;
+      closeRef.current?.focus();
+      return () => {
+        if (previous?.isConnected) previous.focus();
+      };
+    }, []);
+    useEffect(() => {
+      if (!target) return;
+      const controller = new AbortController();
+      let live = true;
+      setRaw({ phase: "loading", events: [] });
+      setSelectedSeq(target.seq);
+      const timeout = setTimeout(() => {
+        controller.abort();
+        if (live) setRaw({ phase: "error", events: [], error: "\u8BFB\u53D6\u8D85\u65F6\uFF0C\u8BF7\u91CD\u8BD5\u3002" });
+      }, 15e3);
+      void readEvidenceEvents(props.sessions, target, controller.signal).then((events) => {
+        if (live && !controller.signal.aborted) setRaw({ phase: "ready", events });
+      }, (error) => {
+        if (live && !controller.signal.aborted) setRaw({ phase: "error", events: [], error: String(error instanceof Error ? error.message : error) });
+      }).finally(() => clearTimeout(timeout));
+      return () => {
+        live = false;
+        clearTimeout(timeout);
+        controller.abort();
+      };
+    }, [target, props.sessions]);
+    useEffect(() => {
+      if (raw.phase === "ready") rawRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }, [raw.phase]);
+    const refs = uniqueEvidenceRefs(props.chain.refs);
+    const filtered = refs.filter((ref) => `${ref.sessionId} #${ref.seq} ${ref.role}`.toLowerCase().includes(query.toLowerCase()));
+    const selected = raw.events.find((event) => event.seq === selectedSeq);
+    const checks = selected && target ? calculationFieldChecks(props.chain.contextCalculation?.fields ?? [], target.sessionId, selected) : [];
+    const callId = selected && typeof selected.data === "object" && selected.data !== null ? selected.data.callId ?? selected.data.message?.toolCallId : void 0;
+    const rawJson = selected ? JSON.stringify(selected, null, 2) : "";
+    const download = () => {
+      if (!selected) return;
+      const url = URL.createObjectURL(new Blob([rawJson], { type: "application/json" }));
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `event-${selected.seq}.json`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1e3);
+    };
+    const trap = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        props.onClose();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const controls = rootRef.current?.querySelectorAll('button:not(:disabled),input,a[href],[tabindex="0"]');
+      if (!controls?.length) return;
+      const first = controls[0], last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+    return h("div", { style: { position: "fixed", inset: 0, background: "#0004", zIndex: 1200 }, onClick: props.onClose }, h("aside", {
+      role: "dialog",
+      "aria-modal": true,
+      "aria-label": "\u8BC1\u636E\u94FE",
+      ref: rootRef,
+      onClick: (event) => event.stopPropagation(),
+      onKeyDown: trap,
+      style: { position: "absolute", right: 0, top: 0, bottom: 0, width: "min(720px, 100%)", boxSizing: "border-box", overflowY: "auto", padding: 20, background: "var(--dsh-eval-surface, Canvas)", color: "CanvasText", boxShadow: "-4px 0 24px #0003", fontSize: 13, lineHeight: 1.6 }
+    }, [
+      h("div", { key: "header", style: { position: "sticky", top: -20, zIndex: 1, padding: "12px 0", background: "var(--dsh-eval-surface, Canvas)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 } }, [h("h3", { style: { margin: 0 } }, props.chain.title), h("button", { ref: closeRef, type: "button", onClick: props.onClose }, "\u5173\u95ED\u8BC1\u636E\u94FE")]),
+      h("p", { key: "conclusion" }, props.chain.conclusion),
+      h(AiDiagnosis, { key: "ai", connection: props.connection, sessions: props.sessions, currentSessionId: props.currentSessionId, inspectCall: props.inspectCall ? (id) => {
+        props.onClose();
+        props.inspectCall?.(id);
+      } : void 0, chain: props.chain, onSelectRef: (ref) => setTarget({ ...ref }) }),
+      h("div", { key: "level" }, `\u8BC1\u636E\u7B49\u7EA7\uFF1A${{ observed: "\u539F\u59CB\u89C2\u6D4B", derived: "\u8BA1\u7B97\u7ED3\u679C", inferred: "\u63A8\u65AD" }[props.chain.level]} \xB7 \u6253\u5F00\u65F6\u7684\u6570\u636E\u5FEB\u7167`),
+      h("p", { key: "rule" }, props.chain.rule),
+      props.chain.contextCalculation ? h(ContextCalculationView, { key: "calculation", calculation: props.chain.contextCalculation, onSelect: (ref) => setTarget({ ...ref }) }) : null,
+      h("dl", { key: "facts" }, props.chain.facts.flatMap((fact, index) => [h("dt", { key: `l${index}`, style: { fontWeight: 600, marginTop: 10 } }, fact.label), h("dd", { key: `v${index}`, style: { marginLeft: 0, overflowWrap: "anywhere" } }, [fact.value, h("small", { style: { display: "block", opacity: 0.65 } }, fact.source)])])),
+      h("ul", { key: "notes", style: { paddingLeft: 20 } }, props.chain.notes.map((note, index) => h("li", { key: index }, note))),
+      h("section", { key: "tool-errors", "aria-label": "\u5DE5\u5177\u9519\u8BEF\u539F\u56E0\u5206\u6790" }, (props.chain.toolFailures ?? []).map((failure) => h("article", { key: failure.resultSeq, style: { border: "1px solid #e5484d", borderRadius: 8, padding: 12, margin: "10px 0" } }, [h("strong", { style: { color: "var(--dsh-eval-red, #e5484d)" } }, `\u5931\u8D25\u8C03\u7528 \xB7 ${failure.name} \xB7 ${failure.callId}`), h("p", {}, `\u539F\u59CB\u89C2\u6D4B\uFF1Atool/result #${failure.resultSeq} \u7684 isError = true`), h("pre", { style: { whiteSpace: "pre-wrap", overflowWrap: "anywhere", maxHeight: 180, overflowY: "auto" } }, failure.excerpt || "\u672A\u63D0\u4F9B\u9519\u8BEF\u6587\u672C"), h("p", {}, `\u539F\u56E0\u5206\u6790\uFF08\u57FA\u4E8E\u9519\u8BEF\u6587\u672C\u7684\u89C4\u5219\u63A8\u65AD\uFF09\uFF1A${failure.analysis}`), h(AiDiagnosis, { label: "AI \u8BCA\u65AD\u8FD9\u6B21\u5931\u8D25", connection: props.connection, sessions: props.sessions, currentSessionId: props.currentSessionId, inspectCall: props.inspectCall ? (id) => {
+        props.onClose();
+        props.inspectCall?.(id);
+      } : void 0, chain: { title: `\u5DE5\u5177\u5931\u8D25 ${failure.name}`, conclusion: `${failure.callId} \xB7 \u9519\u8BEF\u7ED3\u679C #${failure.resultSeq}`, rule: "\u539F\u59CB tool/result isError = true\uFF1B\u539F\u56E0\u9700\u5206\u6790\u8C03\u7528\u53C2\u6570\u4E0E\u8FD4\u56DE\u7ED3\u679C\u3002", level: "observed", facts: [], notes: ["\u539F\u59CB\u7ED3\u679C\u6587\u672C\u548C\u8C03\u7528\u53C2\u6570\u5C06\u6309\u9700\u8BFB\u53D6\uFF0C\u9884\u89C8\u540E\u9009\u62E9\u6A21\u578B\u5F00\u59CB\u3002"], refs: props.chain.refs.filter((ref) => ref.seq === failure.callSeq || ref.seq === failure.resultSeq) }, onSelectRef: (ref) => setTarget({ ...ref }) }), h("button", { onClick: () => setTarget({ sessionId: props.chain.refs.find((ref) => ref.seq === failure.resultSeq)?.sessionId ?? props.currentSessionId, seq: failure.resultSeq, role: "\u9519\u8BEF\u7ED3\u679C" }) }, "\u67E5\u770B\u539F\u59CB\u9519\u8BEF\u7ED3\u679C")]))),
+      h("h4", { key: "refs" }, props.chain.contextCalculation ? `\u8BA1\u7B97\u6765\u6E90 \xB7 ${refs.length} \u4E2A\u4E8B\u4EF6` : `\u5173\u8054\u4E8B\u4EF6 \xB7 ${refs.length} \u6761\u5DF2\u4FDD\u7559\u5F15\u7528`),
+      !props.chain.contextCalculation ? h("input", { key: "search", type: "search", "aria-label": "\u641C\u7D22\u8BC1\u636E\u4E8B\u4EF6", placeholder: "\u641C\u7D22\u5E8F\u53F7\u3001\u4F1A\u8BDD\u6216\u4E8B\u4EF6\u89D2\u8272", value: query, onChange: (event) => {
+        setQuery(event.target.value);
+        setPage(0);
+      }, style: { width: "100%", boxSizing: "border-box" } }) : null,
+      refs.length === 0 ? h("p", { key: "empty", role: "status" }, "\u6CA1\u6709\u53EF\u5B9A\u4F4D\u7684\u4E8B\u4EF6\u5F15\u7528\uFF1B\u4E0D\u80FD\u636E\u6B64\u5BA3\u79F0\u7ED3\u8BBA\u5DF2\u9A8C\u8BC1\u3002") : null,
+      h("ol", { key: "events", style: { paddingLeft: 0, listStyle: "none" } }, filtered.slice(page * 20, page * 20 + 20).map((ref) => h("li", { key: JSON.stringify([ref.sessionId, ref.seq]), style: { color: ref.failed ? "var(--dsh-eval-red, #e5484d)" : void 0, padding: "8px 0", borderBottom: "1px solid #9994", overflowWrap: "anywhere" } }, [
+        h(EvidenceEventCard, { refInfo: ref, sessions: props.sessions, currentSessionId: props.currentSessionId, inspectCall: props.inspectCall ? (id) => {
+          props.onClose();
+          props.inspectCall?.(id);
+        } : void 0, onSelect: (ref2) => setTarget({ ...ref2 }) })
+      ]))),
+      filtered.length > 20 ? h("div", { key: "pages" }, [h("button", { disabled: page === 0, onClick: () => setPage((value) => value - 1) }, "\u4E0A\u4E00\u9875"), ` ${page + 1} / ${Math.ceil(filtered.length / 20)} `, h("button", { disabled: (page + 1) * 20 >= filtered.length, onClick: () => setPage((value) => value + 1) }, "\u4E0B\u4E00\u9875")]) : null,
+      target ? h("section", { key: "raw", ref: rawRef, "aria-label": "\u539F\u59CB\u8F68\u8FF9", style: { marginTop: 16, borderTop: "2px solid #4285f4", paddingTop: 12 } }, [
+        h("h4", {}, `\u539F\u59CB\u8F68\u8FF9 \xB7 ${target.sessionId} \xB7 #${target.seq}`),
+        raw.phase === "loading" ? h("p", { role: "status" }, "\u8BFB\u53D6\u539F\u59CB\u4E8B\u4EF6\u4E0E\u76F8\u90BB\u8BB0\u5F55\u4E2D\u2026") : null,
+        raw.phase === "error" ? h("div", { role: "alert" }, [raw.error, h("button", { onClick: () => setTarget({ ...target }) }, "\u91CD\u8BD5")]) : null,
+        raw.phase === "ready" ? h("div", {}, [
+          h("p", {}, checks.length ? "\u76EE\u6807\u4E8B\u4EF6\u76F4\u63A5\u8BFB\u53D6\u81EA\u5BBF\u4E3B\u6301\u4E45\u4E8B\u4EF6\u6E90\uFF1B\u4E0B\u65B9\u5B57\u6BB5\u6838\u5BF9\u8BF4\u660E\u5B83\u5982\u4F55\u53C2\u4E0E\u672C\u6B21\u8BA1\u7B97\u3002" : "\u5F53\u524D\u4E8B\u4EF6\u76F4\u63A5\u8BFB\u53D6\u81EA\u5BBF\u4E3B\u6301\u4E45\u4E8B\u4EF6\u6E90\uFF1B\u9644\u8FD1\u8BB0\u5F55\u4EC5\u7528\u4E8E\u8F85\u52A9\u6838\u67E5\u3002"),
+          h("div", { "aria-label": "\u76EE\u6807\u539F\u59CB\u4E8B\u4EF6", style: { padding: 8, color: raw.events.find((event) => event.seq === target.seq)?.data?.message?.isError === true ? "#e5484d" : void 0, background: "#4285f426" } }, `#${target.seq} \xB7 ${raw.events.find((event) => event.seq === target.seq)?.type ?? ""} \xB7 ${formatDateTime(raw.events.find((event) => event.seq === target.seq)?.time ?? 0)}`),
+          checks.length ? h("section", { "aria-label": "\u53C2\u4E0E\u8BA1\u7B97\u7684\u539F\u59CB\u5B57\u6BB5", style: { padding: "8px 0" } }, [
+            h("strong", {}, "\u53C2\u4E0E\u8BA1\u7B97\u7684\u539F\u59CB\u5B57\u6BB5"),
+            ...checks.map(({ field, actual, status }) => h("div", { key: field.path, style: { padding: "6px 0", borderBottom: "1px solid #9993" } }, [
+              h("code", {}, field.path),
+              h("div", {}, `${field.label}\uFF1A${typeof actual === "number" ? formatFull(actual) : actual === void 0 || actual === null ? "\u672A\u8BB0\u5F55" : JSON.stringify(actual)} \xB7 ${status}`),
+              status === "\u4E0E\u8BA1\u7B97\u5FEB\u7167\u4E0D\u4E00\u81F4" || status === "\u4E8B\u4EF6\u7C7B\u578B\u4E0D\u7B26" ? h("small", { role: "alert" }, `\u8BA1\u7B97\u5FEB\u7167\u4E3A ${field.value ?? "\u672A\u8BB0\u5F55"}\uFF1B\u8BF7\u68C0\u67E5\u6295\u5F71\u4E0E\u539F\u59CB\u4E8B\u4EF6\u6765\u6E90\u3002`) : null
+            ]))
+          ]) : null,
+          h("details", { "aria-label": "\u9644\u8FD1\u8F68\u8FF9", key: `neighbors-${target.sessionId}-${target.seq}`, style: { margin: "10px 0" } }, [
+            h("summary", { style: { cursor: "pointer" } }, `\u67E5\u770B\u9644\u8FD1\u8F68\u8FF9\uFF08${Math.max(0, raw.events.length - 1)} \u6761\uFF0C\u4EC5\u8F85\u52A9\u6838\u67E5\uFF09`),
+            h("small", {}, "\u76F8\u90BB\u4E8B\u4EF6\u4E0D\u81EA\u52A8\u6210\u4E3A\u8BE5\u6307\u6807\u7684\u8BA1\u7B97\u4F9D\u636E\uFF1B\u70B9\u51FB\u884C\u53EF\u68C0\u67E5\u539F\u59CB\u5185\u5BB9\u3002"),
+            h("table", { style: { width: "100%", fontSize: 12, marginTop: 8 } }, h("tbody", {}, raw.events.map((event) => h("tr", { key: event.seq, "data-evidence-target": event.seq === target.seq, style: { background: event.seq === target.seq ? "#4285f426" : void 0 } }, [
+              h("td", {}, h("button", { "aria-pressed": selectedSeq === event.seq, onClick: () => setSelectedSeq(event.seq) }, `#${event.seq}`)),
+              h("td", {}, event.type),
+              h("td", {}, formatDateTime(event.time))
+            ]))))
+          ]),
+          selectedSeq !== target.seq ? h("p", { role: "status" }, `\u6B63\u5728\u67E5\u770B\u9644\u8FD1\u4E8B\u4EF6 #${selectedSeq}\uFF1B\u672C\u6B21\u5B9A\u4F4D\u7684\u8BA1\u7B97\u6765\u6E90\u4ECD\u4E3A #${target.seq}\u3002`) : null,
+          h("pre", { "aria-label": "\u539F\u59CB\u4E8B\u4EF6 JSON", style: { whiteSpace: "pre-wrap", overflowWrap: "anywhere", maxHeight: 360, overflowY: "auto", padding: 12, background: "#9991" } }, rawJson.slice(0, 1e5)),
+          rawJson.length > 1e5 ? h("small", {}, "JSON \u663E\u793A\u5DF2\u622A\u65AD\uFF1B\u4E0B\u8F7D\u53EF\u83B7\u53D6\u672C\u6761\u5B8C\u6574\u539F\u59CB\u4E8B\u4EF6\u3002") : null,
+          h("button", { onClick: download }, "\u4E0B\u8F7D\u672C\u6761\u539F\u59CB\u4E8B\u4EF6"),
+          typeof callId === "string" && target.sessionId === props.currentSessionId && props.inspectCall ? h("button", { onClick: () => {
+            props.onClose();
+            props.inspectCall?.(callId);
+          } }, "\u5728\u5BBF\u4E3B Trajectory \u5B9A\u4F4D\u5DE5\u5177\u8C03\u7528") : null
+        ]) : null,
+        h("a", { href: `/api/session.export?sessionId=${encodeURIComponent(target.sessionId)}&includeDescendants=false`, download: true }, "\u4E0B\u8F7D\u8BE5\u4F1A\u8BDD\u5B8C\u6574\u65E5\u5FD7")
+      ]) : null
+    ]));
+  }
+
+  // client-src/evidenceEventCard.tsx
+  function describeEvidenceEvent(event, events) {
+    const e = event;
+    const data = e.data ?? {};
+    const callId = typeof data.callId === "string" ? data.callId : typeof data.message?.toolCallId === "string" ? data.message.toolCallId : null;
+    const call = e.type === "tool/call" ? e : callId ? events.find((raw) => raw.type === "tool/call" && raw.data?.callId === callId) : void 0;
+    const anchor = events.filter((raw) => raw.seq <= (call?.seq ?? event.seq) && raw.type === "step/start").sort((a, b) => b.seq - a.seq)[0];
+    let summary = "";
+    const args = call?.data?.arguments;
+    if (args !== void 0) {
+      let value = args;
+      try {
+        if (typeof args === "string") value = JSON.parse(args);
+      } catch {
+      }
+      summary = typeof value === "object" && value ? String(value.command ?? value.cmd ?? value.path ?? value.filePath ?? value.file_path ?? JSON.stringify(value)) : String(value);
+    }
+    if (!summary) {
+      const message = data.message ?? (e.type === "user/message" ? data : null);
+      summary = (message?.content ?? []).filter((b) => b.type === "text").map((b) => b.text).join(" ") || e.type;
+    }
+    const turn = data.turn ?? call?.data?.turn ?? anchor?.data?.turn;
+    const step = data.step ?? call?.data?.step ?? anchor?.data?.step;
+    return { tool: call?.data?.name ?? (e.type === "tool/result" ? "\u5DE5\u5177\u7ED3\u679C" : e.type), summary: summary.replace(/\s+/g, " ").slice(0, 180), callId, turn: typeof turn === "number" ? turn : null, step: typeof step === "number" ? step : null, time: event.time, failed: data.message?.isError === true, kind: e.type };
+  }
+  function EvidenceEventCard(props) {
+    const [loaded, setLoaded] = useState(null), [error, setError] = useState("");
+    useEffect(() => {
+      if (props.description) return;
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 15e3);
+      void readEvidenceEvents(props.sessions, props.refInfo, controller.signal).then((events) => {
+        const event = events.find((e) => e.seq === props.refInfo.seq);
+        if (event && !controller.signal.aborted) setLoaded(describeEvidenceEvent(event, events));
+      }, () => {
+        if (!controller.signal.aborted) setError("\u539F\u59CB\u4E8B\u4EF6\u6682\u4E0D\u53EF\u8BFB");
+      }).finally(() => clearTimeout(timer));
+      return () => {
+        clearTimeout(timer);
+        controller.abort();
+      };
+    }, [props.description, props.refInfo.sessionId, props.refInfo.seq, props.sessions]);
+    const d = props.description ?? loaded;
+    const failed = props.refInfo.failed || d?.failed;
+    const canLocate = !!d?.callId && props.currentSessionId === props.refInfo.sessionId && !!props.inspectCall;
+    return h("article", { "aria-label": `\u8F68\u8FF9\u8BC1\u636E ${props.refInfo.seq}`, style: { border: `1px solid ${failed ? "#e5484d" : "#9994"}`, borderRadius: 8, padding: 10, margin: "6px 0", fontSize: 12 } }, [
+      h("strong", { style: { color: failed ? "#e5484d" : void 0 } }, `${failed ? "\u5931\u8D25 \xB7 " : ""}${d?.tool ?? props.refInfo.role} \xB7 ${props.refInfo.role}`),
+      d ? h("p", { style: { margin: "4px 0", opacity: 0.7 } }, `\u7B2C ${d.turn ?? "?"} \u8F6E \xB7 \u6B65\u9AA4 ${d.step ?? "?"} \xB7 ${formatDateTime(d.time)}`) : h("p", {}, error || "\u8BFB\u53D6\u4E8B\u4EF6\u6458\u8981\u2026"),
+      d ? h("code", { style: { display: "block", whiteSpace: "pre-wrap", overflowWrap: "anywhere", margin: "6px 0" } }, d.summary) : null,
+      canLocate ? h("button", { onClick: () => props.inspectCall?.(d.callId) }, "\u6253\u5F00\u539F\u751F\u8F68\u8FF9") : h("small", { style: { display: "block", opacity: 0.65 } }, d?.callId ? "\u539F\u751F\u5B9A\u4F4D\u4EC5\u652F\u6301\u5F53\u524D\u4F1A\u8BDD\uFF1B\u8BF7\u5148\u6253\u5F00\u6240\u5C5E\u4F1A\u8BDD\u3002" : "\u8BE5\u4E8B\u4EF6\u6682\u65E0\u53EF\u7528\u5DE5\u5177\u8C03\u7528\u5B9A\u4F4D\uFF0C\u8BF7\u67E5\u770B\u539F\u59CB\u4E8B\u4EF6\u3002"),
+      props.onSelect ? h("button", { onClick: () => props.onSelect?.(props.refInfo) }, "\u67E5\u770B\u539F\u59CB\u4E8B\u4EF6") : null,
+      h("details", {}, [h("summary", { style: { opacity: 0.65 } }, `\u5B9A\u4F4D\u4FE1\u606F \xB7 \u4E8B\u4EF6 #${props.refInfo.seq}`), h("small", {}, `${props.refInfo.sessionId} \xB7 callId ${d?.callId ?? "\u672A\u63D0\u4F9B"}`)])
+    ]);
+  }
+
+  // client-src/aiDiagnostic.tsx
+  function AiDiagnosis(props) {
+    void props;
+    return null;
+  }
+
+  // client-src/contextEstimate.ts
+  var ESTIMATE_PARTS = [
+    ["body", "\u6D88\u606F\u6B63\u6587", "\u5019\u9009\u8F93\u5165", "\u7528\u6237\u53CA\u52A9\u624B\u6B63\u6587\uFF1B\u5B9E\u9645\u53D1\u9001\u8303\u56F4\u53D6\u51B3\u4E8E\u8BF7\u6C42\u6784\u5EFA\u3002"],
+    ["reasoning", "\u5386\u53F2\u601D\u8003", "\u4F9D\u8DEF\u7531\u800C\u5B9A", "\u90E8\u5206\u9002\u914D\u5668\u652F\u6301 thinking \u91CD\u653E\uFF1B\u4E0D\u80FD\u65AD\u8A00\u5168\u90E8\u53D1\u9001\u6216\u5168\u90E8\u6392\u9664\u3002"],
+    ["toolCalls", "\u5DE5\u5177\u8C03\u7528\u53C2\u6570", "\u5019\u9009\u8F93\u5165", "\u5386\u53F2\u8C03\u7528\u540D\u79F0\u4E0E\u53C2\u6570\uFF1B\u9002\u914D\u5668\u53EF\u80FD\u8F6C\u6362\u53C2\u6570\u683C\u5F0F\u3002"],
+    ["toolResults", "\u5DE5\u5177\u7ED3\u679C\u6B63\u6587", "\u5019\u9009\u8F93\u5165", "\u5DE5\u5177\u7ED3\u679C\u6587\u672C\uFF1B\u66FF\u6362\u6216\u4FEE\u526A\u540E\u7684\u5185\u5BB9\u624D\u8BA1\u5165\u5F53\u524D\u8868\u9762\u3002"],
+    ["system", "\u7CFB\u7EDF/\u5F00\u53D1\u8005\u5185\u5BB9", "\u4F9D\u8DEF\u7531\u800C\u5B9A", "\u9002\u914D\u5668\u53EF\u80FD\u5408\u5E76\u3001\u63D0\u5347\u89D2\u8272\u6216\u8F6C\u6362\u4E3A\u7CFB\u7EDF\u66F4\u65B0\u3002"],
+    ["images", "\u56FE\u7247\u5F15\u7528\u7ED3\u6784", "\u975E\u56FE\u7247\u771F\u5B9E\u8BA1\u4EF7", "\u8FD9\u91CC\u53EA\u4F30\u7B97\u5F15\u7528\u7ED3\u6784\uFF0C\u56FE\u7247\u5904\u7406\u540E\u7684\u8F93\u5165\u7528\u91CF\u65E0\u6CD5\u7531\u6B64\u786E\u5B9A\u3002"],
+    ["structure", "\u6D88\u606F\u53CA\u5176\u4ED6\u7ED3\u6784", "\u4F30\u7B97\u5F00\u9500", "\u542F\u53D1\u5F0F\u7ED3\u6784\u5F00\u9500\uFF0C\u4E0D\u7B49\u4E8E\u670D\u52A1\u5546\u534F\u8BAE\u5B9E\u9645\u5F00\u9500\u3002"]
+  ];
+  var emptyEstimate = () => ({ body: 0, reasoning: 0, toolCalls: 0, toolResults: 0, system: 0, images: 0, structure: 0 });
+  function estimateParts(event, total) {
+    const e = event;
+    const message = e.type === "user/message" ? e.data : e.data?.message;
+    const parts = emptyEstimate();
+    if (!message) return parts;
+    if (message.role === "system" || message.role === "developer") {
+      parts.system = total;
+      return parts;
+    }
+    for (const b of message.content ?? []) {
+      if (b.type === "reasoning") parts.reasoning += Math.ceil(b.text.length / 4) + 4;
+      else if (b.type === "text") parts[e.type === "tool/result" ? "toolResults" : "body"] += Math.ceil(b.text.length / 4) + 4;
+      else if (b.type === "tool-call") parts.toolCalls += Math.ceil(b.name.length / 4) + Math.ceil(b.arguments.length / 4) + 4;
+      else if (b.type === "image") {
+        const { offloaded, ...reference } = b;
+        parts.images += 4 + Math.ceil(JSON.stringify(reference).length / 4);
+      }
+    }
+    parts.structure = total - Object.values(parts).reduce((sum, n) => sum + n, 0);
+    return parts;
+  }
+
+  // client-src/toolErrors.ts
+  function analyzeToolError(text) {
+    const rules = [
+      [/permission denied|EACCES|EPERM|权限不足|拒绝访问/i, "\u6743\u9650\u9650\u5236\uFF1A\u5F53\u524D\u8FDB\u7A0B\u53EF\u80FD\u6CA1\u6709\u8BBF\u95EE\u6587\u4EF6\u6216\u6267\u884C\u64CD\u4F5C\u7684\u6743\u9650\uFF1B\u6838\u5BF9\u76EE\u6807\u8DEF\u5F84\u548C\u8FD0\u884C\u8EAB\u4EFD\u3002"],
+      [/ENOENT|no such file|not found|不存在/i, "\u76EE\u6807\u4E0D\u53EF\u7528\uFF1A\u53EF\u80FD\u662F\u6587\u4EF6\u8DEF\u5F84\u3001\u547D\u4EE4\u6216\u8D44\u6E90\u4E0D\u5B58\u5728\uFF1B\u6838\u5BF9\u8C03\u7528\u53C2\u6570\u53CA\u5DE5\u4F5C\u76EE\u5F55\u3002"],
+      [/timed?\s*out|ETIMEDOUT|超时/i, "\u6267\u884C\u8D85\u65F6\uFF1A\u53EF\u80FD\u662F\u5DE5\u5177\u8017\u65F6\u8FC7\u957F\u6216\u4E0A\u6E38\u54CD\u5E94\u7F13\u6162\uFF1B\u6838\u5BF9\u8017\u65F6\u548C\u670D\u52A1\u72B6\u6001\u3002"],
+      [/ECONNREFUSED|ENOTFOUND|ECONNRESET|network|网络/i, "\u8FDE\u63A5\u5F02\u5E38\uFF1A\u53EF\u80FD\u662F\u670D\u52A1\u672A\u542F\u52A8\u3001\u5730\u5740\u89E3\u6790\u5931\u8D25\u6216\u8FDE\u63A5\u4E2D\u65AD\uFF1B\u6838\u5BF9\u7AEF\u70B9\u548C\u7F51\u7EDC\u72B6\u6001\u3002"],
+      [/invalid|validation|schema|missing required|参数.*错误/i, "\u53C2\u6570\u6216\u683C\u5F0F\u4E0D\u5339\u914D\uFF1A\u6838\u5BF9\u5DE5\u5177\u53C2\u6570\u3001\u5FC5\u586B\u5B57\u6BB5\u53CA\u8F93\u5165\u683C\u5F0F\u3002"],
+      [/exit code|exited.*[1-9]|non.zero/i, "\u5B50\u8FDB\u7A0B\u5931\u8D25\uFF1A\u975E\u96F6\u9000\u51FA\u72B6\u6001\u8BF4\u660E\u547D\u4EE4\u6267\u884C\u5931\u8D25\uFF0C\u9700\u7ED3\u5408\u6807\u51C6\u9519\u8BEF\u8F93\u51FA\u5B9A\u4F4D\u5177\u4F53\u539F\u56E0\u3002"]
+    ];
+    return rules.find(([pattern]) => pattern.test(text))?.[1] ?? "\u6682\u65E0\u6CD5\u4ECE\u8FD4\u56DE\u5185\u5BB9\u786E\u5B9A\u539F\u56E0\uFF1B\u8BF7\u6838\u5BF9\u539F\u59CB\u9519\u8BEF\u3001\u8C03\u7528\u53C2\u6570\u548C\u8FD0\u884C\u73AF\u5883\u3002";
+  }
+  function toolFailures(events) {
+    const calls = /* @__PURE__ */ new Map();
+    const failures = [];
+    for (const raw of events) {
+      const e = raw;
+      if (e.type === "tool/call") calls.set(String(e.data.callId), { name: e.data.name, seq: e.seq });
+      if (e.type !== "tool/result" || e.data?.message?.isError !== true || e.surfaceOp?.op === "replace") continue;
+      const callId = String(e.data.message.toolCallId);
+      const call = calls.get(callId);
+      const text = (e.data.message.content ?? []).map((b) => typeof b.text === "string" ? b.text : JSON.stringify(b)).join("\n");
+      failures.push({ name: call?.name ?? "\u672A\u77E5\u5DE5\u5177", callId, callSeq: call?.seq, resultSeq: e.seq, excerpt: text.slice(0, 2e3), analysis: analyzeToolError(text) });
+    }
+    return failures;
+  }
+
+  // client-src/injectionHistory.ts
+  function historyMessage(event, tools, includeReplacement = false) {
+    const e = event;
+    if (e.type === "tool/call") tools.set(String(e.data.callId), e.data.name);
+    if (e.surfaceOp !== "append" && !(includeReplacement && e.surfaceOp?.op === "replace")) return null;
+    const kinds = { "user/message": "user", "system/message": "system", "developer/message": "developer", "tool/result": "tool-result", "assistant/message": "assistant" };
+    const kind = kinds[e.type];
+    if (!kind) return null;
+    const message = kind === "user" ? e.data : e.data?.message;
+    if (!message || !Array.isArray(message.content)) return null;
+    const sourceKind = kind === "system" ? "system-prompt" : kind === "developer" ? "developer" : message.source?.kind ?? "unknown";
+    if ((kind === "system" || kind === "developer") && !message.content.length) return null;
+    let textTokens = 4, toolCallTokens = 0, fileTokens = 0;
+    if (message.role === "system") textTokens = Math.ceil(message.content.reduce((n, b) => n + (b.type === "text" ? b.text.length : JSON.stringify(b).length), 0) / 4) + 4;
+    else for (const b of message.content) {
+      if (b.type === "text" || b.type === "reasoning") textTokens += Math.ceil(b.text.length / 4) + 4;
+      else if (b.type === "tool-call") toolCallTokens += Math.ceil(b.name.length / 4) + Math.ceil(b.arguments.length / 4) + 4;
+      else if (b.type === "image") {
+        const { offloaded, ...reference } = b;
+        fileTokens += 4 + Math.ceil(JSON.stringify(reference).length / 4);
+      } else textTokens += 4 + Math.ceil(JSON.stringify(b).length / 4);
+    }
+    const callId = kind === "tool-result" ? String(message.toolCallId) : null;
+    const toolName = callId ? tools.get(callId) ?? null : null;
+    return { seq: e.seq, timeMs: e.time, kind, sourceKind, toolName, tokens: textTokens + toolCallTokens + fileTokens, turn: e.data.turn ?? null, preview: "", textTokens, toolCallTokens, fileTokens, outputTokens: e.type === "assistant/message" ? e.data.usage?.outputTokens ?? null : null, cumulativeTokens: 0, callId, callTool: toolName };
+  }
+  function historyCompactions(events) {
+    const rows = [];
+    const starts = /* @__PURE__ */ new Map();
+    let pending;
+    for (const raw of events) {
+      const e = raw;
+      if (e.type === "compaction/start") starts.set(e.data.compactionId, { seq: e.seq, time: e.time });
+      if (e.type === "compaction/summary" || e.type === "compaction/prune") {
+        const summary = e.type === "compaction/summary";
+        const id = summary ? e.data.compactionId : `prune-${e.seq}`;
+        const start = starts.get(id);
+        pending = { seq: e.seq, timeMs: e.time, id, kind: summary ? "summary" : "prune", beforeTokens: null, afterTokens: null, reclaimedTokens: null, reclaimRatio: null, elapsedMs: null, turn: e.data.turn ?? null, evidenceRefs: [...start ? [{ seq: start.seq, role: "\u538B\u7F29\u5F00\u59CB" }] : [], { seq: e.seq, role: summary ? "\u6458\u8981\u751F\u6210" : "\u5386\u53F2\u4FEE\u526A" }] };
+        rows.push(pending);
+      }
+      if (pending && e.surfaceOp && typeof e.surfaceOp === "object" && e.surfaceOp.op === "replace") {
+        pending.evidenceRefs?.push({ seq: e.seq, role: "\u66FF\u6362\u540E\u7684\u4E0A\u4E0B\u6587" });
+        pending = void 0;
+      }
+      if (e.type === "compaction/end") {
+        const row = rows.slice().reverse().find((row2) => row2.id === e.data.compactionId);
+        if (row) {
+          const start = starts.get(row.id);
+          row.elapsedMs = start ? Math.max(0, e.time - start.time) : null;
+          row.evidenceRefs?.push({ seq: e.seq, role: "\u538B\u7F29\u7ED3\u675F" });
+        }
+      }
+    }
+    return rows;
+  }
+  function cancellable(promise, signal) {
+    return new Promise((resolve, reject) => {
+      const abort = () => reject(signal.reason ?? new Error("\u8BFB\u53D6\u5DF2\u53D6\u6D88"));
+      if (signal.aborted) {
+        abort();
+        return;
+      }
+      signal.addEventListener("abort", abort, { once: true });
+      Promise.resolve(promise).then(resolve, reject).finally(() => signal.removeEventListener("abort", abort));
+    });
+  }
+  async function watchInjectionHistory(sessions, sessionId, signal, publish) {
+    if (!sessions?.using) throw Error("\u5BBF\u4E3B\u672A\u63D0\u4F9B\u539F\u59CB\u4F1A\u8BDD\u8BFB\u53D6\u670D\u52A1");
+    await sessions.using(sessionId, { source: "dsh-eval-control-analytics", signal }, async (reference) => {
+      const held = reference;
+      await cancellable(held.ready, signal);
+      signal.throwIfAborted();
+      const binding = held.binding;
+      if (!binding?.eventSource || !binding.session?.loadThrough) throw Error("\u5BBF\u4E3B\u4E0D\u652F\u6301\u5B8C\u6574\u5386\u53F2\u8BFB\u53D6");
+      let loaded = false;
+      let cache = /* @__PURE__ */ new Map();
+      let seen = /* @__PURE__ */ new Set();
+      let tools = /* @__PURE__ */ new Map();
+      let first;
+      let surface = /* @__PURE__ */ new Map();
+      let surfaceTotal = 0;
+      let componentNodes = /* @__PURE__ */ new Map();
+      let componentTotal = emptyEstimate();
+      let requestCache = /* @__PURE__ */ new Map();
+      const update = () => {
+        if (signal.aborted) return;
+        const snap = binding.eventSource.getSnapshot();
+        const events = snap.entries.filter((e) => e.type === "event").map((e) => e.event).sort((a, b) => a.seq - b.seq);
+        if (snap.change?.kind === "replace" || events[0]?.seq !== first || events.length < seen.size) {
+          cache = /* @__PURE__ */ new Map();
+          seen = /* @__PURE__ */ new Set();
+          tools = /* @__PURE__ */ new Map();
+          surface = /* @__PURE__ */ new Map();
+          surfaceTotal = 0;
+          requestCache = /* @__PURE__ */ new Map();
+          componentNodes = /* @__PURE__ */ new Map();
+          componentTotal = emptyEstimate();
+          first = events[0]?.seq;
+        }
+        for (const event of events) if (!seen.has(event.seq)) {
+          seen.add(event.seq);
+          const e = event;
+          if (e.type === "assistant/message" && e.data?.usage) {
+            const usage = e.data.usage;
+            requestCache.set(e.seq, { seq: e.seq, timeMs: e.time, turn: e.data.turn, step: e.data.step, inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, cacheReadTokens: typeof usage.cacheReadTokens === "number" ? usage.cacheReadTokens : null, cacheWriteTokens: typeof usage.cacheWriteTokens === "number" ? usage.cacheWriteTokens : null, surfaceTokens: surfaceTotal, estimateParts: { ...componentTotal } });
+          }
+          const op = e.surfaceOp;
+          if (op?.op === "replace") {
+            for (const [seq, tokens] of surface) if (seq >= op.startSeq && seq <= op.endSeq) {
+              surfaceTotal -= tokens;
+              surface.delete(seq);
+              const parts = componentNodes.get(seq);
+              if (parts) for (const key of Object.keys(componentTotal)) componentTotal[key] -= parts[key];
+              componentNodes.delete(seq);
+            }
+          }
+          const row = historyMessage(event, tools, true);
+          if (row) {
+            const parts = estimateParts(event, row.tokens);
+            componentNodes.set(event.seq, parts);
+            for (const key of Object.keys(componentTotal)) componentTotal[key] += parts[key];
+            surface.set(event.seq, row.tokens);
+            surfaceTotal += row.tokens;
+            row.cumulativeTokens = surfaceTotal;
+            if (op === "append") cache.set(event.seq, row);
+          }
+        }
+        const requests = [...requestCache.values()].sort((a, b) => a.seq - b.seq);
+        const compactions = historyCompactions(events);
+        publish({ toolCalls: events.filter((e) => e.type === "tool/call").map((e) => ({ seq: e.seq, callId: String(e.data.callId), name: e.data.name })), toolFailures: toolFailures(events), requests, compactions, phase: loaded ? snap.hasMore ? "partial" : "ready" : "loading", messages: [...cache.values()].sort((a, b) => a.seq - b.seq), firstSeq: events[0]?.seq, lastSeq: events.at(-1)?.seq });
+      };
+      const stop = binding.eventSource.subscribe(update);
+      try {
+        update();
+        await cancellable(binding.session.loadThrough(0), signal);
+        signal.throwIfAborted();
+        loaded = true;
+        update();
+        await cancellable(new Promise(() => {
+        }), signal);
+      } finally {
+        stop();
+      }
+    });
+  }
+  function useInjectionHistory(sessions, sessionId, active) {
+    const [value, setValue] = useState({ id: sessionId, state: { phase: "loading", messages: [] } });
+    useEffect(() => {
+      if (!active) return;
+      const controller = new AbortController();
+      setValue({ id: sessionId, state: { phase: "loading", messages: [] } });
+      void watchInjectionHistory(sessions, sessionId, controller.signal, (state) => setValue({ id: sessionId, state })).catch((error) => {
+        if (!controller.signal.aborted) setValue((previous) => ({ id: sessionId, state: { ...previous.state, phase: "error", error: String(error instanceof Error ? error.message : error) } }));
+      });
+      return () => controller.abort();
+    }, [sessions, sessionId, active]);
+    return value.id === sessionId ? value.state : { phase: "loading", messages: [] };
+  }
+
   // client-src/derive.ts
   function surfaceOf(timeline) {
     return timeline !== null && timeline.surface !== null && typeof timeline.surface === "object" ? timeline.surface : null;
@@ -637,7 +1351,7 @@
       segmentDetail,
       surfaceTotal: surface?.totalTokens ?? 0,
       messages,
-      messageCapNote: messages.length >= 64,
+      messageCapNote: false,
       steps,
       wallMs,
       running: Array.isArray(analytics?.teamInput?.turnIntervals) ? analytics.teamInput.turnIntervals.some((turn) => turn.firstEndMs === null) : false
@@ -651,7 +1365,7 @@
     developer: "\u5F00\u53D1\u8005"
   };
   function isInjected(message) {
-    if (message.kind === "assistant") return false;
+    if (message.kind === "assistant" || message.kind === "tool-result") return false;
     if (message.kind === "user") return message.sourceKind !== "user";
     return true;
   }
@@ -843,7 +1557,7 @@
   function LineChart(props) {
     const height = props.height ?? 260;
     const width = 720;
-    const padding = { top: props.eventLanes === false ? 24 : 104, right: 16, bottom: 30, left: 56 };
+    const padding = { top: props.eventLanes === false ? 24 : 126, right: 16, bottom: 30, left: 56 };
     const plotW = width - padding.left - padding.right;
     const [hover, setHover] = useState(null);
     const [range, setRange] = useState(null);
@@ -910,7 +1624,7 @@
     const bucketSize = 10;
     const buckets = /* @__PURE__ */ new Map();
     for (const entry of visibleMarkers) {
-      const bucket = `${entry.marker.kind}:${Math.round(toSvgX(entry.marker.x) / bucketSize)}`;
+      const bucket = `${entry.marker.kind}:${entry.marker.failed ? "failed" : "normal"}:${Math.round(toSvgX(entry.marker.x) / bucketSize)}`;
       const list = buckets.get(bucket);
       if (list === void 0) buckets.set(bucket, [entry]);
       else list.push(entry);
@@ -918,7 +1632,7 @@
     const singles = [];
     const clusters = [];
     for (const members of buckets.values()) {
-      if (members.length > 3) {
+      if (members.length > 3 && !members.some((entry) => entry.marker.failed)) {
         const cx = members.reduce((sum, entry) => sum + toSvgX(entry.marker.x), 0) / members.length;
         clusters.push({
           key: `cluster:${members[0].marker.kind}:${Math.round(cx)}`,
@@ -1008,7 +1722,7 @@
         onDoubleClick: () => setRange(null)
       }, [
         selection !== null ? h("rect", { key: "selection", x: toSvgX(Math.min(selection.from, selection.to)), y: padding.top, width: Math.abs(toSvgX(selection.to) - toSvgX(selection.from)), height: height - padding.top - padding.bottom, fill: "#4285f4", opacity: 0.18, pointerEvents: "none" }) : null,
-        ...(props.eventLanes === false ? [] : ["compaction", "prune", "injection", "spike"]).map((kind) => h("g", { key: `lane-${kind}` }, [
+        ...(props.eventLanes === false ? [] : ["compaction", "prune", "injection", "feedback", "spike"]).map((kind) => h("g", { key: `lane-${kind}` }, [
           h("line", { x1: padding.left, x2: width - padding.right, y1: markerLane(kind), y2: markerLane(kind), stroke: "currentColor", opacity: 0.06 }),
           h("text", { x: padding.left - 6, y: markerLane(kind) + 3, textAnchor: "end", fontSize: 9, fill: MARKER_STYLE[kind].color }, MARKER_STYLE[kind].label)
         ])),
@@ -1032,7 +1746,7 @@
           }, formatY(value))
         ])),
         /* X labels */
-        ...xTicks(xMin, xMax).map((value, index) => h("text", {
+        ...(props.xTickValues ? props.xTickValues.filter((value) => value >= xMin && value <= xMax).filter((_, index, array) => index === 0 || index === array.length - 1 || index % Math.max(1, Math.ceil(array.length / 6)) === 0) : xTicks(xMin, xMax)).map((value, index) => h("text", {
           key: `xtick-${index}`,
           x: toSvgX(value).toFixed(1),
           y: height - 10,
@@ -1117,17 +1831,21 @@
           }))
         ]) : null
       ]),
-      eventDetail !== null && openCluster === null ? h("div", { key: "event-detail", role: pinned ? "region" : "tooltip", style: { ...pinned ? { marginTop: 8 } : { position: "absolute", top: 102, left: `${Math.min(65, Math.max(0, toSvgX(eventDetail.x) / width * 100 - 15))}%`, width: "min(380px, 90%)", zIndex: 8, pointerEvents: "none", boxShadow: "0 4px 16px #0002" }, padding: "10px 12px", border: `1px solid ${MARKER_STYLE[eventDetail.kind].color}`, borderRadius: 8, fontSize: 12, lineHeight: 1.6, background: "var(--dsh-eval-surface, Canvas)" } }, [
+      eventDetail !== null && openCluster === null ? h("div", { key: "event-detail", role: pinned ? "region" : "tooltip", style: { ...pinned ? { marginTop: 8 } : { position: "absolute", top: 102, left: `${Math.min(65, Math.max(0, toSvgX(eventDetail.x) / width * 100 - 15))}%`, width: "min(380px, 90%)", zIndex: 8, pointerEvents: "none", boxShadow: "0 4px 16px #0002" }, padding: "10px 12px", border: `1px solid ${eventDetail.failed ? "var(--dsh-eval-red, #e5484d)" : MARKER_STYLE[eventDetail.kind].color}`, borderRadius: 8, fontSize: 12, lineHeight: 1.6, background: "var(--dsh-eval-surface, Canvas)" } }, [
         h("div", { key: "header", style: { display: "flex", gap: 12, alignItems: "center" } }, [
-          h("strong", { key: "kind", style: { color: MARKER_STYLE[eventDetail.kind].color } }, MARKER_STYLE[eventDetail.kind].label),
+          h("strong", { key: "kind", style: { color: eventDetail.failed ? "var(--dsh-eval-red, #e5484d)" : MARKER_STYLE[eventDetail.kind].color } }, MARKER_STYLE[eventDetail.kind].label),
           h("span", { key: "state", style: { opacity: 0.6 } }, pinned ? "\u5DF2\u56FA\u5B9A\u9009\u4E2D" : "\u70B9\u51FB\u6807\u8BB0\u56FA\u5B9A\u8BE6\u60C5"),
           pinned ? h("button", { key: "close", type: "button", onClick: () => {
             setPinned(null);
             setActiveMarker(null);
           }, style: { marginLeft: "auto", cursor: "pointer" } }, "\u53D6\u6D88\u9009\u4E2D") : null
         ]),
-        h("div", { key: "body" }, eventDetail.title)
+        h("div", { key: "body" }, eventDetail.title),
+        pinned && eventDetail.onEvidence ? h("button", { key: "evidence", type: "button", onClick: eventDetail.onEvidence }, "\u67E5\u770B\u8BC1\u636E\u94FE") : null
       ]) : null,
+      props.onPointEvidence ? h("label", { key: "point-evidence", style: { fontSize: 12 } }, ["\u8BF7\u6C42\u8BC1\u636E ", h("select", { "aria-label": "\u9009\u62E9\u8BF7\u6C42\u67E5\u770B\u8BC1\u636E", value: "", onChange: (event) => {
+        if (event.target.value !== "") props.onPointEvidence?.(Number(event.target.value));
+      } }, [h("option", { value: "" }, "\u9009\u62E9\u8BF7\u6C42\u2026"), ...(props.series[0]?.points ?? []).map((point, index) => h("option", { key: index, value: String(index) }, `${props.formatX?.(point.x) ?? point.x}`))])]) : null,
       /* Tooltip: follows the pointer, flips near the right/bottom edges. */
       hover !== null && hoverPoints.length > 0 && eventDetail === null && openCluster === null ? h("div", {
         key: "tooltip",
@@ -1219,7 +1937,7 @@
             },
             style: { display: "flex", alignItems: "baseline", gap: "6px" }
           }, [
-            h("span", { key: "dot", style: { width: "7px", height: "7px", borderRadius: kindDotRadius(marker.kind), background: MARKER_STYLE[marker.kind].color, flexShrink: 0 } }),
+            h("span", { key: "dot", style: { width: "7px", height: "7px", borderRadius: kindDotRadius(marker.kind), background: marker.failed ? "#e5484d" : MARKER_STYLE[marker.kind].color, flexShrink: 0 } }),
             h("span", { key: "text", style: { opacity: 0.85, whiteSpace: "normal" } }, marker.title)
           ]))
         ]);
@@ -1278,7 +1996,8 @@
   var MARKER_STYLE = {
     compaction: { color: "var(--dsh-eval-green, #30a46c)", label: "\u6458\u8981\u538B\u7F29" },
     prune: { color: "#0891b2", label: "\u5386\u53F2\u4FEE\u526A" },
-    injection: { color: "var(--dsh-eval-orange, #e8791a)", label: "\u6CE8\u5165" },
+    injection: { color: "var(--dsh-eval-orange, #e8791a)", label: "\u4E0A\u4E0B\u6587\u6CE8\u5165" },
+    feedback: { color: "#64748b", label: "\u5DE5\u5177\u56DE\u586B" },
     spike: { color: "var(--dsh-eval-red, #e5484d)", label: "\u6FC0\u589E" },
     retry: { color: "var(--dsh-eval-purple, #9b59b6)", label: "\u91CD\u8BD5" }
   };
@@ -1301,12 +2020,12 @@
       strokeWidth: "1",
       strokeDasharray: "3 3",
       opacity: 0.35 * (activeKey === null ? 1 : dim)
-    } : marker.kind === "injection" ? {
+    } : marker.kind === "injection" || marker.kind === "feedback" ? {
       x1: x,
       x2: x,
       y1: markerLane(marker.kind),
       y2: height - paddingBottom,
-      stroke: "var(--dsh-eval-orange, #e8791a)",
+      stroke: MARKER_STYLE[marker.kind].color,
       strokeWidth: "1",
       strokeDasharray: "2 4",
       opacity: 0.22 * (activeKey === null ? 1 : dim)
@@ -1317,9 +2036,9 @@
   function renderMarkerShape(marker, key, toSvgX, toSvgY, yMax, activeKey, setActiveKey, onSelect) {
     const x = toSvgX(marker.x);
     const y = markerLane(marker.kind);
-    const color = MARKER_STYLE[marker.kind].color;
-    const attrs = marker.kind === "compaction" ? { d: `M ${x - 7} ${y + 6} L ${x + 7} ${y + 6} L ${x} ${y - 8} Z` } : marker.kind === "injection" ? { cx: +x.toFixed(1), cy: +y.toFixed(1), r: 5.5 } : marker.kind === "spike" ? { d: `M ${x} ${y - 8} L ${x + 8} ${y} L ${x} ${y + 8} L ${x - 8} ${y} Z` } : { x: +(x - 4.5).toFixed(1), y: +(y - 4.5).toFixed(1), width: 9, height: 9, rx: 2 };
-    const shape = h(marker.kind === "injection" || marker.kind === "retry" || marker.kind === "prune" ? marker.kind === "injection" ? "circle" : "rect" : "path", {
+    const color = marker.failed ? "var(--dsh-eval-red, #e5484d)" : MARKER_STYLE[marker.kind].color;
+    const attrs = marker.kind === "compaction" ? { d: `M ${x - 7} ${y + 6} L ${x + 7} ${y + 6} L ${x} ${y - 8} Z` } : marker.kind === "injection" || marker.kind === "feedback" ? { cx: +x.toFixed(1), cy: +y.toFixed(1), r: 5.5 } : marker.kind === "spike" ? { d: `M ${x} ${y - 8} L ${x + 8} ${y} L ${x} ${y + 8} L ${x - 8} ${y} Z` } : { x: +(x - 4.5).toFixed(1), y: +(y - 4.5).toFixed(1), width: 9, height: 9, rx: 2 };
+    const shape = h(marker.kind === "injection" || marker.kind === "feedback" || marker.kind === "retry" || marker.kind === "prune" ? marker.kind === "injection" || marker.kind === "feedback" ? "circle" : "rect" : "path", {
       key: `marker-${key}`,
       role: "button",
       tabIndex: 0,
@@ -1504,7 +2223,7 @@
     return result;
   }
   function markerLane(kind) {
-    return kind === "compaction" ? 16 : kind === "prune" ? 38 : kind === "injection" ? 60 : 82;
+    return kind === "compaction" ? 16 : kind === "prune" ? 38 : kind === "injection" ? 60 : kind === "feedback" ? 82 : 104;
   }
   function ChartViewport(props) {
     const [zoom, setZoom] = useState(1);
@@ -1582,7 +2301,7 @@
         sweep.push([pair[1], -1]);
       }
     }
-    sweep.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
+    sweep.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
     let peak = 0;
     let cursor = 0;
     for (const entry of sweep) {
@@ -1752,6 +2471,7 @@
           h("div", {}, session.id),
           h("div", {}, session.error ?? `\u8F6E\u6B21 ${session.analytics?.turnsEnded ?? "\u2014"} \xB7 \u6B65\u9AA4 ${session.analytics?.stepsEnded ?? "\u2014"} \xB7 \u6A21\u578B ${session.timeline?.model ?? "\u672A\u77E5"}`)
         ]))),
+        h(EvidenceButton, { ...props, chain: () => comparisonEvidence(loaded, focused ?? "tokens"), label: "\u67E5\u770B\u5DEE\u5F02\u7ED3\u8BBA\u8BC1\u636E\u94FE" }),
         h("small", { key: "accounting" }, "Token \u603B\u6D88\u8017\u53E3\u5F84\uFF1A\u672A\u7F13\u5B58\u8F93\u5165 + \u8F93\u51FA\uFF1B\u4E0A\u4E0B\u6587\u66F2\u7EBF\u989D\u5916\u5305\u542B\u7F13\u5B58\u8BFB\uFF0C\u4E0D\u7B49\u540C\u4E8E\u8BA1\u8D39\u91D1\u989D\u3002"),
         h("label", { key: "normalize" }, [h("input", { type: "checkbox", checked: normalized, onChange: () => setNormalized((value) => !value) }), "\u5F52\u4E00\u5316\u663E\u793A\uFF08Token \u6309\u6700\u5927\u503C\u6BD4\u4F8B\uFF1B\u4E0A\u4E0B\u6587\u6309\u7A97\u53E3\u5360\u7528\u3001\u8BF7\u6C42\u8FDB\u5EA6\u5BF9\u9F50\uFF09"]),
         biggest && biggest.spread > 0 ? h("div", { key: "difference" }, `\u5DEE\u5F02\u6700\u5927\uFF1A${biggest.metric.label}\uFF0C\u76F8\u5BF9\u5DEE\u5F02 ${(biggest.spread * 100).toFixed(1)}%\uFF08\u6700\u5927\u503C\u4E0E\u6700\u5C0F\u503C\u4E4B\u5DEE / \u6700\u5927\u503C\uFF09`) : null,
@@ -1761,6 +2481,7 @@
             const value = fact.metric.value(session);
             return h("div", { key: session.id, style: { marginTop: 8 } }, [
               h("div", {}, `${session.title} \xB7 ${value === null ? "\u6570\u636E\u4E0D\u53EF\u7528" : fact.metric.format(value)}${fact.winners.some((winner) => winner.id === session.id) ? " \u2605 \u6700\u4F4E" : ""}`),
+              h(EvidenceButton, { ...props, chain: () => comparisonEvidence([session], fact.metric.key), label: `\u67E5\u770B ${session.title} ${fact.metric.label} \u8BC1\u636E` }),
               value !== null ? h("div", { role: "img", "aria-label": `${session.title} ${fact.metric.label} ${fact.metric.format(value)}`, style: { height: 10, width: `${fact.max > 0 ? value / fact.max * 100 : 0}%`, background: COMPARE_COLORS[index], minWidth: value > 0 ? 2 : 0 } }) : null,
               normalized && value !== null ? h("small", {}, `\u76F8\u5BF9\u6700\u5927\u503C ${fact.max > 0 ? (value / fact.max * 100).toFixed(1) : "0"}%`) : null
             ]);
@@ -1772,7 +2493,7 @@
           normalized && shown.some((session) => !session.timeline?.contextWindow) ? h("p", {}, "\u7F3A\u5C11\u7A97\u53E3\u4E0A\u9650\u7684\u4F1A\u8BDD\u65E0\u6CD5\u5F52\u4E00\u5316\uFF0C\u5DF2\u4ECE\u6298\u7EBF\u4E2D\u6392\u9664\uFF1B\u4E0D\u6309 0 \u5904\u7406\u3002") : null,
           h("small", {}, "\u6A2A\u8F74\u5BF9\u9F50\u8BF7\u6C42\u987A\u5E8F\uFF0C\u53CD\u6620\u540C\u6B21\u8FD0\u884C\u5185\u6F14\u5316\uFF0C\u4E0D\u4EE3\u8868\u76F8\u540C\u4EFB\u52A1\u9636\u6BB5\u3002")
         ]),
-        h(RadarChart, { key: "radar", sessions: loaded, highlight: focused }),
+        h(RadarChart, { ...props, key: "radar", sessions: loaded, highlight: focused }),
         h("section", { key: "report", style: panel }, [
           h("h4", {}, "\u5DEE\u5F02\u62A5\u544A"),
           ...comparisonSummary(loaded).map((line, index) => h("p", { key: index }, line)),
@@ -1818,7 +2539,12 @@
         ...props.sessions.map((session, index) => h("polygon", { key: session.id, points: facts.map((fact, axis) => point(axis, 105 * radarRatio(fact.metric.value(session), fact.max)).join(",")).join(" "), fill: COMPARE_COLORS[index], fillOpacity: 0.08, stroke: COMPARE_COLORS[index], strokeWidth: 2, pointerEvents: "none" })),
         ...props.sessions.flatMap((session, index) => facts.map((fact, axis) => {
           const [cx, cy] = point(axis, 105 * radarRatio(fact.metric.value(session), fact.max));
-          return h("circle", { key: `${session.id}:${fact.metric.key}`, cx, cy, r: 5, fill: COMPARE_COLORS[index], stroke: "var(--dsh-eval-surface,Canvas)", strokeWidth: 1, tabIndex: 0, role: "button", "aria-label": label(session, fact), onMouseEnter: () => setDetail(label(session, fact)), onFocus: () => setDetail(label(session, fact)), onBlur: () => setDetail(null) }, h("title", {}, label(session, fact)));
+          return h("circle", { key: `${session.id}:${fact.metric.key}`, cx, cy, r: 5, fill: COMPARE_COLORS[index], stroke: "var(--dsh-eval-surface,Canvas)", strokeWidth: 1, tabIndex: 0, role: "button", "aria-label": label(session, fact), onClick: () => props.onEvidence?.(comparisonEvidence([session], fact.metric.key)), onKeyDown: (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              props.onEvidence?.(comparisonEvidence([session], fact.metric.key));
+            }
+          }, onMouseEnter: () => setDetail(label(session, fact)), onFocus: () => setDetail(label(session, fact)), onBlur: () => setDetail(null) }, h("title", {}, label(session, fact)));
         }))
       ]),
       h("div", { role: "status", style: { minHeight: 24, fontSize: 12 } }, detail ?? "\u60AC\u505C\u6216\u805A\u7126\u9876\u70B9\u67E5\u770B\u539F\u59CB\u503C\u4E0E\u6BD4\u4F8B\uFF1B\u91CD\u53E0\u9876\u70B9\u53EF\u5728\u4E0B\u8868\u6838\u5BF9\u3002"),
@@ -1833,6 +2559,20 @@
     ]);
   }
   var panel = { border: "1px solid #9994", borderRadius: 10, padding: 12, minWidth: 0 };
+  function comparisonEvidence(sessions, key) {
+    const metric = COMPARE_METRICS.find((item) => item.key === key) ?? COMPARE_METRICS[0];
+    const kind = { tokens: "tokens", frequency: "frequency", errors: "tools", time: "time" }[metric.key];
+    const sources = sessions.map((session) => aggregateEvidence(session.id, session.title, session.analytics, session.timeline, kind));
+    return {
+      title: `\u5BF9\u6BD4\u4F9D\u636E \xB7 ${metric.label}`,
+      conclusion: sessions.map((session) => `${session.title}\uFF1A${metric.value(session) === null ? "\u6570\u636E\u4E0D\u53EF\u7528" : metric.format(metric.value(session))}`).join("\uFF1B"),
+      level: "derived",
+      rule: metric.key === "errors" ? "\u5BF9\u6BD4\u5DE5\u5177\u9519\u8BEF\u7387 = \u663E\u5F0F\u9519\u8BEF\u6570 / \u8C03\u7528\u6570\uFF1B\u4E0E\u8BCA\u65AD\u5951\u7EA6\u7684\u300C\u5DF2\u77E5\u7ED3\u679C\u9519\u8BEF\u7387\u300D\u5206\u6BCD\u4E0D\u540C\u3002" : metric.key === "tokens" ? "\u603B\u6D88\u8017 = \u672A\u7F13\u5B58\u8F93\u5165 + \u8F93\u51FA\uFF1B\u4E0D\u542B\u7F13\u5B58\u8BFB\u53D6\u3002" : metric.key === "frequency" ? "\u6CBF\u7528\u5404\u4F1A\u8BDD\u6458\u8981\u538B\u7F29\u9891\u7387\u5951\u7EA6\u3002" : "\u8017\u65F6\u8BFB\u53D6\u5404\u4F1A\u8BDD sessionStats.llmMs\u3002",
+      facts: sessions.flatMap((session) => [{ label: session.title, value: metric.value(session) === null ? "\u6570\u636E\u4E0D\u53EF\u7528" : metric.format(metric.value(session)), source: `\u4F1A\u8BDD ${session.id} \u7684\u5BF9\u6BD4\u5FEB\u7167` }, ...metric.key === "errors" ? [{ label: "\u663E\u5F0F\u9519\u8BEF / \u8C03\u7528", value: `${session.analytics?.toolErrors ?? "\u672A\u77E5"} / ${session.analytics?.toolCalls ?? "\u672A\u77E5"}`, source: session.id }] : []]),
+      refs: uniqueEvidenceRefs(sources.flatMap((source) => source.refs)),
+      notes: ["\u4E0D\u540C\u8FD0\u884C\u4E0D\u4E00\u5B9A\u5177\u6709\u76F8\u540C\u4EFB\u52A1\u9636\u6BB5\u3001\u8F93\u5165\u89C4\u6A21\u6216\u8D28\u91CF\uFF1B\u6700\u4F4E\u6D88\u8017\u4E0D\u7B49\u4E8E\u6700\u4F73\u8D28\u91CF\u3002", ...sources.flatMap((source, index) => source.notes.map((note) => `${sessions[index].title}\uFF1A${note}`))]
+    };
+  }
 
   // client-src/exporters.ts
   async function exportReport(format, input) {
@@ -2790,6 +3530,7 @@ ${xref}
       h("p", { key: "detail" }, alert.detail),
       h("div", { key: "time", style: { fontSize: 11, opacity: 0.65 } }, `\u9996\u6B21\u68C0\u6D4B\uFF1A${alert.timeMs ? new Date(alert.timeMs).toLocaleString() : "\u7B49\u5F85\u8BB0\u5F55"} \xB7 \u72B6\u6001\uFF1A${statusOf(alert.id) === "pending" ? "\u672A\u5904\u7406" : statusOf(alert.id) === "ignored" ? "\u5DF2\u5FFD\u7565" : "\u5DF2\u5904\u7406"}`),
       h("div", { key: "actions", style: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 } }, [
+        props.onEvidence ? h("button", { key: "evidence", onClick: () => props.onEvidence?.(alert.id), style: buttonStyle }, "\u67E5\u770B\u8BC1\u636E\u94FE") : null,
         h("button", { key: "view", onClick: () => props.onView(alert.id), style: buttonStyle }, alert.id === "long-gaps" ? "\u67E5\u770B\u76F8\u5173\u6307\u6807" : "\u67E5\u770B\u76F8\u5173\u56FE\u8868"),
         statusOf(alert.id) === "pending" ? h("button", { key: "ignore", onClick: () => props.onDismiss(alert.id), style: buttonStyle }, "\u5FFD\u7565") : null,
         statusOf(alert.id) === "pending" ? h("button", { key: "resolve", onClick: () => props.onResolve(alert.id), style: buttonStyle }, "\u6807\u8BB0\u5DF2\u5904\u7406") : null
@@ -2881,8 +3622,8 @@ ${xref}
           h("span", { key: "count" }, `${events.length} \u6761\u4E8B\u4EF6 \xB7 ${metrics.length} \u9879\u6307\u6807`)
         ]),
         props.sessionId ? h("a", { key: "download", href: `/api/session.export?sessionId=${encodeURIComponent(props.sessionId)}&includeDescendants=false`, download: true, style: { fontSize: 12 } }, "\u4E0B\u8F7D\u5B8C\u6574\u65E5\u5FD7") : null,
-        section !== "metrics" ? h("div", { key: "events", style: { maxHeight: 320, overflow: "auto" } }, h(EventListSection, { data: filteredData, inspectCall: props.inspectCall })) : null,
-        section !== "events" ? h("div", { key: "metrics", style: { maxHeight: 400, overflow: "auto" } }, h(MetricsDetailSection, { data: filteredData })) : null
+        section !== "metrics" ? h("div", { key: "events", style: { maxHeight: 320, overflow: "auto" } }, h(EventListSection, { ...props, data: filteredData, inspectCall: props.inspectCall })) : null,
+        section !== "events" ? h("div", { key: "metrics", style: { maxHeight: 400, overflow: "auto" } }, h(MetricsDetailSection, { ...props, data: filteredData })) : null
       ]) : null
     ]);
   }
@@ -2904,6 +3645,7 @@ ${xref}
         h("span", { key: "time", style: { opacity: 0.55, fontVariantNumeric: "tabular-nums" } }, formatTime(event.time)),
         h("span", { key: "type", style: { opacity: 0.75 } }, event.type),
         event.label !== void 0 ? h("span", { key: "label", style: { fontWeight: 500 } }, event.label) : null,
+        h(EvidenceButton, { ...props, chain: () => ({ title: `\u4E8B\u4EF6 #${event.seq}`, conclusion: event.type, rule: "\u4ECE\u5BBF\u4E3B\u6301\u4E45\u4E8B\u4EF6\u6E90\u6838\u5BF9\u539F\u59CB\u8BB0\u5F55\u3002", level: "observed", facts: [], notes: ["\u5217\u8868\u6807\u7B7E\u662F\u6295\u5F71\u6458\u8981\uFF0C\u539F\u59CB\u5185\u5BB9\u8BF7\u70B9\u51FB\u5173\u8054\u4E8B\u4EF6\u8BFB\u53D6\u3002"], refs: [eventRef(props.evidenceSessionId ?? data.analytics?.teamInput?.sessionId ?? "current", event.seq, "\u539F\u59CB\u4E8B\u4EF6")] }) }),
         event.callId !== void 0 && inspectCall !== void 0 ? h("button", {
           key: "locate",
           type: "button",
@@ -2949,7 +3691,7 @@ ${xref}
           h("td", { key: "value", style: { ...tdStyle, fontVariantNumeric: "tabular-nums" } }, formatMetricValue(result.value)),
           h("td", { key: "status", style: { ...tdStyle, opacity: result.status === "available" ? 0.9 : 0.55 } }, result.status),
           h("td", { key: "samples", style: tdStyle }, `${result.sampleCount}${result.denominator !== void 0 ? `/${result.denominator}` : ""}`),
-          h("td", { key: "evidence", style: tdStyle }, result.evidenceLevel)
+          h("td", { key: "evidence", style: tdStyle }, [result.evidenceLevel, h(EvidenceButton, { ...props, chain: () => metricEvidence(result) })])
         ])))
       ]),
       /* 轮次趋势 */
@@ -3133,6 +3875,7 @@ ${xref}
       });
     };
     return h("div", { style: { display: "flex", flexDirection: "column", gap: "18px" } }, [
+      h(EvidenceButton, { ...props, chain: () => aggregateEvidence(props.evidenceSessionId ?? "current", "\u4E0A\u4E0B\u6587\u7A97\u53E3\u5360\u7528", data.analytics, data.timeline, "context"), label: "\u67E5\u770B\u7A97\u53E3\u5360\u7528\u8BC1\u636E\u94FE" }),
       /* Occupancy + composition side by side */
       h("div", {
         key: "top",
@@ -3296,7 +4039,7 @@ ${xref}
         h("span", { key: "members" }, `\u6210\u5458 ${memberCount} \u540D`),
         props.team !== null ? h("span", { key: "active", style: { opacity: 0.8 } }, `\u5F53\u524D\u6D3B\u8DC3 ${props.team.activeNow}`) : null,
         props.team !== null ? h("span", { key: "peak", style: { opacity: 0.8 } }, `\u5E76\u53D1\u5CF0\u503C ${props.team.peak}`) : null,
-        props.team !== null && props.team.wallMs !== null ? h("span", { key: "wall", style: { opacity: 0.8 } }, `\u5B8C\u6210\u5899\u949F ${Math.round(props.team.wallMs / 1e3)}s`) : null,
+        props.team !== null && props.team.wallMs !== null ? h("span", { key: "wall", style: { opacity: 0.8 } }, `\u6210\u5458\u7ED3\u675F\u8DE8\u5EA6 ${Math.round(props.team.wallMs / 1e3)}s\uFF08\u542B\u7A7A\u6863\uFF09`) : null,
         props.teamState.phase === "loading" ? h("span", { key: "load", style: { opacity: 0.55 } }, "\uFF08\u6210\u5458\u6570\u636E\u8BFB\u53D6\u4E2D\u2026\uFF09") : null,
         props.teamState.phase === "unavailable" ? h("span", { key: "unavail", style: { opacity: 0.55 } }, "\uFF08\u6210\u5458\u4F1A\u8BDD\u6682\u4E0D\u53EF\u8BFB\uFF09") : null
       ]) : null,
@@ -3376,6 +4119,7 @@ ${xref}
                 style: { display: "flex", gap: "10px", fontSize: "11.5px", opacity: 0.65, marginBottom: "4px", fontVariantNumeric: "tabular-nums", alignItems: "baseline" }
               }, [
                 h("span", { key: "seq" }, `#${node.seq}`),
+                h(EvidenceButton, { ...props, chain: () => ({ title: `\u4E0A\u4E0B\u6587\u7EC4\u6210 \xB7 #${node.seq}`, conclusion: `${node.label} \xB7 ${node.tokens} Token`, level: "derived", rule: "\u6709\u6548\u8868\u9762\u6D88\u606F\u7684\u5185\u5BB9\u4F30\u7B97\u3002", facts: [], notes: ["\u5F53\u524D\u7EC4\u6210\u4E0D\u4EE3\u8868\u5168\u5386\u53F2\u6D88\u8017\u3002"], refs: [eventRef(props.evidenceSessionId ?? "current", node.seq, "\u6709\u6548\u4E0A\u4E0B\u6587\u6D88\u606F")] }) }),
                 node.turn !== null ? h("span", { key: "turn" }, `\u7B2C ${node.turn} \u8F6E`) : null,
                 h("span", { key: "label" }, node.label),
                 h("span", { key: "tokens", style: { marginLeft: "auto" } }, `${formatTokens(node.tokens)} Token`),
@@ -3423,10 +4167,36 @@ ${xref}
     ]);
   }
 
+  // client-src/feedbackGroups.ts
+  function groupFeedback(messages, requests, failed) {
+    const anchors = requests.slice().sort((a, b) => a.seq - b.seq);
+    const groups = /* @__PURE__ */ new Map();
+    for (const message of messages.slice().sort((a, b) => a.seq - b.seq)) {
+      if (failed.has(message.seq)) continue;
+      let lo = 0, hi = anchors.length;
+      while (lo < hi) {
+        const mid = lo + hi >>> 1;
+        if (anchors[mid].seq <= message.seq) lo = mid + 1;
+        else hi = mid;
+      }
+      const group = groups.get(lo) ?? [];
+      group.push(message);
+      groups.set(lo, group);
+    }
+    return [...groups.values()];
+  }
+  function feedbackSummary(group) {
+    const total = group.reduce((sum, row) => sum + row.tokens, 0);
+    const tools = /* @__PURE__ */ new Map();
+    for (const row of group) tools.set(row.toolName ?? "\u672A\u77E5\u5DE5\u5177", (tools.get(row.toolName ?? "\u672A\u77E5\u5DE5\u5177") ?? 0) + row.tokens);
+    const largest = group.reduce((a, b) => a.tokens >= b.tokens ? a : b);
+    return `\u56DE\u586B ${group.length} \u6B21 \xB7 \u7EA6 ${total.toLocaleString()} Token \xB7 ${[...tools].sort((a, b) => b[1] - a[1]).map(([name, tokens]) => `${name} ${tokens.toLocaleString()} Token`).join("\uFF1B")} \xB7 \u6700\u5927\u7ED3\u679C #${largest.seq}\uFF08${largest.tokens.toLocaleString()} Token\uFF09`;
+  }
+
   // client-src/tab-tokens.tsx
   var KIND_FILTERS = [
     { id: "all", label: "\u5168\u90E8" },
-    { id: "injected", label: "\u4EC5\u6CE8\u5165" },
+    { id: "injected", label: "\u4E0A\u4E0B\u6587\u6CE8\u5165" },
     { id: "user", label: "\u7528\u6237" },
     { id: "assistant", label: "\u52A9\u624B" },
     { id: "tool-result", label: "\u5DE5\u5177\u7ED3\u679C" },
@@ -3449,14 +4219,10 @@ ${xref}
   };
   function spikeMap(messages) {
     const result = /* @__PURE__ */ new Map();
-    for (let i = 0; i < messages.length; i++) {
-      const window2 = messages.slice(Math.max(0, i - 5), i).map((message) => message.tokens).sort((a, b) => a - b);
-      if (window2.length < 3) continue;
-      const median = window2[Math.floor(window2.length / 2)];
-      const tokens = messages[i].tokens;
-      if (tokens >= 1e3 && tokens >= median * 3) {
-        result.set(messages[i].seq, { median, ratio: median > 0 ? tokens / median : 0 });
-      }
+    const ordered = messages.slice().sort((a, b) => a.seq - b.seq);
+    for (const [index, message] of ordered.entries()) {
+      const info = spikeInfo(ordered.slice(Math.max(0, index - 5), index + 1), message.seq);
+      if (info) result.set(message.seq, info);
     }
     return result;
   }
@@ -3493,7 +4259,14 @@ ${xref}
     const [maxTokens, setMaxTokens] = useState("");
     const [showCauses, setShowCauses] = useState(true);
     const [showAllSpikes, setShowAllSpikes] = useState(false);
-    const messages = data.messages;
+    const [recentCount, setRecentCount] = useState("100");
+    const [scope, setScope] = useState("all");
+    const [fromSeq, setFromSeq] = useState("");
+    const [toSeq, setToSeq] = useState("");
+    const [page, setPage] = useState(0);
+    const allMessages = props.history?.messages ?? data.messages;
+    const scopeValid = (!fromSeq || Number.isSafeInteger(Number(fromSeq)) && Number(fromSeq) >= 0) && (!toSeq || Number.isSafeInteger(Number(toSeq)) && Number(toSeq) >= 0) && (!fromSeq || !toSeq || Number(fromSeq) <= Number(toSeq));
+    const messages = scope === "recent" ? allMessages.slice(-Math.max(1, Number(recentCount) || 1)) : scope === "custom" ? allMessages.filter((m) => scopeValid && (!fromSeq || m.seq >= Number(fromSeq)) && (!toSeq || m.seq <= Number(toSeq))) : allMessages;
     const min = minTokens.trim() === "" ? null : Number(minTokens);
     const max = maxTokens.trim() === "" ? null : Number(maxTokens);
     const rangeValid = (min === null || Number.isFinite(min)) && (max === null || Number.isFinite(max));
@@ -3519,8 +4292,8 @@ ${xref}
     const topThree = new Set(
       messages.slice().sort((a, b) => b.tokens - a.tokens).slice(0, 3).map((message) => message.seq)
     );
-    const spikes = spikeMap(messages);
-    const drops = dropMap(messages);
+    const spikes = spikeMap(allMessages);
+    const drops = dropMap(allMessages);
     const totalTokens = filtered.reduce((sum, message) => sum + message.tokens, 0);
     const average = filtered.length > 0 ? totalTokens / filtered.length : 0;
     const visibleSpikes = sorted.filter((message) => spikes.has(message.seq)).length;
@@ -3528,7 +4301,11 @@ ${xref}
     const topRows = messages.slice().sort((a, b) => b.tokens - a.tokens).slice(0, 3);
     const spikeRows = messages.filter((message) => spikes.has(message.seq));
     const dropRows = messages.filter((message) => drops.has(message.seq));
+    const pageCount = Math.max(1, Math.ceil(sorted.length / 100));
+    const currentPage = Math.min(page, pageCount - 1);
     const locate = (seq) => {
+      const index = sorted.findIndex((message) => message.seq === seq);
+      if (index >= 0) setPage(Math.floor(index / 100));
       setExpanded(seq);
       const row = document.getElementById(`dsh-msg-row-${seq}`);
       if (row !== null && typeof row.scrollIntoView === "function") row.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -3538,6 +4315,21 @@ ${xref}
         key: "controls",
         style: { display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }
       }, [
+        h("label", { key: "scope" }, ["\u6D88\u606F\u8303\u56F4 ", h("select", { "aria-label": "\u6D88\u606F\u5386\u53F2\u8303\u56F4", value: scope, onChange: (e) => {
+          setScope(e.target.value);
+          setPage(0);
+        } }, [h("option", { value: "all" }, "\u5168\u90E8\u5386\u53F2"), h("option", { value: "recent" }, "\u6700\u8FD1 N \u6761"), h("option", { value: "custom" }, "\u81EA\u5B9A\u4E49\u4E8B\u4EF6\u8303\u56F4")])]),
+        scope === "recent" ? h("label", { key: "recent-count" }, ["\u6700\u8FD1\u6761\u6570 ", h("input", { type: "number", min: 1, step: 1, "aria-label": "\u6700\u8FD1\u6D88\u606F\u6761\u6570", value: recentCount, onInput: (e) => {
+          setRecentCount(e.target.value);
+          setPage(0);
+        } })]) : null,
+        scope === "custom" ? h("span", { key: "seq-range" }, [h("input", { type: "number", min: 0, "aria-label": "\u8D77\u59CB\u4E8B\u4EF6\u5E8F\u53F7", placeholder: "\u8D77\u59CB\u5E8F\u53F7", value: fromSeq, onInput: (e) => {
+          setFromSeq(e.target.value);
+          setPage(0);
+        } }), "\u2013", h("input", { type: "number", min: 0, "aria-label": "\u7ED3\u675F\u4E8B\u4EF6\u5E8F\u53F7", placeholder: "\u7ED3\u675F\u5E8F\u53F7", value: toSeq, onInput: (e) => {
+          setToSeq(e.target.value);
+          setPage(0);
+        } }), !scopeValid ? h("span", { role: "alert" }, "\u8BF7\u8F93\u5165\u6709\u6548\u5E8F\u53F7\uFF0C\u8D77\u59CB\u4E0D\u80FD\u5927\u4E8E\u7ED3\u675F") : null]) : null,
         h("span", { key: "title", style: { fontSize: "13px", fontWeight: 500 } }, "\u6D88\u606F Token"),
         h(
           "div",
@@ -3594,11 +4386,11 @@ ${xref}
         h("span", { key: "top", style: { color: "var(--dsh-eval-red, #d64545)" } }, "\u{1F451} \u7EA2\u8272 = Top 3 Token \u6D88\u8017"),
         h("span", { key: "spike", style: { color: "var(--dsh-eval-yellow, #b98900)" } }, `\u26A1 \u7A81\u589E ${visibleSpikes} \u6761\uFF08\u22653\xD7 \u524D\u6761\u4E2D\u4F4D\u6570\u4E14 \u22651K\uFF09`),
         h("span", { key: "drop", style: { color: "var(--dsh-eval-yellow, #b98900)" } }, `\u{1F53B} \u7A81\u964D ${visibleDrops} \u6761\uFF08\u7D2F\u8BA1\u964D \u22651K\uFF0C\u538B\u7F29/\u4FEE\u526A\u56DE\u6536\uFF09`),
-        h("span", { key: "cap", style: { opacity: 0.7 } }, data.messageCapNote ? "\uFF08\u6700\u8FD1 64 \u6761\uFF0C\u66F4\u65E9\u6D88\u606F\u5DF2\u622A\u65AD\uFF09" : ""),
+        h("span", { key: "cap", style: { opacity: 0.7 } }, props.history ? `${props.history.phase === "ready" ? "\u5B8C\u6574\u53EF\u8BFB\u5386\u53F2\u5DF2\u52A0\u8F7D" : props.history.phase === "loading" ? "\u5386\u53F2\u52A0\u8F7D\u4E2D\uFF0C\u7EDF\u8BA1\u5C1A\u4E0D\u5B8C\u6574" : `\u5386\u53F2\u4E0D\u5B8C\u6574\uFF1A${props.history.error ?? "\u4ECD\u6709\u66F4\u65E9\u4E8B\u4EF6"}`} \xB7 \u4E8B\u4EF6\u8303\u56F4 ${props.history.firstSeq ?? "?"}\u2013${props.history.lastSeq ?? "?"}` : ""),
         h("span", { key: "note", style: { opacity: 0.7 } }, "\u4F30\u7B97\u503C \xB7 \u70B9\u51FB\u884C\u67E5\u770B\u8BE6\u60C5")
       ]),
       renderCausePanel({
-        data,
+        data: { ...data, messages },
         topRows,
         spikeRows,
         dropRows,
@@ -3611,6 +4403,7 @@ ${xref}
         locate,
         onOpenCompaction: props.onOpenCompaction
       }),
+      h("div", { key: "pagination" }, [h("button", { disabled: currentPage === 0, onClick: () => setPage(currentPage - 1) }, "\u4E0A\u4E00\u9875"), ` \u7B2C ${currentPage + 1} / ${pageCount} \u9875 \xB7 \u6BCF\u9875 100 \u6761 `, h("button", { disabled: currentPage + 1 >= pageCount, onClick: () => setPage(currentPage + 1) }, "\u4E0B\u4E00\u9875")]),
       messages.length === 0 ? h("div", { key: "empty", style: emptyStyle }, "\u6682\u65E0\u6D88\u606F\u8BB0\u5F55\u3002\u5F00\u59CB\u5BF9\u8BDD\u540E\u6B64\u5904\u5217\u51FA\u6BCF\u6761\u6D88\u606F\u7684 Token \u4F30\u7B97\u3001\u89D2\u8272\u4E0E\u65F6\u95F4\u3002") : h("table", {
         key: "table",
         style: { borderCollapse: "collapse", width: "100%", fontSize: "12px" }
@@ -3625,7 +4418,7 @@ ${xref}
           sortableTh("output", "\u8F93\u51FA Token", "output", sort, descending, () => toggleSort("output", setSort, setDescending)),
           sortableTh("cumulative", "\u7D2F\u8BA1 Token", "cumulative", sort, descending, () => toggleSort("cumulative", setSort, setDescending))
         ])),
-        h("tbody", { key: "body" }, sorted.map((message) => {
+        h("tbody", { key: "body" }, sorted.slice(currentPage * 100, currentPage * 100 + 100).map((message) => {
           const isTop = topThree.has(message.seq);
           const spike = spikes.get(message.seq) ?? null;
           const isSpike = spike !== null;
@@ -3640,11 +4433,25 @@ ${xref}
           }, [
             h("td", { key: "seq", style: { ...tdStyle3, whiteSpace: "nowrap" } }, [
               isTop ? h("span", { key: "crown", title: "Top 3 Token \u6D88\u8017" }, "\u{1F451}") : null,
-              isSpike && spike !== null ? h("span", {
+              isSpike && spike !== null ? h("button", {
+                type: "button",
+                "aria-label": `\u67E5\u770B\u7A81\u589E #${message.seq} \u8BC1\u636E\u94FE`,
+                onClick: (event) => {
+                  event.stopPropagation();
+                  if (props.onEvidence) props.onEvidence(messageEvidence(props.evidenceSessionId ?? data.analytics?.teamInput?.sessionId ?? "current", message, allMessages, true));
+                  else setExpanded(message.seq);
+                },
                 key: "spike",
                 title: spikeLabel(spike, message.tokens)
               }, "\u26A1") : null,
-              drop !== null ? h("span", {
+              drop !== null ? h("button", {
+                type: "button",
+                "aria-label": `\u67E5\u770B\u9AA4\u964D #${message.seq} \u8BC1\u636E\u94FE`,
+                onClick: (event) => {
+                  event.stopPropagation();
+                  if (props.onEvidence) props.onEvidence(dropEvidence(props.evidenceSessionId ?? "current", message, allMessages, data.timeline?.compactions ?? []));
+                  else setExpanded(message.seq);
+                },
                 key: "drop",
                 title: `\u7D2F\u8BA1\u4E0A\u4E0B\u6587\u9AA4\u964D ${formatTokens(drop.drop)} Token\uFF08${formatTokens(drop.prev)} \u2192 ${formatTokens(drop.next)}\uFF0C\u2212${drop.pct.toFixed(1)}%\uFF09\xB7 \u538B\u7F29/\u4FEE\u526A\u56DE\u6536`
               }, "\u{1F53B}") : null,
@@ -3657,7 +4464,7 @@ ${xref}
             h(
               "td",
               { key: "summary", style: { ...tdStyle3, maxWidth: "380px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } },
-              `${message.preview.replace(/\n/g, " ").slice(0, 50)}${message.preview.length > 50 ? "\u2026" : ""}`
+              `${(message.preview || (props.history ? "\u70B9\u51FB\u8BC1\u636E\u94FE\u67E5\u770B\u539F\u59CB\u5185\u5BB9" : "")).replace(/\n/g, " ").slice(0, 50)}${message.preview.length > 50 ? "\u2026" : ""}`
             ),
             h("td", { key: "turn", style: tdStyle3 }, message.turn === null ? "\u2014" : String(message.turn)),
             h("td", { key: "time", style: { ...tdStyle3, whiteSpace: "nowrap" } }, formatTime(message.timeMs)),
@@ -3679,6 +4486,7 @@ ${xref}
             }, [
               h("div", { key: "meta", style: { display: "flex", flexWrap: "wrap", gap: "4px 18px", marginBottom: "8px" } }, [
                 h("span", { key: "seq" }, `\u4E8B\u4EF6\u5E8F\u53F7 ${message.seq}`),
+                h(EvidenceButton, { ...props, chain: () => messageEvidence(props.evidenceSessionId ?? data.analytics?.teamInput?.sessionId ?? "current", message, allMessages, isSpike), label: isSpike ? "\u67E5\u770B\u7A81\u589E\u8BC1\u636E\u94FE" : "\u67E5\u770B\u6D88\u606F\u8BC1\u636E\u94FE" }),
                 h("span", { key: "source" }, `\u6765\u6E90 ${sourceLabel(message)}`),
                 h("span", { key: "turn" }, message.turn === null ? "\u8F6E\u6B21 \u2014" : `\u8F6E\u6B21 ${message.turn}`),
                 h("span", { key: "time" }, `\u65F6\u95F4 ${formatTime(message.timeMs)}`),
@@ -3693,7 +4501,7 @@ ${xref}
                 h(
                   "span",
                   { key: "text" },
-                  `\u7D2F\u8BA1\u4E0A\u4E0B\u6587\u9AA4\u964D\uFF1A${formatTokens(drop.prev)} \u2192 ${formatTokens(drop.next)}\uFF08\u56DE\u6536 ${formatTokens(drop.drop)} Token\uFF0C\u2212${drop.pct.toFixed(1)}%\uFF09\xB7 \u6B64\u524D\u53D1\u751F\u4E86\u538B\u7F29\u6458\u8981\u6216\u5386\u53F2\u4FEE\u526A`
+                  `\u7D2F\u8BA1\u4E0A\u4E0B\u6587\u9AA4\u964D\uFF1A${formatTokens(drop.prev)} \u2192 ${formatTokens(drop.next)}\uFF08\u56DE\u6536 ${formatTokens(drop.drop)} Token\uFF0C\u2212${drop.pct.toFixed(1)}%\uFF09\xB7 \u539F\u56E0\u9700\u6838\u5BF9\u533A\u95F4\u5185\u539F\u59CB\u4E8B\u4EF6`
                 ),
                 props.onOpenCompaction !== void 0 ? h("button", {
                   key: "open",
@@ -3715,7 +4523,7 @@ ${xref}
                 h("div", {
                   key: "text",
                   style: { fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", lineHeight: 1.55, wordBreak: "break-word", whiteSpace: "pre-wrap", maxHeight: "180px", overflowY: "auto", border: "1px solid color-mix(in srgb, currentColor 10%, transparent)", borderRadius: "6px", padding: "8px 10px" }
-                }, message.preview)
+                }, message.preview || "\u5386\u53F2\u6D88\u606F\u5185\u5BB9\u6309\u9700\u8BFB\u53D6\uFF0C\u8BF7\u70B9\u51FB\u201C\u67E5\u770B\u6D88\u606F\u8BC1\u636E\u94FE\u201D\u67E5\u770B\u539F\u59CB\u4E8B\u4EF6\u3002")
               ]),
               message.callId !== null && props.inspectCall !== void 0 ? h("div", { key: "linked", style: { marginTop: "8px", display: "flex", alignItems: "center", gap: "8px" } }, [
                 h("span", { key: "label", style: { opacity: 0.6 } }, "\u5173\u8054\u8C03\u7528"),
@@ -4176,23 +4984,29 @@ ${xref}
   function EvolutionTab(props) {
     const { data } = props;
     const [hidden, setHidden] = useState(["surface", "output"]);
+    const [estimateSeq, setEstimateSeq] = useState("");
+    const [feedbackScope, setFeedbackScope] = useState("top");
     const [xMode, setXMode] = useState("step");
-    const [markerKinds, setMarkerKinds] = useState(["compaction", "prune", "injection", "spike"]);
+    const [markerKinds, setMarkerKinds] = useState(["compaction", "prune", "injection", "feedback", "spike"]);
     const timeline = data.timeline;
+    const sessionId = props.evidenceSessionId ?? data.analytics?.teamInput?.sessionId ?? "current";
     const steps = data.steps;
     if (steps.length === 0 && (timeline?.injections ?? []).length === 0 && (timeline?.compactions ?? []).length === 0) {
       return h("div", { style: emptyStyle2 }, "\u6682\u65E0\u6F14\u5316\u6570\u636E\u3002\u5F00\u59CB\u5BF9\u8BDD\u540E\uFF0C\u8FD9\u91CC\u5C06\u5C55\u793A\u4E0A\u4E0B\u6587\u968F\u65F6\u95F4\u7684\u589E\u957F\u66F2\u7EBF\u4E0E\u538B\u7F29\u4E8B\u4EF6\u3002");
     }
     const contextWindow = data.contextWindow;
-    const sampleSteps = steps;
-    const events = [...steps, ...timeline?.injections ?? [], ...timeline?.compactions ?? []].sort((a, b) => a.seq - b.seq);
+    const sampleSteps = props.injectionHistory?.requests ?? steps;
+    const markerMessages = props.injectionHistory?.messages ?? timeline?.injections ?? [];
+    const compactions = props.injectionHistory?.compactions ?? timeline?.compactions ?? [];
+    const axisSteps = sampleSteps;
+    const events = [...axisSteps.map((step) => ({ ...step, timeMs: 0 })), ...steps, ...markerMessages, ...compactions].sort((a, b) => a.seq - b.seq);
     const eventSeqs = [...new Set(events.map((event) => event.seq))];
     const xOf = (seq, timeMs) => {
       if (xMode === "time") return timeMs;
-      const index = steps.findIndex((step) => step.seq >= seq);
-      const nextIndex = index < 0 ? steps.length : index;
-      const previous = steps[nextIndex - 1];
-      const next = steps[nextIndex];
+      const index = axisSteps.findIndex((step) => step.seq >= seq);
+      const nextIndex = index < 0 ? axisSteps.length : index;
+      const previous = axisSteps[nextIndex - 1];
+      const next = axisSteps[nextIndex];
       if (xMode === "step") {
         if (next?.seq === seq) return nextIndex + 1;
         const lo = previous?.seq ?? (eventSeqs[0] ?? seq) - 1;
@@ -4201,11 +5015,12 @@ ${xref}
       }
       const turn = next?.turn ?? previous?.turn ?? 1;
       const members = eventSeqs.filter((value) => {
-        const request = steps.find((step) => step.seq >= value) ?? steps[steps.length - 1];
+        const request = axisSteps.find((step) => step.seq >= value) ?? axisSteps[axisSteps.length - 1];
         return (request?.turn ?? 1) === turn;
       });
       return turn + Math.max(0, members.indexOf(seq)) / Math.max(1, members.length);
     };
+    const estimateStep = sampleSteps.find((step) => String(step.seq) === estimateSeq) ?? sampleSteps[sampleSteps.length - 1];
     const xs = sampleSteps.map((step) => xOf(step.seq, step.timeMs));
     const series = [
       {
@@ -4216,7 +5031,7 @@ ${xref}
       },
       {
         key: "surface",
-        label: "\u8868\u9762 Token\uFF08\u4F30\u7B97\uFF09",
+        label: "\u4E0A\u4E0B\u6587\u5185\u5BB9\u4F30\u7B97 Token",
         color: "#9b59b6",
         points: sampleSteps.map((step, index) => ({ x: xs[index], y: step.surfaceTokens }))
       },
@@ -4228,11 +5043,18 @@ ${xref}
         points: sampleSteps.map((step, index) => ({ x: xs[index], y: step.outputTokens }))
       }
     ];
-    const injections = (timeline?.injections ?? []).filter((message) => message.kind !== "assistant" && !(message.kind === "user" && message.sourceKind === "user"));
-    const spikes = tokenSpikes(timeline?.injections ?? []);
+    const failures = props.injectionHistory?.toolFailures ?? [];
+    const failedSeqs = new Set(failures.map((f) => f.resultSeq));
+    const injections = markerMessages.filter(isInjected);
+    const feedback = markerMessages.filter((message) => message.kind === "tool-result");
+    const feedbackGroups = groupFeedback(feedback, axisSteps, failedSeqs);
+    const visibleFeedbackGroups = feedbackScope === "all" ? feedbackGroups : feedbackGroups.slice().sort((a, b) => b.reduce((sum, row) => sum + row.tokens, 0) - a.reduce((sum, row) => sum + row.tokens, 0)).slice(0, 10);
+    const spikes = tokenSpikes(markerMessages);
+    const detailedCompactions = new Map((timeline?.compactions ?? []).map((row) => [row.seq, row]));
     const markers = [];
     {
-      for (const compaction of timeline?.compactions ?? []) {
+      for (const rawCompaction of compactions) {
+        const compaction = props.injectionHistory ? detailedCompactions.get(rawCompaction.seq) ?? rawCompaction : rawCompaction;
         const markerKind = compaction.kind === "summary" ? "compaction" : "prune";
         if (!markerKinds.includes(markerKind)) continue;
         const x = xOf(compaction.seq, compaction.timeMs);
@@ -4246,19 +5068,36 @@ ${xref}
         markers.push({
           x,
           kind: markerKind,
+          onEvidence: props.onEvidence ? () => props.onEvidence?.(compactionEvidence(sessionId, [compaction])) : void 0,
           title: `${kind}${turn} @ ${formatTime(compaction.timeMs)}\uFF1A${before} \u2192 ${after}\uFF0C${reclaimed}${ratio}`
         });
       }
     }
-    if (markerKinds.includes("injection")) {
+    for (const kind of ["injection"]) {
+      if (!markerKinds.includes(kind)) continue;
       for (const message of injections) {
         const x = xOf(message.seq, message.timeMs);
         if (x === null) continue;
         markers.push({
           x,
-          kind: "injection",
-          title: `\u6CE8\u5165\u4E8B\u4EF6\uFF08${message.kind} / ${message.sourceKind}\uFF09@ ${formatTime(message.timeMs)} \xB7 \u7EA6 ${formatTokens(message.tokens)} Token`
+          kind,
+          onEvidence: props.onEvidence ? () => props.onEvidence?.(messageEvidence(sessionId, message, [message])) : void 0,
+          title: `\u4E0A\u4E0B\u6587\u6CE8\u5165\uFF08${message.kind} / ${message.sourceKind}\uFF09@ ${formatTime(message.timeMs)} \xB7 \u7EA6 ${formatTokens(message.tokens)} Token`
         });
+      }
+    }
+    if (markerKinds.includes("feedback")) {
+      for (const group of visibleFeedbackGroups) {
+        const first = group[0];
+        const last = group[group.length - 1];
+        const nextRequest = axisSteps.find((request) => request.seq > last.seq);
+        const previousRequest = axisSteps.slice().reverse().find((request) => request.seq <= first.seq);
+        const interval = `\u539F\u59CB\u8BF7\u6C42\u4E8B\u4EF6 ${previousRequest ? `#${previousRequest.seq}` : "\u4F1A\u8BDD\u8D77\u70B9"} \u2192 ${nextRequest ? `#${nextRequest.seq}` : "\u7B49\u5F85\u4E0B\u6B21\u8BF7\u6C42"}`;
+        markers.push({ kind: "feedback", x: (xOf(first.seq, first.timeMs) + xOf(last.seq, last.timeMs)) / 2, title: `${interval} \xB7 ${feedbackSummary(group)} \xB7 \u865A\u7EBF\u4E3A\u672C\u7EC4\u7ED3\u679C\u4F4D\u7F6E\u7684\u4E2D\u70B9\uFF0C\u5E76\u975E\u5355\u6761\u4E8B\u4EF6`, onEvidence: props.onEvidence ? () => props.onEvidence?.({ title: "\u8BF7\u6C42\u533A\u95F4\u5DE5\u5177\u56DE\u586B", conclusion: `${interval} \xB7 ${feedbackSummary(group)}`, level: "derived", rule: "\u6309\u76F8\u90BB\u6A21\u578B\u8BF7\u6C42\u4E4B\u95F4\u7684\u7ED3\u679C\u4E8B\u4EF6\u805A\u5408\uFF1B\u5931\u8D25\u7ED3\u679C\u72EC\u7ACB\u5C55\u793A\uFF0C\u4E0D\u8BA1\u5165\u6B64\u7EC4\u3002Token \u4E3A\u7ED3\u679C\u5185\u5BB9\u4F30\u7B97\uFF0C\u5E76\u975E\u7A97\u53E3\u51C0\u589E\u91CF\u3002", facts: group.map((row) => ({ label: `#${row.seq} \xB7 ${row.toolName ?? "\u672A\u77E5\u5DE5\u5177"}`, value: `${formatTokens(row.tokens)} Token \xB7 callId ${row.callId ?? "\u672A\u63D0\u4F9B"}`, source: "\u539F\u59CB\u5DE5\u5177\u7ED3\u679C" })), refs: group.map((row) => eventRef(sessionId, row.seq, "\u533A\u95F4\u5DE5\u5177\u7ED3\u679C")), notes: ["\u6BCF\u6761\u7ED3\u679C\u53EF\u901A\u8FC7\u4E8B\u4EF6\u5E8F\u53F7\u68C0\u67E5\u539F\u59CB\u5185\u5BB9\u3002"] }) : void 0 });
+      }
+      for (const message of feedback.filter((row) => failedSeqs.has(row.seq))) {
+        const failure = failures.find((f) => f.resultSeq === message.seq);
+        markers.push({ kind: "feedback", failed: true, x: xOf(message.seq, message.timeMs), title: `\u5931\u8D25\u56DE\u586B #${message.seq} \xB7 ${failure.name} \xB7 ${formatTokens(message.tokens)} Token \xB7 ${failure.analysis}`, onEvidence: props.onEvidence ? () => props.onEvidence?.({ ...messageEvidence(sessionId, message, [message]), toolFailures: [failure], refs: [...failure.callSeq !== void 0 ? [{ ...eventRef(sessionId, failure.callSeq, "\u5931\u8D25\u5DE5\u5177\u8C03\u7528"), failed: true }] : [], { ...eventRef(sessionId, message.seq, "\u9519\u8BEF\u7ED3\u679C"), failed: true }] }) : void 0 });
       }
     }
     if (markerKinds.includes("spike")) {
@@ -4269,7 +5108,16 @@ ${xref}
         markers.push({
           x,
           kind: "spike",
-          title: `\u5355\u6761\u6D88\u606F #${message.seq} \u7EA6 ${formatTokens(message.tokens)} Token \xB7 \u5F52\u56E0\u63A8\u65AD\uFF1A${mechanismLabel(message)} \xB7 \u4E3B\u5BFC\u6210\u5206 ${dominant.label} ${dominant.share.toFixed(0)}% \xB7 @ ${formatTime(message.timeMs)}`
+          onEvidence: props.onEvidence ? () => {
+            const chain = messageEvidence(sessionId, message, markerMessages, true);
+            const call = message.callId ? props.injectionHistory?.toolCalls?.find((call2) => call2.callId === message.callId) : void 0;
+            if (message.kind === "tool-result") {
+              chain.facts.push({ label: "\u5DE5\u5177\u7ED3\u679C\u4E0E\u6FC0\u589E\u7684\u5173\u8054", value: `${message.toolName ?? call?.name ?? "\u672A\u77E5\u5DE5\u5177"} \xB7 callId ${message.callId ?? "\u672A\u63D0\u4F9B"}`, source: "\u8BE5\u6FC0\u589E\u6D88\u606F\u672C\u8EAB\u5C31\u662F\u5DE5\u5177\u7ED3\u679C\uFF1B\u4E0D\u8868\u793A\u5DE5\u5177\u8C03\u7528\u5BFC\u81F4\u4E86\u5176\u4ED6\u6D88\u606F\u6FC0\u589E" });
+              if (call) chain.refs.push(eventRef(sessionId, call.seq, "\u4EA7\u751F\u8BE5\u6FC0\u589E\u7ED3\u679C\u7684\u5DE5\u5177\u8C03\u7528"));
+            } else chain.notes.push("\u8BE5\u6FC0\u589E\u6765\u81EA\u6D88\u606F\u672C\u8EAB\uFF0C\u4E0D\u80FD\u4EC5\u51ED\u90BB\u8FD1\u5DE5\u5177\u8C03\u7528\u5224\u5B9A\u56E0\u679C\u5173\u7CFB\u3002");
+            props.onEvidence?.(chain);
+          } : void 0,
+          title: `\u5355\u6761\u6D88\u606F #${message.seq} \u7EA6 ${formatTokens(message.tokens)} Token \xB7 ${message.kind === "tool-result" ? `\u5DE5\u5177\u7ED3\u679C\u5173\u8054\uFF1A${message.toolName ?? "\u672A\u77E5\u5DE5\u5177"} \xB7 callId ${message.callId ?? "\u672A\u63D0\u4F9B"}` : `\u6D88\u606F\u6765\u6E90\uFF1A${mechanismLabel(message)}`} \xB7 \u4E3B\u5BFC\u6210\u5206 ${dominant.label} ${dominant.share.toFixed(0)}% \xB7 @ ${formatTime(message.timeMs)}`
         });
       }
     }
@@ -4299,25 +5147,46 @@ ${xref}
             style: xModeButtonStyle(xMode === "time")
           }, "\u6309\u65F6\u95F4")
         ]),
-        h("span", { key: "hint", style: { fontSize: "11px", opacity: 0.55 } }, `\u8BF7\u6C42\u6837\u672C ${sampleSteps.length} \u6761 \xB7 \u4E8B\u4EF6\u6807\u8BB0\u6765\u81EA\u5DF2\u4FDD\u7559\u8BB0\u5F55${contextWindow !== null ? ` \xB7 \u7A97\u53E3\u4E0A\u9650 ${formatFull(contextWindow)}` : ""}`),
+        h("span", { key: "hint", style: { fontSize: "11px", opacity: 0.55 } }, `\u8BF7\u6C42\u6837\u672C ${sampleSteps.length} \u6761 \xB7 ${props.injectionHistory ? "\u5168\u90E8\u4E8B\u4EF6\u6807\u8BB0\u6765\u81EA\u539F\u59CB\u4F1A\u8BDD" : "\u4E8B\u4EF6\u6807\u8BB0\u6765\u81EA\u5DF2\u4FDD\u7559\u8BB0\u5F55"}${contextWindow !== null ? ` \xB7 \u7A97\u53E3\u4E0A\u9650 ${formatFull(contextWindow)}` : ""}`),
         h("span", { key: "gap", style: { flex: "1 1 8px" } }),
-        markerChip("compaction", `\u6458\u8981\u538B\u7F29 ${timeline?.compactions.filter((event) => event.kind === "summary").length ?? 0}`, "var(--dsh-eval-green, #30a46c)", markerKinds.includes("compaction"), () => toggleKind(markerKinds, setMarkerKinds, "compaction")),
-        markerChip("prune", `\u5386\u53F2\u4FEE\u526A ${timeline?.compactions.filter((event) => event.kind === "prune").length ?? 0}`, "#0891b2", markerKinds.includes("prune"), () => toggleKind(markerKinds, setMarkerKinds, "prune")),
-        markerChip("injection", `\u6CE8\u5165 ${injections.length}`, "var(--dsh-eval-orange, #e8791a)", markerKinds.includes("injection"), () => toggleKind(markerKinds, setMarkerKinds, "injection")),
+        markerChip("compaction", `\u6458\u8981\u538B\u7F29 ${compactions.filter((event) => event.kind === "summary").length}`, "var(--dsh-eval-green, #30a46c)", markerKinds.includes("compaction"), () => toggleKind(markerKinds, setMarkerKinds, "compaction")),
+        markerChip("prune", `\u5386\u53F2\u4FEE\u526A ${compactions.filter((event) => event.kind === "prune").length}`, "#0891b2", markerKinds.includes("prune"), () => toggleKind(markerKinds, setMarkerKinds, "prune")),
+        markerChip("injection", `\u4E0A\u4E0B\u6587\u6CE8\u5165 ${injections.length}`, "var(--dsh-eval-orange, #e8791a)", markerKinds.includes("injection"), () => toggleKind(markerKinds, setMarkerKinds, "injection")),
+        markerChip("feedback", `\u56DE\u586B ${visibleFeedbackGroups.length}/${feedbackGroups.length} \u7EC4 \xB7 \u5171 ${feedback.length} \u6B21 \xB7 \u5931\u8D25 ${feedback.filter((row) => failedSeqs.has(row.seq)).length} \u6B21`, "#64748b", markerKinds.includes("feedback"), () => toggleKind(markerKinds, setMarkerKinds, "feedback")),
+        h("select", { "aria-label": "\u56DE\u586B\u663E\u793A\u8303\u56F4", value: feedbackScope, onChange: (event) => setFeedbackScope(event.target.value), style: { font: "inherit", fontSize: 11 } }, [h("option", { value: "top" }, "\u91CD\u70B9\u56DE\u586B\uFF1AToken \u6700\u9AD8 10 \u7EC4"), h("option", { value: "all" }, "\u5168\u90E8\u56DE\u586B\u533A\u95F4")]),
         markerChip("spike", `\u6FC0\u589E ${spikes.length}`, "var(--dsh-eval-red, #e5484d)", markerKinds.includes("spike"), () => toggleKind(markerKinds, setMarkerKinds, "spike"))
       ]),
       h(LineChart, {
         key: xMode,
         series,
         markers,
+        onPointEvidence: props.onEvidence ? (index) => {
+          const step = sampleSteps[index];
+          if (step) props.onEvidence?.(stepEvidence(sessionId, step, sampleSteps));
+        } : void 0,
         limit: contextWindow !== null && !hidden.includes("limit") ? { value: contextWindow, label: `\u4E0A\u4E0B\u6587\u7A97\u53E3\u4E0A\u9650 ${formatFull(contextWindow)} Token` } : null,
         height: 360,
         yLabel: "Token",
+        xLabel: xMode === "step" ? "\u8BF7\u6C42\u987A\u5E8F" : xMode === "turn" ? "\u8F6E\u6B21" : "\u65F6\u95F4",
+        xTickValues: xMode === "step" ? axisSteps.map((_, index) => index + 1) : void 0,
         hidden: new Set(hidden),
         onToggle: (key) => setHidden((current) => current.includes(key) ? current.filter((item) => item !== key) : [...current, key]),
-        formatX: xMode === "step" ? (value) => `#${Math.round(value)}` : xMode === "turn" ? (value) => `\u7B2C ${Math.floor(value)} \u8F6E` : (value) => formatTime(value)
+        formatX: xMode === "step" ? (value) => Number.isInteger(value) ? `\u7B2C ${value} \u6B21\u8BF7\u6C42` : `\u7B2C ${Math.floor(value)}\u2013${Math.ceil(value)} \u6B21\u8BF7\u6C42\u4E4B\u95F4` : xMode === "turn" ? (value) => `\u7B2C ${Math.floor(value)} \u8F6E` : (value) => formatTime(value)
       }),
-      h("p", { key: "basis", style: { margin: 0, fontSize: "11px", opacity: 0.65 } }, "\u84DD\u7EBF\u4E3A\u6BCF\u6B21\u6A21\u578B\u8BF7\u6C42\u7684\u8F93\u5165\u5360\u7528\uFF08\u542B\u7F13\u5B58\u8BFB\uFF09\uFF1B\u7D2B\u7EBF\u4E3A\u8BF7\u6C42\u524D\u6D88\u606F\u8868\u9762\u7684\u4F30\u7B97\u503C\u3002\u4E8B\u4EF6\u6309\u53D1\u751F\u987A\u5E8F\u5B9A\u4F4D\uFF0C\u8F6E\u6B21\u5185\u4FDD\u7559\u5168\u90E8\u8BF7\u6C42\u3002"),
+      h("section", { key: "estimate-breakdown", "aria-label": "\u4E0A\u4E0B\u6587\u4F30\u7B97\u6210\u5206", style: { border: "1px solid #9994", borderRadius: 8, padding: 12, fontSize: 12 } }, [
+        h("strong", {}, "\u4E0A\u4E0B\u6587\u5185\u5BB9\u4F30\u7B97 \xB7 \u6210\u5206\u4E0E\u8BF7\u6C42\u53C2\u4E0E\u60C5\u51B5"),
+        h("label", {}, [" \u67E5\u770B\u8BF7\u6C42 ", h("select", { "aria-label": "\u9009\u62E9\u8BF7\u6C42\u67E5\u770B\u4F30\u7B97\u6210\u5206", value: String(estimateStep?.seq ?? ""), onChange: (event) => setEstimateSeq(event.target.value) }, sampleSteps.map((step, index) => h("option", { key: step.seq, value: String(step.seq) }, `\u7B2C ${index + 1} \u6B21\u8BF7\u6C42 \xB7 \u539F\u59CB\u4E8B\u4EF6 #${step.seq}`)))]),
+        estimateStep?.estimateParts ? h("table", { style: { width: "100%", borderCollapse: "collapse" } }, [
+          h("thead", {}, h("tr", {}, ["\u6210\u5206", "\u4F30\u7B97 Token", "\u8BF7\u6C42\u53C2\u4E0E\u60C5\u51B5", "\u8BF4\u660E"].map((label) => h("th", { style: { textAlign: "left", padding: 6 } }, label)))),
+          h("tbody", {}, ESTIMATE_PARTS.map(([key, label, status, description]) => h("tr", { key, style: { borderTop: "1px solid #9993" } }, [h("td", {}, label), h("td", {}, formatFull(estimateStep.estimateParts[key])), h("td", {}, status), h("td", {}, description)])))
+        ]) : h("p", {}, "\u6210\u5206\u5C1A\u672A\u8BFB\u53D6\uFF1B\u9700\u4ECE\u539F\u59CB\u5386\u53F2\u91CD\u5EFA\uFF0C\u4E0D\u4ECE\u603B\u6570\u53CD\u63A8\u6210\u5206\u3002"),
+        estimateStep ? h("p", {}, `\u5185\u5BB9\u4F30\u7B97\u5408\u8BA1 ${formatFull(estimateStep.surfaceTokens)} Token\uFF08\u5305\u542B\u5386\u53F2\u601D\u8003\uFF09 \xB7 \u670D\u52A1\u5546\u8F93\u5165\u5360\u7528 ${formatFull(stepContextOf(estimateStep))} Token\u3002\u4E24\u8005\u53E3\u5F84\u4E0D\u540C\u3002`) : null,
+        h("p", {}, "\u53C2\u4E0E\u60C5\u51B5\u8BF4\u660E\u57FA\u4E8E\u6D88\u606F\u89D2\u8272\u4E0E\u9002\u914D\u5668\u89C4\u5219\uFF0C\u5747\u975E\u672C\u6B21\u8BF7\u6C42\u5DF2\u53D1\u9001\u8BC1\u660E\u3002\u539F\u59CB\u8F68\u8FF9\u6CA1\u6709\u5B8C\u6574\u5E8F\u5217\u5316\u8BF7\u6C42\u4F53\u65F6\uFF0C\u4E0D\u80FD\u786E\u8BA4\u5404\u6210\u5206\u5B9E\u9645\u53D1\u9001\u91CF\uFF1B\u5B9E\u9645\u5360\u7528\u4EE5\u670D\u52A1\u5546 usage \u4E3A\u51C6\u3002\u5DE5\u5177\u5B9A\u4E49\u3001\u56FE\u7247\u5B9E\u9645\u8BA1\u4EF7\u53CA\u534F\u8BAE\u8F6C\u6362\u5F00\u9500\u4E0D\u5305\u542B\u5728\u6B64\u5185\u5BB9\u4F30\u7B97\u5408\u8BA1\u4E2D\u3002"),
+        estimateStep && props.onEvidence ? h("button", { onClick: () => props.onEvidence?.(stepEvidence(sessionId, estimateStep, sampleSteps)) }, "\u67E5\u770B\u8BE5\u8BF7\u6C42\u7528\u91CF\u8BC1\u636E") : null
+      ]),
+      props.injectionHistory ? h("p", { key: "coverage", role: "status", style: { margin: 0, fontSize: 12 } }, `${props.injectionHistory.phase === "ready" ? "\u539F\u59CB\u4F1A\u8BDD\u5386\u53F2\u5DF2\u5B8C\u6574\u52A0\u8F7D\uFF08\u5F53\u524D\u53EF\u8BFB\u65E5\u5FD7\uFF1B\u65E0\u6CD5\u5224\u65AD\u662F\u5426\u6709\u88AB\u6E05\u7406\u7684\u5386\u53F2\uFF09" : props.injectionHistory.phase === "loading" ? "\u6B63\u5728\u8BFB\u53D6\u539F\u59CB\u5386\u53F2\uFF0C\u5F53\u524D\u6807\u8BB0\u5C1A\u4E0D\u5B8C\u6574" : props.injectionHistory.phase === "partial" ? "\u5386\u53F2\u672A\u8BFB\u5B8C\u6574\uFF0C\u524D\u6BB5\u65E0\u6807\u8BB0\u4E0D\u8868\u793A\u6CA1\u6709\u4E8B\u4EF6" : `\u5386\u53F2\u8BFB\u53D6\u5931\u8D25\uFF1A${props.injectionHistory.error}\uFF1B\u5F53\u524D\u6807\u8BB0\u4E0D\u5B8C\u6574`} \xB7 \u5DF2\u89E3\u6790\u6D88\u606F ${markerMessages.length} \u6761 \xB7 \u538B\u7F29/\u4FEE\u526A ${compactions.length} \u6761 \xB7 \u539F\u59CB\u4E8B\u4EF6\u8303\u56F4 ${props.injectionHistory.firstSeq ?? "?"}\u2013${props.injectionHistory.lastSeq ?? "?"}`) : null,
+      h("p", { key: "tool-spike-link", style: { margin: 0, fontSize: 11, opacity: 0.75 } }, `\u6FC0\u589E ${spikes.length} \u6761\uFF0C\u5176\u4E2D\u5DE5\u5177\u7ED3\u679C ${spikes.filter((row) => row.kind === "tool-result").length} \u6761\u3002\u6B64\u6BD4\u4F8B\u6765\u81EA\u5F53\u524D\u5DF2\u52A0\u8F7D\u6D88\u606F\uFF1B\u5DE5\u5177\u7ED3\u679C\u4EE5 callId \u5173\u8054\u539F\u59CB\u8C03\u7528\uFF0C\u5176\u4ED6\u6D88\u606F\u4E0D\u6309\u65F6\u95F4\u90BB\u8FD1\u63A8\u5B9A\u56E0\u679C\u3002`),
+      h("p", { key: "basis", style: { margin: 0, fontSize: "11px", opacity: 0.65 } }, "\u84DD\u7EBF\u4E3A\u6BCF\u6B21\u6A21\u578B\u8BF7\u6C42\u7684\u8F93\u5165\u5360\u7528\uFF08\u542B\u7F13\u5B58\u8BFB\uFF09\uFF1B\u7D2B\u7EBF\u4E3A\u8BF7\u6C42\u524D\u4E0A\u4E0B\u6587\u5185\u5BB9\u7684 Token \u4F30\u7B97\u503C\u3002\u6A2A\u8F74\u6309\u6B65\u9AA4\u663E\u793A\u8BF7\u6C42\u987A\u5E8F\uFF0C\u8BE6\u60C5\u4E2D\u7684\u539F\u59CB\u4E8B\u4EF6 #\u5E8F\u53F7\u5C5E\u4E8E\u53E6\u4E00\u5957\u7F16\u53F7\u3002\u4E8B\u4EF6\u865A\u7EBF\u843D\u5728\u5176\u53D1\u751F\u7684\u8BF7\u6C42\u95F4\u9694\u5185\uFF1B\u805A\u5408\u56DE\u586B\u865A\u7EBF\u8868\u793A\u7EC4\u5185\u4F4D\u7F6E\u4E2D\u70B9\u3002\u8F6E\u6B21\u5185\u4FDD\u7559\u5168\u90E8\u8BF7\u6C42\u3002\u56DE\u586B\u6309\u94AE\u5206\u522B\u663E\u793A\u53EF\u89C1\u7EC4\u6570\u3001\u5168\u90E8\u666E\u901A\u533A\u95F4\u7EC4\u6570\u53CA\u539F\u59CB\u7ED3\u679C\u6B21\u6570\uFF1B\u9ED8\u8BA4\u4EC5\u5C55\u793A Token \u6700\u9AD8 10 \u7EC4\u548C\u5168\u90E8\u5931\u8D25\u7ED3\u679C\uFF0C\u53EF\u5207\u6362\u5168\u90E8\u533A\u95F4\u3002\u4E0A\u4E0B\u6587\u6CE8\u5165\u4E0D\u542B\u5DE5\u5177\u7ED3\u679C\u3001\u52A9\u624B\u8F93\u51FA\u548C\u7528\u6237\u76F4\u63A5\u8F93\u5165\uFF1B\u5DE5\u5177\u56DE\u586B\u6309\u76F8\u90BB\u6A21\u578B\u8BF7\u6C42\u533A\u95F4\u805A\u5408\uFF0C\u5931\u8D25\u7ED3\u679C\u72EC\u7ACB\u6807\u7EA2\u3002\u6D88\u606F Token \u4E3A\u4F30\u7B97\u503C\uFF0C\u4E0D\u7B49\u4E8E\u8BF7\u6C42\u7A97\u53E3\u5B9E\u9645\u589E\u91CF\u3002\u5386\u53F2\u6FC0\u589E\u6309\u5168\u90E8\u8FFD\u52A0\u6D88\u606F\u7684\u524D 5 \u6761\u57FA\u7EBF\u8BA1\u7B97\uFF1B\u5386\u53F2\u4FEE\u526A/\u6458\u8981\u538B\u7F29\u4F9D\u636E\u539F\u59CB\u4E8B\u4EF6\uFF0C\u672A\u4FDD\u7559\u7684\u524D\u540E\u7528\u91CF\u663E\u793A\u672A\u77E5\u3002"),
       h("div", {
         key: "legend-markers",
         style: { display: "flex", flexWrap: "wrap", gap: "6px 16px", fontSize: "11px", opacity: 0.75 }
@@ -4325,7 +5194,8 @@ ${xref}
         h("span", { key: "m0", style: { opacity: 0.6, width: "100%" } }, "\u6807\u8BB0\u8BF4\u660E\uFF08\u70B9\u51FB\u4E0A\u65B9\u82AF\u7247\u53EF\u7B5B\u9009\uFF09\uFF1A"),
         h("span", { key: "m1", style: { color: "var(--dsh-eval-green, #30a46c)" } }, "\u25B2 \u6458\u8981\u538B\u7F29\uFF08\u7EFF\u8272\uFF09"),
         h("span", { key: "prune", style: { color: "#0891b2" } }, "\u25A0 \u5386\u53F2\u4FEE\u526A\uFF08\u9752\u8272\uFF0C\u72EC\u7ACB\u4E00\u884C\uFF09"),
-        h("span", { key: "m2", style: { color: "var(--dsh-eval-orange, #e8791a)" } }, "\u25CF \u6CE8\u5165\u4E8B\u4EF6\uFF08\u6A59\u8272\u7AD6\u7EBF\uFF09"),
+        h("span", { key: "m2", style: { color: "var(--dsh-eval-orange, #e8791a)" } }, "\u25CF \u4E0A\u4E0B\u6587\u6CE8\u5165\uFF08\u6A59\u8272\uFF09"),
+        h("span", { key: "feedback", style: { color: "#64748b" } }, "\u25CF \u5DE5\u5177\u7ED3\u679C\u56DE\u586B\uFF08\u7070\u84DD\u8272\uFF09"),
         h("span", { key: "m3", style: { color: "var(--dsh-eval-red, #e5484d)" } }, "\u25C6 Token \u6FC0\u589E"),
         h("button", { key: "m4", type: "button", "aria-pressed": !hidden.includes("limit"), onClick: () => setHidden((current) => current.includes("limit") ? current.filter((key) => key !== "limit") : [...current, "limit"]), style: { background: "transparent", border: 0, cursor: "pointer", font: "inherit", color: "var(--dsh-eval-red, #e5484d)", opacity: hidden.includes("limit") ? 0.4 : 1 } }, "\u2015 \u2015 \u7A97\u53E3\u4E0A\u9650\uFF08\u7EA2\u8272\u865A\u7EBF\uFF09")
       ]),
@@ -4343,7 +5213,7 @@ ${xref}
         }
       }, [
         h("span", { key: "t", style: { fontWeight: 600 } }, "\u4E0A\u4E0B\u6587\u56DE\u6536"),
-        h("span", { key: "count" }, `\u5DF2\u8BB0\u5F55\uFF1A\u6458\u8981\u538B\u7F29 ${timeline.compactions.filter((event) => event.kind === "summary").length} \u6B21 \xB7 \u5386\u53F2\u4FEE\u526A ${timeline.compactions.filter((event) => event.kind === "prune").length} \u6B21\uFF08\u6BCF\u6761\u4E3A\u4E00\u6B21\u4FEE\u526A\u4E8B\u4EF6\uFF09`),
+        h("span", { key: "count" }, `\u5DF2\u8BB0\u5F55\uFF1A\u6458\u8981\u538B\u7F29 ${compactions.filter((event) => event.kind === "summary").length} \u6B21 \xB7 \u5386\u53F2\u4FEE\u526A ${compactions.filter((event) => event.kind === "prune").length} \u6B21\uFF08\u6BCF\u6761\u4E3A\u4E00\u6B21\u4FEE\u526A\u4E8B\u4EF6\uFF09`),
         h("span", { key: "reclaimed" }, `\u56DE\u6536 ${formatTokens(timeline.compactionTotals.reclaimedTokens)} Token`),
         h("span", { key: "elapsed" }, `\u7D2F\u8BA1\u8017\u65F6 ${(timeline.compactionTotals.elapsedMs / 1e3).toFixed(1)}s`)
       ]) : null
@@ -4353,15 +5223,8 @@ ${xref}
     setKinds(current.includes(kind) ? current.filter((item) => item !== kind) : [...current, kind]);
   }
   function tokenSpikes(messages) {
-    const result = [];
-    for (let index = 0; index < messages.length; index++) {
-      const window2 = messages.slice(Math.max(0, index - 5), index).map((message) => message.tokens).sort((a, b) => a - b);
-      if (window2.length < 3) continue;
-      const median = window2[Math.floor(window2.length / 2)];
-      const tokens = messages[index].tokens;
-      if (tokens >= 1e3 && tokens >= median * 3) result.push(messages[index]);
-    }
-    return result;
+    const ordered = messages.slice().sort((a, b) => a.seq - b.seq);
+    return ordered.filter((message, index) => spikeInfo(ordered.slice(Math.max(0, index - 5), index + 1), message.seq) !== null);
   }
   function markerChip(kind, label, color, active, onToggle) {
     return h("button", {
@@ -4418,8 +5281,10 @@ ${xref}
     const groups = groupCompactions(compactions);
     const totals = data.timeline?.compactionTotals;
     const injected2 = data.messages.filter(isInjected);
+    const feedback = data.messages.filter((message) => message.kind === "tool-result");
     const direct = data.messages.filter((message) => message.kind === "user" && message.sourceKind === "user");
-    const shown = filter === "injected" ? injected2 : direct;
+    const shown = filter === "injected" ? injected2 : filter === "feedback" ? feedback : direct;
+    const categoryLabel = filter === "injected" ? "\u4E0A\u4E0B\u6587\u6CE8\u5165" : filter === "feedback" ? "\u5DE5\u5177\u7ED3\u679C\u56DE\u586B" : "\u76F4\u63A5\u8F93\u5165";
     return h("div", { style: { display: "flex", flexDirection: "column", gap: 12 } }, [
       h("div", { key: "totals", style: { display: "flex", flexWrap: "wrap", gap: "8px 20px", fontSize: 12 } }, [
         h("strong", { key: "title" }, "\u538B\u7F29\u4E0E\u6CE8\u5165"),
@@ -4429,7 +5294,7 @@ ${xref}
       ]),
       h("p", { key: "hint", style: { margin: 0, fontSize: 11, opacity: 0.65 } }, "\u70B9\u51FB\u5361\u7247\u5C55\u5F00\u8BE6\u60C5\u3002\u5386\u53F2\u5FEB\u7167\u4E3A\u6709\u754C\u5185\u5BB9\u8282\u9009\uFF0CToken \u4E3A\u6D88\u606F\u8868\u9762\u4F30\u7B97\u503C\uFF1B\u7D2F\u8BA1\u7EDF\u8BA1\u53EF\u80FD\u5305\u542B\u5DF2\u8D85\u51FA\u4FDD\u7559\u8303\u56F4\u7684\u4E8B\u4EF6\u3002"),
       ...groups.length ? groups.slice().reverse().map((group) => {
-        if (group.length === 1) return eventCard(group[0], sessionId);
+        if (group.length === 1) return eventCard(group[0], sessionId, props);
         const first = group[0];
         const last = group[group.length - 1];
         const reclaimed = first.beforeTokens !== null && last.afterTokens !== null ? Math.max(0, first.beforeTokens - last.afterTokens) : null;
@@ -4439,17 +5304,18 @@ ${xref}
             h("strong", { key: "title" }, `\u2702\uFE0F \u5386\u53F2\u4FEE\u526A \xB7 ${group.length} \u6B21\u5DF2\u805A\u5408 \xB7 ${formatDateTime(first.timeMs)}`),
             h("div", { key: "impact", style: { marginLeft: 16 } }, `${token(first.beforeTokens)} \u2192 ${token(last.afterTokens)} Token \xB7 \u5408\u8BA1\u56DE\u6536 ${token(reclaimed)} \xB7 \u56DE\u6536\u7387 ${formatPercent(ratio)}`)
           ]),
+          h(EvidenceButton, { ...props, chain: () => compactionEvidence(sessionId ?? "current", group), label: "\u67E5\u770B\u4FEE\u526A\u7EC4\u8BC1\u636E\u94FE" }),
           h("p", { key: "rule", style: { opacity: 0.65 } }, "\u6309\u8FDE\u7EED\u4E8B\u4EF6\u30012 \u79D2\u5185\u53D1\u751F\u4E14\u524D\u540E Token \u8854\u63A5\u805A\u5408\u5C55\u793A\uFF1B\u4E0D\u4EE3\u8868\u5BBF\u4E3B\u8BB0\u5F55\u4E86\u540C\u4E00\u4E8B\u52A1\u3002\u5C55\u5F00\u4E0B\u5217\u6761\u76EE\u67E5\u770B\u5404\u6B21\u66FF\u6362\u3002"),
-          h("div", { key: "items", style: { display: "grid", gap: 8 } }, group.map((event) => eventCard(event, sessionId)))
+          h("div", { key: "items", style: { display: "grid", gap: 8 } }, group.map((event) => eventCard(event, sessionId, props)))
         ]);
       }) : [h("div", { key: "empty", style: card }, "\u6682\u65E0\u538B\u7F29\u6216\u5386\u53F2\u4FEE\u526A\u4E8B\u4EF6\u3002")],
       h("div", { key: "filters", style: { display: "flex", gap: 8, alignItems: "center" } }, [
-        h("strong", { key: "title" }, "\u6CE8\u5165\u4E8B\u4EF6"),
-        ...["injected", "direct"].map((value) => h("button", { key: value, type: "button", "aria-pressed": filter === value, onClick: () => setFilter(value), style: { cursor: "pointer", opacity: filter === value ? 1 : 0.55 } }, value === "injected" ? `\u6CE8\u5165 ${injected2.length}` : `\u76F4\u63A5\u8F93\u5165 ${direct.length}`))
+        h("strong", { key: "title" }, "\u4E0A\u4E0B\u6587\u8FFD\u52A0\u4E8B\u4EF6"),
+        ...["injected", "feedback", "direct"].map((value) => h("button", { key: value, type: "button", "aria-pressed": filter === value, onClick: () => setFilter(value), style: { cursor: "pointer", opacity: filter === value ? 1 : 0.55 } }, value === "injected" ? `\u4E0A\u4E0B\u6587\u6CE8\u5165 ${injected2.length}` : value === "feedback" ? `\u5DE5\u5177\u7ED3\u679C\u56DE\u586B ${feedback.length}` : `\u76F4\u63A5\u8F93\u5165 ${direct.length}`))
       ]),
-      h("p", { key: "injection-grouping", style: { margin: 0, fontSize: 11, opacity: 0.65 } }, "\u6309\u663E\u793A\u65F6\u95F4\uFF08\u79D2\uFF09\u805A\u5408\uFF1B\u6570\u91CF\u4E0E Token \u4E3A\u7EC4\u5185\u4E8B\u4EF6\u5408\u8BA1\uFF0C\u5C55\u5F00\u67E5\u770B\u5404\u6B21\u6CE8\u5165\u7684\u539F\u59CB\u987A\u5E8F\u4E0E\u8BE6\u60C5\u3002"),
+      h("p", { key: "injection-grouping", style: { margin: 0, fontSize: 11, opacity: 0.65 } }, "\u5DE5\u5177\u7ED3\u679C\u56DE\u586B\u6309\u7ED3\u679C\u6D88\u606F\u8BA1\u6570\uFF0C\u901A\u8FC7 callId \u5173\u8054\u5DE5\u5177\u8C03\u7528\uFF0C\u4E0D\u4FDD\u8BC1\u6570\u91CF\u4E25\u683C\u4E00\u4E00\u5BF9\u5E94\u3002\u4E0A\u4E0B\u6587\u6CE8\u5165\u4E0D\u542B\u5DE5\u5177\u7ED3\u679C\u3001\u52A9\u624B\u8F93\u51FA\u53CA\u7528\u6237\u76F4\u63A5\u8F93\u5165\u3002\u6309\u79D2\u805A\u5408\uFF0CToken \u4E3A\u6D88\u606F\u4F30\u7B97\u503C\uFF0C\u4E0D\u7B49\u4E8E\u8BF7\u6C42\u7A97\u53E3\u5B9E\u9645\u589E\u91CF\u3002"),
       ...shown.length ? groupInjections(shown).slice().reverse().map((group) => {
-        if (group.length === 1) return injectionCard(group[0], sessionId);
+        if (group.length === 1) return injectionCard(group[0], sessionId, props);
         const sources = /* @__PURE__ */ new Map();
         for (const message of group) {
           const label = `${MESSAGE_KIND_LABELS[message.kind] ?? message.kind} / ${message.toolName ?? message.sourceKind}`;
@@ -4457,12 +5323,13 @@ ${xref}
         }
         return h("details", { key: `injection-group-${Math.floor(group[0].timeMs / 1e3)}`, style: card }, [
           h("summary", { key: "summary", style: summaryStyle }, [
-            h("strong", { key: "title" }, `\u{1F4E5} ${filter === "injected" ? "\u6CE8\u5165" : "\u76F4\u63A5\u8F93\u5165"} \xB7 ${group.length} \u6761\u5DF2\u805A\u5408 \xB7 ${formatDateTime(group[0].timeMs)}`),
+            h("strong", { key: "title" }, `\u{1F4E5} ${categoryLabel} \xB7 ${group.length} \u6761\u5DF2\u805A\u5408 \xB7 ${formatDateTime(group[0].timeMs)}`),
             h("div", { key: "total", style: { marginLeft: 16 } }, `\u5408\u8BA1 +${formatFull(group.reduce((sum, message) => sum + message.tokens, 0))} Token \xB7 ${[...sources].map(([source, count]) => `${source} \xD7${count}`).join(" \xB7 ")}`)
           ]),
-          h("div", { key: "items", style: { display: "grid", gap: 8, marginTop: 8 } }, group.map((message) => injectionCard(message, sessionId)))
+          h(EvidenceButton, { ...props, chain: () => ({ title: `\u540C\u79D2${categoryLabel}\u8BC1\u636E`, conclusion: `${group.length} \u6761 \xB7 ${group.reduce((sum, item) => sum + item.tokens, 0)} Token`, level: "derived", rule: "\u6309\u663E\u793A\u65F6\u95F4\uFF08\u79D2\uFF09\u5206\u7EC4\uFF1B\u4E0D\u8868\u793A\u540C\u4E00\u4E8B\u52A1\u6216\u56E0\u679C\u5173\u7CFB\u3002", facts: [], notes: ["\u7EC4\u5185\u4FDD\u7559\u4E8B\u4EF6\u539F\u59CB\u987A\u5E8F\u3002"], refs: group.map((item) => eventRef(sessionId ?? "current", item.seq, categoryLabel)) }), label: `\u67E5\u770B${categoryLabel}\u7EC4\u8BC1\u636E\u94FE` }),
+          h("div", { key: "items", style: { display: "grid", gap: 8, marginTop: 8 } }, group.map((message) => injectionCard(message, sessionId, props)))
         ]);
-      }) : [h("div", { key: "no-injections", style: card }, filter === "injected" ? "\u6682\u65E0\u6CE8\u5165\u4E8B\u4EF6\u3002" : "\u6682\u65E0\u76F4\u63A5\u8F93\u5165\u3002")]
+      }) : [h("div", { key: "no-injections", style: card }, `\u6682\u65E0${categoryLabel}\u4E8B\u4EF6\u3002`)]
     ]);
   }
   function CompactionDetails(props) {
@@ -4568,13 +5435,14 @@ ${xref}
     }
     return groups;
   }
-  function eventCard(event, sessionId) {
+  function eventCard(event, sessionId, evidence = {}) {
     return h("details", { key: event.id, style: card }, [
       h("summary", { key: "summary", style: summaryStyle }, [
         h("strong", { key: "kind" }, `${event.kind === "summary" ? "\u{1F4E6} \u6458\u8981\u538B\u7F29" : "\u2702\uFE0F \u5386\u53F2\u4FEE\u526A"} \xB7 ${formatDateTime(event.timeMs)}`),
         h("div", { key: "tokens", style: { marginLeft: 16 } }, `${token(event.beforeTokens)} \u2192 ${token(event.afterTokens)} Token \xB7 \u56DE\u6536 ${token(event.reclaimedTokens)} \xB7 \u56DE\u6536\u7387 ${formatPercent(event.reclaimRatio)} \xB7 \u8017\u65F6 ${formatMs(event.elapsedMs)}`),
         h("div", { key: "reason", style: { marginLeft: 16, opacity: 0.65 } }, `\u89E6\u53D1\u539F\u56E0\uFF1A${triggerLabel(event)}${event.turn !== null ? ` \xB7 \u7B2C ${event.turn} \u8F6E` : ""}`)
       ]),
+      h(EvidenceButton, { ...evidence, chain: () => compactionEvidence(sessionId ?? "current", [event]) }),
       h(CompactionDetails, { key: "detail", event, sessionId })
     ]);
   }
@@ -4588,12 +5456,14 @@ ${xref}
     }
     return [...groups.entries()].sort(([a], [b]) => a - b).map(([, group]) => group);
   }
-  function injectionCard(message, sessionId) {
+  function injectionCard(message, sessionId, evidence = {}) {
     return h("details", { key: `injection-${message.seq}`, style: card }, [
       h("summary", { key: "summary", style: summaryStyle }, `\u{1F4E5} ${MESSAGE_KIND_LABELS[message.kind] ?? message.kind} \xB7 ${message.sourceKind}${message.toolName ? ` / ${message.toolName}` : ""} \xB7 ${formatDateTime(message.timeMs)} \xB7 +${formatFull(message.tokens)} Token`),
       h("div", { key: "detail", style: { marginTop: 12, display: "grid", gap: 10 } }, [
+        h(EvidenceButton, { ...evidence, chain: () => messageEvidence(sessionId ?? "current", message, [message]) }),
         h("div", { key: "source" }, `\u6765\u6E90\uFF1A${MESSAGE_KIND_LABELS[message.kind] ?? message.kind} / ${message.sourceKind}${message.toolName ? ` / ${message.toolName}` : ""} \xB7 \u4E8B\u4EF6 #${message.seq}${message.turn !== null ? ` \xB7 \u7B2C ${message.turn} \u8F6E` : ""}`),
-        h("div", { key: "delta" }, `\u52A0\u5165\u524D ${formatFull(Math.max(0, message.cumulativeTokens - message.tokens))} \u2192 \u52A0\u5165\u540E ${formatFull(message.cumulativeTokens)} Token\uFF08\u589E\u52A0 ${formatFull(message.tokens)}\uFF09`),
+        h("div", { key: "call" }, message.kind === "tool-result" ? `\u5173\u8054\u5DE5\u5177\u8C03\u7528 callId\uFF1A${message.callId ?? "\u672A\u63D0\u4F9B"}\uFF08\u6309\u7ED3\u679C\u6D88\u606F\u8BA1\u6570\uFF09` : "\u4E0A\u4E0B\u6587\u6D88\u606F\u8FFD\u52A0"),
+        h("div", { key: "delta" }, `\u52A0\u5165\u524D ${formatFull(Math.max(0, message.cumulativeTokens - message.tokens))} \u2192 \u52A0\u5165\u540E ${formatFull(message.cumulativeTokens)} Token\uFF08\u6D88\u606F\u8868\u9762\u4F30\u7B97\uFF0C\u589E\u52A0 ${formatFull(message.tokens)}\uFF1B\u975E\u8BF7\u6C42\u7A97\u53E3\u5B9E\u9645\u589E\u91CF\uFF09`),
         h("div", { key: "split" }, `\u6587\u672C ${formatFull(message.textTokens)} \xB7 \u5DE5\u5177\u8C03\u7528 ${formatFull(message.toolCallTokens)} \xB7 \u6587\u4EF6/\u56FE\u50CF ${formatFull(message.fileTokens)} Token`),
         h("div", { key: "preview", style: { maxHeight: 240, overflowY: "auto", padding: 10, background: "color-mix(in srgb, currentColor 4%, transparent)", borderRadius: 6 } }, h("pre", { style: preStyle }, message.preview || "\u8BE6\u60C5\u4E0D\u53EF\u7528\uFF1A\u5BBF\u4E3B\u672A\u63D0\u4F9B\u5185\u5BB9\u9884\u89C8\u3002")),
         h("span", { key: "limit", style: { opacity: 0.6 } }, "\u9884\u89C8\u6700\u591A 1000 \u5B57\u7B26\uFF1B\u5B8C\u6574\u5185\u5BB9\u8BF7\u4E0B\u8F7D\u4F1A\u8BDD\u65E5\u5FD7\u3002"),
@@ -4620,6 +5490,11 @@ ${xref}
         key: "stats",
         style: { display: "flex", flexWrap: "wrap", gap: "8px 24px", fontSize: "12.5px", alignItems: "baseline" }
       }, [
+        h(EvidenceButton, { ...props, chain: () => {
+          const chain = aggregateEvidence(props.evidenceSessionId ?? "current", "\u5DE5\u5177\u8C03\u7528\u4E0E\u9519\u8BEF", data.analytics, data.timeline, "tools");
+          const failures = props.history?.toolFailures ?? [];
+          return { ...chain, toolFailures: failures, refs: [...failures.flatMap((f) => [...f.callSeq !== void 0 ? [{ sessionId: props.evidenceSessionId ?? "current", seq: f.callSeq, role: "\u5931\u8D25\u5DE5\u5177\u8C03\u7528", failed: true }] : [], { sessionId: props.evidenceSessionId ?? "current", seq: f.resultSeq, role: "\u9519\u8BEF\u7ED3\u679C", failed: true }]), ...chain.refs] };
+        } }),
         h("span", { key: "title", style: { fontSize: "13px", fontWeight: 500 } }, "\u5DE5\u5177\u8C03\u7528\u5206\u5E03"),
         h("span", { key: "calls" }, `\u8C03\u7528 ${formatFull(totalCalls)} \u6B21`),
         h("span", { key: "errors" }, `\u9519\u8BEF ${formatFull(totalErrors)} \u6B21${totalCalls > 0 ? `\uFF08${(totalErrors / totalCalls * 100).toFixed(1)}%\uFF09` : ""}`),
@@ -4655,6 +5530,8 @@ ${xref}
           gap: "6px 22px"
         }
       }, [
+        h(EvidenceButton, { ...props, chain: () => toolEvidence(props.evidenceSessionId ?? "current", selectedTool.name, data.analytics, data.timeline, props.history?.toolFailures) }),
+        h("span", { key: "history-status", role: "status" }, props.history?.phase === "ready" ? "\u9519\u8BEF\u5206\u6790\u6765\u81EA\u5B8C\u6574\u53EF\u8BFB\u5386\u53F2" : "\u5386\u53F2\u9519\u8BEF\u8BC1\u636E\u52A0\u8F7D\u4E2D\u6216\u4E0D\u5B8C\u6574"),
         h("span", { key: "name", style: { fontWeight: 600 } }, selectedTool.name),
         h("span", { key: "calls" }, `\u8C03\u7528 ${selectedTool.calls} \u6B21`),
         h("span", { key: "errors" }, `\u9519\u8BEF ${selectedTool.errors} \u6B21`),
@@ -4670,108 +5547,297 @@ ${xref}
     fontSize: "13px"
   };
 
+  // client-src/teamCollaboration.tsx
+  var palette = { message: "#458af7", assignment: "#dd9a21", spawn: "#19a997", task: "#a970e2" };
+  var kindNames = { message: "\u6D88\u606F\u4EA4\u4E92", assignment: "\u4EFB\u52A1\u5206\u914D", spawn: "\u6210\u5458\u52A0\u5165", task: "\u4EFB\u52A1\u72B6\u6001" };
+  var panel2 = { border: "1px solid color-mix(in srgb,currentColor 14%,transparent)", borderRadius: 12, padding: 16 };
+  var small = { fontSize: 12, opacity: 0.65 };
+  var date = (time) => {
+    const d = new Date(time);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  function TeamCollaboration(props) {
+    const [day, setDay] = useState("all"), [kind, setKind] = useState("all"), [pair, setPair] = useState("");
+    const [page, setPage] = useState(0), [chosen, setChosen] = useState(null);
+    const [marker] = useState(() => `team-arrow-${Math.random().toString(36).slice(2)}`);
+    const detailRef = useRef(null);
+    useEffect(() => {
+      if (chosen) detailRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }, [chosen]);
+    const interactions = props.details.interactions.map((item) => item.kind === "spawn" ? { ...item, from: props.rootId } : item);
+    const name = (id) => id === props.rootId ? "\u4E3B Agent" : id === "$taskboard" ? "\u5171\u4EAB\u4EFB\u52A1\u677F" : props.details.members.find((m) => m.id === id)?.name || `\u6210\u5458 ${id.slice(0, 6)}`;
+    const ids = [.../* @__PURE__ */ new Set([props.rootId, ...props.memberIds, ...interactions.flatMap((e) => [e.from, e.to]), "$taskboard"])].filter(Boolean);
+    const rows = interactions.filter((e) => (day === "all" || date(e.time) === day) && (kind === "all" || kind === e.kind) && (props.selectedMember === "all" || e.from === props.selectedMember || e.to === props.selectedMember));
+    const connections = /* @__PURE__ */ new Map();
+    for (const row of rows) {
+      if (row.from === row.to) continue;
+      const key = JSON.stringify([row.from, row.to]);
+      const c = connections.get(key) ?? { from: row.from, to: row.to, messages: 0, assignments: 0, other: 0 };
+      if (row.kind === "message") c.messages++;
+      else if (row.kind === "assignment") c.assignments++;
+      else c.other++;
+      connections.set(key, c);
+    }
+    const filtered = rows.filter((e) => !pair || pair === JSON.stringify([e.from, e.to]));
+    const pages = Math.max(1, Math.ceil(filtered.length / 30));
+    const currentPage = Math.min(page, pages - 1);
+    const visible = filtered.slice(currentPage * 30, currentPage * 30 + 30);
+    const selected = interactions.find((e) => e.id === chosen);
+    const evidence = (e) => ({ title: `${name(e.from)} \u2192 ${name(e.to)} \xB7 ${e.label}`, conclusion: e.text, level: "observed", rule: e.kind === "message" ? "\u539F\u59CB\u6D88\u606F\u7684 senderId / targetId \u786E\u5B9A\u65B9\u5411\uFF0CmessageId \u914D\u5BF9\u9001\u8FBE\u56DE\u6267\u3002" : "\u6765\u81EA\u6210\u5458\u6216\u4EFB\u52A1\u5FEB\u7167\uFF1B\u8D1F\u8D23\u4EBA\u53D8\u5316\u4E0D\u4EE3\u8868\u5DF2\u786E\u8BA4\u64CD\u4F5C\u8005\u8EAB\u4EFD\u3002", facts: [{ label: "\u4EA4\u4E92\u65F6\u95F4", value: new Date(e.time).toLocaleString(), source: "\u539F\u59CB\u4E8B\u4EF6\u65F6\u95F4" }], refs: e.refs.map((seq) => eventRef(props.rootId, seq, e.label)), notes: e.kind === "assignment" ? ["\u4EFB\u52A1\u5F52\u5C5E\u53EF\u9A8C\u8BC1\uFF0C\u4F46\u5FEB\u7167\u6CA1\u6709\u64CD\u4F5C\u4EBA\u5B57\u6BB5\uFF0C\u4E0D\u80FD\u8BC1\u660E\u7531\u4E3B Agent \u4E0B\u53D1\u3002"] : [] });
+    const choose = (id) => setChosen(id);
+    const control = (label, value, update, options) => h("label", { style: { fontSize: 12 } }, [label + " ", h("select", { value, onChange: (e) => {
+      update(e.target.value);
+      setPage(0);
+      setChosen(null);
+    } }, options.map(([id, title]) => h("option", { key: id, value: id }, title)))]);
+    const graphWidth = 900, graphHeight = Math.max(300, Math.ceil((ids.length - 2) / 2) * 105 + 140);
+    const others = ids.filter((id) => id !== props.rootId && id !== "$taskboard");
+    const positions = /* @__PURE__ */ new Map([[props.rootId, { x: 450, y: 48 }], ["$taskboard", { x: 450, y: graphHeight - 42 }]]);
+    others.forEach((id, index) => positions.set(id, { x: index % 2 === 0 ? 140 : 760, y: 125 + Math.floor(index / 2) * 105 }));
+    return h("section", { style: panel2 }, [
+      h("div", { style: { display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 10 } }, [h("strong", {}, "\u534F\u4F5C\u5173\u7CFB\u4E0E\u4EA4\u63A5"), h("div", { style: { display: "flex", flexWrap: "wrap", gap: 12 } }, [
+        control("\u65E5\u671F", day, setDay, [["all", "\u5168\u90E8\u65E5\u671F"], ...[...new Set(interactions.map((e) => date(e.time)))].map((d) => [d, d])]),
+        control("\u4EA4\u4E92", kind, setKind, [["all", "\u5168\u90E8\u4EA4\u4E92"], ...Object.entries(kindNames)]),
+        pair ? h("button", { onClick: () => {
+          setPair("");
+          setPage(0);
+        } }, "\u6E05\u9664\u8FDE\u7EBF\u7B5B\u9009") : null
+      ])]),
+      h("p", { style: small }, "\u4E0A\u65B9\u770B\u534F\u4F5C\u5173\u7CFB\uFF0C\u4E0B\u65B9\u6309\u65F6\u95F4\u770B\u4EA4\u63A5\u3002\u70B9\u51FB\u8FDE\u7EBF\u7B5B\u9009\u65B9\u5411\uFF0C\u70B9\u51FB\u4EA4\u4E92\u7BAD\u5934\u67E5\u770B\u539F\u6587\u4E0E\u8BC1\u636E\u3002\u84DD\u8272\u5B9E\u7EBF\u662F\u6D88\u606F\uFF1B\u6A59\u8272\u865A\u7EBF\u662F\u4EFB\u52A1\u5F52\u5C5E\uFF0C\u672A\u63A8\u65AD\u64CD\u4F5C\u8005\u3002"),
+      h("div", { style: { overflowX: "auto" } }, h("svg", { viewBox: `0 0 ${graphWidth} ${graphHeight}`, role: "group", "aria-label": "Agent \u534F\u4F5C\u5173\u7CFB\u56FE", style: { width: "100%", minWidth: 650, maxHeight: 500 } }, [
+        h("defs", {}, h("marker", { id: marker, markerWidth: 8, markerHeight: 8, refX: 7, refY: 4, orient: "auto" }, h("path", { d: "M0,0 L8,4 L0,8 Z", fill: "context-stroke" }))),
+        ...[...connections.entries()].map(([key, c]) => {
+          const a = positions.get(c.from), b = positions.get(c.to);
+          const dx = b.x - a.x, dy = b.y - a.y, len = Math.max(1, Math.hypot(dx, dy));
+          const offset = connections.has(JSON.stringify([c.to, c.from])) ? 15 : 0;
+          const x1 = a.x + dx / len * 58 - dy / len * offset, y1 = a.y + dy / len * 30 + dx / len * offset, x2 = b.x - dx / len * 65 - dy / len * offset, y2 = b.y - dy / len * 30 + dx / len * offset;
+          const color = c.messages ? palette.message : c.assignments ? palette.assignment : palette.spawn;
+          const title = `${name(c.from)} \u2192 ${name(c.to)}\uFF1A${c.messages} \u6761\u6D88\u606F \xB7 ${c.assignments} \u6B21\u4EFB\u52A1\u5F52\u5C5E \xB7 ${c.other} \u6B21\u72B6\u6001\u4E8B\u4EF6`;
+          const action = () => {
+            setPair(pair === key ? "" : key);
+            setPage(0);
+            setChosen(null);
+          };
+          return h("g", { key, role: "button", tabIndex: 0, "aria-label": title, onClick: action, onKeyDown: (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              action();
+            }
+          }, style: { cursor: "pointer", opacity: pair && pair !== key ? 0.22 : 1 } }, [
+            h("title", {}, title),
+            h("line", { x1, y1, x2, y2, stroke: "transparent", strokeWidth: 22 }),
+            h("line", { x1, y1, x2, y2, stroke: color, strokeWidth: pair === key ? 3.5 : 2, strokeDasharray: c.messages ? void 0 : "6 4", markerEnd: `url(#${marker})` }),
+            h("text", { x: (x1 + x2) / 2, y: (y1 + y2) / 2 - 7, textAnchor: "middle", fill: color, fontSize: 12, paintOrder: "stroke", stroke: "var(--dsh-eval-bg, #181818)", strokeWidth: 4 }, [c.messages ? `${c.messages} \u6D88\u606F` : "", c.assignments ? `${c.assignments} \u5206\u914D` : "", c.other ? `${c.other} \u72B6\u6001` : ""].filter(Boolean).join(" \xB7 "))
+          ]);
+        }),
+        ...ids.map((id) => {
+          const p = positions.get(id);
+          return h("g", { key: id }, [h("rect", { x: p.x - 90, y: p.y - 24, width: 180, height: 48, rx: 10, fill: id === props.rootId ? "#244677" : id === "$taskboard" ? "#4e3b1c" : "#203b3b", stroke: id === props.rootId ? "#458af7" : id === "$taskboard" ? "#dd9a21" : "#19a997" }), h("text", { x: p.x, y: p.y + 4, textAnchor: "middle", fontSize: 13, fill: "#fff" }, name(id).slice(0, 24))]);
+        })
+      ])),
+      rows.filter((e) => e.kind === "message" && e.from !== props.rootId && e.to !== props.rootId).length === 0 ? h("p", { style: small }, "\u6B64\u8303\u56F4\u672A\u89C2\u5BDF\u5230\u5B50 Agent \u4E4B\u95F4\u7684\u76F4\u63A5\u6D88\u606F\uFF1B\u56FE\u4E2D\u53EA\u663E\u793A\u5B9E\u9645\u8BB0\u5F55\u7684\u4EA4\u4E92\u3002") : null,
+      h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: 12 } }, [h("strong", { style: { fontSize: 13 } }, `\u4EA4\u4E92\u65F6\u5E8F \xB7 ${filtered.length} \u6761${pair ? " \xB7 \u5DF2\u7B5B\u9009\u65B9\u5411" : ""}`), h("div", { style: { display: "flex", gap: 8, alignItems: "center" } }, [h("button", { disabled: currentPage === 0, onClick: () => setPage(currentPage - 1) }, "\u4E0A\u4E00\u6BB5"), h("span", { style: small }, `${currentPage + 1} / ${pages}`), h("button", { disabled: currentPage >= pages - 1, onClick: () => setPage(currentPage + 1) }, "\u4E0B\u4E00\u6BB5")])]),
+      h("p", { style: small }, "\u4ECE\u65E9\u5230\u665A\u6392\u5217\uFF1B\u6BCF\u884C\u4EE3\u8868\u4E00\u6B21\u4EA4\u4E92\uFF0C\u7EB5\u5411\u7B49\u8DDD\uFF0C\u65F6\u95F4\u95F4\u9694\u4EE5\u5DE6\u4FA7\u65F6\u95F4\u6233\u4E3A\u51C6\u3002"),
+      h("div", { style: { overflow: "auto", maxHeight: 560 } }, h("svg", { viewBox: `0 0 ${Math.max(850, ids.length * 170 + 160)} ${visible.length * 54 + 60}`, role: "group", "aria-label": "Agent \u4EA4\u4E92\u65F6\u5E8F\u56FE", style: { display: "block", width: "100%", minWidth: Math.max(850, ids.length * 170 + 160) } }, [
+        h("defs", {}, h("marker", { id: marker + "-seq", markerWidth: 8, markerHeight: 8, refX: 7, refY: 4, orient: "auto" }, h("path", { d: "M0,0 L8,4 L0,8 Z", fill: "context-stroke" }))),
+        ...ids.map((id, i) => h("g", { key: id }, [h("text", { x: 220 + i * 170, y: 18, textAnchor: "middle", fill: "currentColor", fontSize: 12 }, name(id).slice(0, 22)), h("line", { x1: 220 + i * 170, x2: 220 + i * 170, y1: 28, y2: visible.length * 54 + 52, stroke: "#8886", strokeDasharray: "3 4" })])),
+        ...visible.map((e, i) => {
+          const y = 60 + i * 54, x1 = 220 + ids.indexOf(e.from) * 170, x2 = 220 + ids.indexOf(e.to) * 170, color = palette[e.kind];
+          const label = `${new Date(e.time).toLocaleString()} ${name(e.from)} \u2192 ${name(e.to)} ${e.label}`;
+          return h("g", { key: e.id, role: "button", tabIndex: 0, "aria-label": label, onClick: () => choose(e.id), onKeyDown: (event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              choose(e.id);
+            }
+          }, style: { cursor: "pointer" } }, [
+            h("title", {}, `${label}
+${e.text.slice(0, 240)}`),
+            h("rect", { x: 0, y: y - 25, width: Math.max(850, ids.length * 170 + 160), height: 50, rx: 4, fill: chosen === e.id ? "#458af722" : i % 2 ? "#88888808" : "transparent" }),
+            h("text", { x: 4, y: y - 8, fill: "currentColor", fontSize: 11 }, date(e.time)),
+            h("text", { x: 4, y: y + 9, fill: "currentColor", fontSize: 11 }, new Date(e.time).toLocaleTimeString()),
+            x1 === x2 ? h("path", { d: `M${x1},${y - 6} h45 v17 h-45`, stroke: color, fill: "none", markerEnd: `url(#${marker}-seq)` }) : h("line", { x1, x2: x2 + (x2 > x1 ? -4 : 4), y1: y, y2: y, stroke: color, strokeWidth: 2, strokeDasharray: e.kind === "assignment" ? "6 4" : void 0, markerEnd: `url(#${marker}-seq)` }),
+            h("text", { x: (x1 + x2) / 2 + (x1 === x2 ? 50 : 0), y: y - 8, textAnchor: x1 === x2 ? "start" : "middle", fill: color, fontSize: 11 }, `${e.label} \xB7 ${e.text.replace(/\s+/g, " ").slice(0, 24)}`)
+          ]);
+        })
+      ])),
+      filtered.length === 0 ? h("p", { style: small }, "\u5F53\u524D\u8303\u56F4\u6CA1\u6709\u8BB0\u5F55\u5230\u4EA4\u4E92\u3002") : null,
+      selected ? h("article", { ref: detailRef, "aria-label": "\u4EA4\u4E92\u8BE6\u60C5", style: { ...panel2, marginTop: 14, borderColor: palette[selected.kind] } }, [
+        h("strong", {}, `${name(selected.from)} \u2192 ${name(selected.to)} \xB7 ${selected.label}`),
+        h("p", { style: small }, new Date(selected.time).toLocaleString()),
+        h("pre", { style: { whiteSpace: "pre-wrap", overflowWrap: "anywhere", maxHeight: 260, overflow: "auto", fontSize: 12 } }, selected.text),
+        h(EvidenceButton, { onEvidence: props.onEvidence, chain: () => evidence(selected), label: "\u67E5\u770B\u8FD9\u6B21\u4EA4\u4E92\u7684\u8F68\u8FF9\u8BC1\u636E" })
+      ]) : h("p", { style: small }, "\u9009\u62E9\u65F6\u5E8F\u56FE\u4E2D\u7684\u7BAD\u5934\uFF0C\u5728\u6B64\u5C55\u5F00\u8FD9\u6B21\u4EA4\u4E92\u7684\u5177\u4F53\u5185\u5BB9\u3002")
+    ]);
+  }
+
+  // client-src/teamActivity.ts
+  function teamActivity(events) {
+    const interactions = [];
+    const previousOwners = /* @__PURE__ */ new Map();
+    const seenMembers = /* @__PURE__ */ new Set();
+    const members = /* @__PURE__ */ new Map();
+    const tasks = /* @__PURE__ */ new Map();
+    const messages = /* @__PURE__ */ new Map();
+    const deliveries = /* @__PURE__ */ new Map();
+    for (const e of events.slice().sort((a, b) => a.seq - b.seq)) {
+      const d = e.data ?? {};
+      if (e.type === "team/member" && typeof d.member?.id === "string") {
+        const m = d.member;
+        if (!seenMembers.has(m.id)) {
+          seenMembers.add(m.id);
+          interactions.push({ id: `member-${e.seq}`, kind: "spawn", from: d.teamId || "", to: m.id, time: e.time, seq: e.seq, label: "\u6210\u5458\u52A0\u5165", text: m.description || "\u672A\u8BB0\u5F55\u5206\u5DE5\u8BF4\u660E", refs: [e.seq] });
+        }
+        members.set(m.id, { id: m.id, name: m.name || "", description: m.description || "", phase: m.phase || "", provider: m.provider || "", context: m.context || "", error: m.error || "", seq: e.seq });
+      }
+      if (e.type === "team/task" && typeof d.task?.id === "string") {
+        const t = d.task;
+        const previous = tasks.get(t.id);
+        const owner = typeof t.ownerId === "string" ? t.ownerId : "";
+        if (owner && owner !== previousOwners.get(t.id)) interactions.push({ id: `assignment-${e.seq}`, kind: "assignment", from: "$taskboard", to: owner, time: e.time, seq: e.seq, label: previousOwners.get(t.id) ? "\u4EFB\u52A1\u6539\u6D3E" : "\u4EFB\u52A1\u5206\u914D", text: `${t.subject || t.id}
+${t.description || ""}`, refs: [e.seq] });
+        if (previous && previous.status !== t.status) interactions.push({ id: `task-${e.seq}`, kind: "task", from: "$taskboard", to: owner || "$taskboard", time: e.time, seq: e.seq, label: `\u4EFB\u52A1${{ pending: "\u5F85\u5904\u7406", in_progress: "\u5F00\u59CB", completed: "\u5B8C\u6210", deleted: "\u5220\u9664" }[t.status] ?? t.status}`, text: t.subject || t.id, refs: [e.seq] });
+        previousOwners.set(t.id, owner);
+        tasks.set(t.id, { id: t.id, subject: t.subject || t.id, description: t.description || "", status: t.status || "unknown", ownerId: t.ownerId || "", blockedBy: Array.isArray(t.blockedBy) ? t.blockedBy : [], seq: e.seq });
+      }
+      if (e.type === "team/message/queued" && typeof d.message?.id === "string") {
+        const m = d.message;
+        messages.set(m.id, { id: m.id, senderId: m.senderId || "", senderName: m.senderName || "", targetId: m.targetId || "", text: (Array.isArray(m.content) ? m.content.filter((b) => b.type === "text").map((b) => b.text).join("\n") : "") || "\u975E\u6587\u672C\u6D88\u606F", time: e.time, seq: e.seq, deliveredSeq: null, delayMs: null });
+      }
+      if (e.type === "team/message/delivered" && typeof d.messageId === "string") deliveries.set(d.messageId, { seq: e.seq, time: e.time });
+    }
+    for (const m of messages.values()) {
+      const delivery = deliveries.get(m.id);
+      if (delivery) {
+        m.deliveredSeq = delivery.seq;
+        m.delayMs = delivery.time >= m.time ? delivery.time - m.time : null;
+      }
+    }
+    for (const m of messages.values()) interactions.push({ id: `message-${m.id}`, kind: "message", from: m.senderId, to: m.targetId, time: m.time, seq: m.seq, label: m.deliveredSeq !== null ? "\u6D88\u606F \xB7 \u5DF2\u9001\u8FBE" : "\u6D88\u606F \xB7 \u672A\u89C2\u5BDF\u5230\u9001\u8FBE", text: m.text, refs: [m.seq, ...m.deliveredSeq !== null ? [m.deliveredSeq] : []] });
+    return { interactions: interactions.sort((a, b) => a.time - b.time || a.seq - b.seq), members: [...members.values()], tasks: [...tasks.values()].filter((t) => t.status !== "deleted"), messages: [...messages.values()].sort((a, b) => b.time - a.time) };
+  }
+
   // client-src/tab-team.tsx
+  function formatTeamMs(value) {
+    if (value < 36e5) return formatMs(value);
+    const hours = Math.floor(value / 36e5), minutes = Math.floor(value % 36e5 / 6e4);
+    return `${hours}h ${minutes}m`;
+  }
   function TeamTab(props) {
     const { data, teamState, team } = props;
-    const [hiddenMembers, setHiddenMembers] = useState([]);
+    const [selected, setSelected] = useState("all");
+    const [details, setDetails] = useState({ members: [], tasks: [], messages: [], interactions: [] });
+    const [historyStatus, setHistoryStatus] = useState("loading");
+    const [messageLimit, setMessageLimit] = useState(15);
+    const root = data.analytics?.teamInput;
+    useEffect(() => {
+      const controller = new AbortController();
+      setDetails({ members: [], tasks: [], messages: [], interactions: [] });
+      setHistoryStatus("loading");
+      setSelected("all");
+      if (!root?.lastEventRef || !props.sessions) {
+        setHistoryStatus("unavailable");
+        return;
+      }
+      const timeout = setTimeout(() => {
+        controller.abort();
+        setHistoryStatus("unavailable");
+      }, 2e4);
+      void readEvidenceEvents(props.sessions, { ...root.lastEventRef, role: "Team \u5386\u53F2" }, controller.signal, true).then((events) => {
+        if (!controller.signal.aborted) {
+          setDetails(teamActivity(events));
+          setHistoryStatus("ready");
+        }
+      }).catch(() => {
+        if (!controller.signal.aborted) setHistoryStatus("unavailable");
+      }).finally(() => clearTimeout(timeout));
+      return () => {
+        clearTimeout(timeout);
+        controller.abort();
+      };
+    }, [root?.sessionId, root?.teamMemberSnapshotRefs?.length, root?.taskSnapshots?.length, data.analytics?.queuedTeamMessages, data.analytics?.deliveredTeamMessages, props.sessions]);
     const memberIds = data.analytics?.teamInput?.memberIds ?? [];
     if (memberIds.length === 0) {
       return h("div", { style: emptyStyle4 }, "\u672C\u4F1A\u8BDD\u6CA1\u6709 Team \u6210\u5458\u6D3B\u52A8\u3002");
     }
     const asOf = team?.asOf ?? null;
-    return h("div", { style: { display: "flex", flexDirection: "column", gap: "14px" } }, [
-      h("div", {
-        key: "facts",
-        style: { display: "flex", flexWrap: "wrap", gap: "8px 24px", fontSize: "12.5px", alignItems: "baseline" }
-      }, [
-        h("span", { key: "title", style: { fontSize: "13px", fontWeight: 500 } }, "Team \u6D3B\u52A8"),
-        h("span", { key: "members" }, `\u6210\u5458 ${memberIds.length} \u540D`),
-        team !== null ? h("span", { key: "active" }, `\u5F53\u524D\u6D3B\u8DC3 ${team.activeNow}`) : null,
-        team !== null ? h("span", { key: "peak" }, `\u5E76\u53D1\u5CF0\u503C ${team.peak}`) : null,
-        team !== null && team.wallMs !== null ? h("span", { key: "wall" }, `\u5B8C\u6210\u5899\u949F ${formatMs(team.wallMs)}`) : null,
-        teamState.phase === "loading" ? h("span", { key: "loading", style: { opacity: 0.6 } }, "\u6210\u5458\u4F1A\u8BDD\u8BFB\u53D6\u4E2D\u2026") : null,
-        teamState.phase === "unavailable" ? h("span", { key: "unavail", style: { opacity: 0.6 } }, "\u6210\u5458\u4F1A\u8BDD\u6682\u4E0D\u53EF\u8BFB\uFF08sessions \u670D\u52A1\u4E0D\u53EF\u7528\uFF09") : null,
-        teamState.phase === "none" ? h("span", { key: "none", style: { opacity: 0.6 } }, "\u65E0\u6210\u5458\u8F93\u5165") : null
+    const teamEvidence = (memberId) => {
+      const entries = teamState.members.filter((entry) => !memberId || entry.memberId === memberId);
+      const refs = entries.flatMap((entry) => (entry.summary?.teamInput?.turnIntervals ?? []).flatMap((turn) => [eventRef(entry.memberId, turn.startSeq, "\u6210\u5458\u8F6E\u6B21\u5F00\u59CB"), ...turn.firstEndSeq !== null ? [eventRef(entry.memberId, turn.firstEndSeq, "\u6210\u5458\u8F6E\u6B21\u7ED3\u675F")] : []]));
+      return {
+        title: memberId ? `\u6210\u5458 ${memberId} \u5FD9\u788C\u65F6\u95F4` : "Team \u6D3B\u52A8\u8BC1\u636E",
+        conclusion: memberId ? formatTeamMs(team?.busyMs[memberId] ?? 0) : `\u5E76\u53D1\u5CF0\u503C ${team?.peak ?? "\u672A\u77E5"} \xB7 \u5F53\u524D\u6D3B\u8DC3 ${team?.activeNow ?? "\u672A\u77E5"}`,
+        level: "derived",
+        rule: "\u5408\u5E76\u5404\u6210\u5458\u8F6E\u6B21\u533A\u95F4\u8BA1\u7B97\u5FD9\u788C\u65F6\u95F4\uFF0C\u4EE5\u533A\u95F4\u626B\u63CF\u8BA1\u7B97\u5E76\u53D1\uFF1B\u672A\u7ED3\u675F\u533A\u95F4\u622A\u5230\u5171\u540C\u89C2\u6D4B\u65F6\u95F4\u3002",
+        facts: [{ label: "\u5171\u540C\u89C2\u6D4B\u65F6\u95F4", value: asOf === null ? "\u672A\u77E5" : new Date(asOf).toISOString(), source: "\u6210\u5458\u4E0E\u6839\u4F1A\u8BDD factTimeMax \u6700\u5927\u503C" }],
+        refs: uniqueEvidenceRefs([...(data.analytics?.teamInput?.teamMemberSnapshotRefs ?? []).map((ref) => ({ ...ref, role: "\u6210\u5458\u5FEB\u7167" })), ...(data.analytics?.teamInput?.subagentChildren ?? []).filter((child) => !memberId || child.childId === memberId).map((child) => ({ ...child.ref, role: "\u5206\u652F\u521B\u5EFA" })), ...data.analytics?.teamInput?.lastEventRef ? [{ ...data.analytics.teamInput.lastEventRef, role: "\u6839\u4F1A\u8BDD\u89C2\u6D4B\u622A\u81F3" }] : [], ...entries.flatMap((entry) => entry.summary?.teamInput?.lastEventRef ? [{ ...entry.summary.teamInput.lastEventRef, role: "\u6210\u5458\u89C2\u6D4B\u622A\u81F3" }] : []), ...refs]),
+        notes: ["\u6210\u5458\u6295\u5F71\u6709\u754C\uFF0C\u5F53\u524D\u7ED3\u679C\u4E3A\u8FD1\u4F3C\u503C\u3002", ...team?.wallCoverage ?? [], ...entries.filter((entry) => !entry.summary?.teamInput).map((entry) => `\u6210\u5458 ${entry.memberId} \u8F93\u5165\u7F3A\u5931\uFF0C\u4E0D\u80FD\u9A8C\u8BC1\u5176\u6D3B\u52A8\u3002`)]
+      };
+    };
+    const colors = ["#4285f4", "#13a3ad", "#a970e2", "#e69b31", "#e35c7a"];
+    const name = (id) => id === root?.sessionId ? "\u4E3B\u4F1A\u8BDD" : details.members.find((m) => m.id === id)?.name || (memberIds.includes(id) ? `\u6210\u5458 ${memberIds.indexOf(id) + 1}` : `\u672A\u77E5\u6210\u5458 ${id.slice(0, 8)}`);
+    const visible = memberIds.filter((id) => selected === "all" || id === selected);
+    const allTurns = teamState.members.flatMap((e) => e.summary?.teamInput?.turnIntervals ?? []);
+    const starts = allTurns.map((t) => t.startMs).filter(Number.isFinite);
+    const ends = allTurns.map((t) => t.firstEndMs ?? asOf ?? t.startMs).filter(Number.isFinite);
+    const start = starts.length ? Math.min(...starts) : 0, end = ends.length ? Math.max(...ends) : start;
+    const span = Math.max(1, end - start);
+    const clock = (time) => new Date(time).toLocaleString();
+    const eventEvidence = (seq, title, conclusion) => ({ title, conclusion, level: "observed", rule: "\u76F4\u63A5\u8BFB\u53D6\u4E3B\u4F1A\u8BDD Team \u539F\u59CB\u4E8B\u4EF6\uFF1B\u6D88\u606F\u6309 messageId \u914D\u5BF9\u9001\u8FBE\u56DE\u6267\u3002", facts: [], notes: [], refs: root ? [eventRef(root.sessionId, seq, title)] : [] });
+    const panel3 = { border: "1px solid color-mix(in srgb, currentColor 14%, transparent)", borderRadius: 12, padding: 16 };
+    const muted = { opacity: 0.65, fontSize: 12 };
+    const tasks = details.tasks.filter((t) => selected === "all" || t.ownerId === selected);
+    const messages = details.messages.filter((m) => selected === "all" || m.senderId === selected || m.targetId === selected);
+    return h("div", { style: { display: "grid", gap: 16 } }, [
+      h("div", { style: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 } }, [h("div", {}, [h("strong", {}, "\u56E2\u961F\u534F\u4F5C"), h("p", { style: muted }, "\u5206\u5DE5\u3001\u5E76\u884C\u6267\u884C\u4E0E\u6D88\u606F\u4EA4\u63A5")]), h(EvidenceButton, { ...props, chain: () => teamEvidence() }), h("label", {}, ["\u7B5B\u9009\u6210\u5458 ", h("select", { value: selected, onChange: (e) => {
+        setSelected(e.target.value);
+        setMessageLimit(15);
+      } }, [h("option", { value: "all" }, "\u5168\u90E8\u6210\u5458"), ...memberIds.map((id) => h("option", { value: id }, name(id)))])])]),
+      h("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 10 } }, [
+        ["\u534F\u4F5C\u6210\u5458", String(memberIds.length), "\u5B50\u4F1A\u8BDD"],
+        ["\u5E76\u53D1\u5CF0\u503C", String(team?.peak ?? "\u2014"), `\u672A\u95ED\u5408\u8F6E\u6B21 ${Object.values(team?.openFlags ?? {}).filter(Boolean).length}`],
+        ["\u6210\u5458\u7D2F\u8BA1\u5FD9\u788C", team ? formatTeamMs(Object.values(team.busyMs).reduce((a, b) => a + b, 0)) : "\u2014", "\u5404\u6210\u5458\u8F6E\u6B21\u533A\u95F4\u5408\u5E76\u540E\u6C42\u548C\uFF0C\u53EF\u91CD\u53E0"],
+        ["\u6210\u5458\u6D3B\u52A8\u8DE8\u5EA6", starts.length ? formatTeamMs(end - start) : "\u2014", "\u9996\u4E2A\u8F6E\u6B21\u5F00\u59CB \u2192 \u6700\u540E\u89C2\u6D4B\u7ED3\u675F\uFF0C\u5305\u542B\u7A7A\u6863"],
+        ["\u534F\u4F5C\u6D88\u606F", String(data.analytics?.queuedTeamMessages ?? 0), `\u9001\u8FBE\u56DE\u6267 ${data.analytics?.deliveredTeamMessages ?? 0}`]
+      ].map(([label, value, note]) => h("div", { key: label, style: panel3 }, [h("div", { style: muted }, label), h("div", { style: { fontSize: 23, fontWeight: 650, margin: "8px 0" } }, value), h("div", { style: muted }, note)]))),
+      h(TeamCollaboration, { details, rootId: root?.sessionId ?? "", memberIds, selectedMember: selected, onEvidence: props.onEvidence }),
+      h("section", { style: panel3 }, [
+        h("strong", {}, "\u6210\u5458\u5E76\u884C\u65F6\u95F4\u7EBF"),
+        h("p", { style: muted }, "\u8272\u5757\u4E3A\u5DF2\u89C2\u6D4B\u8F6E\u6B21\uFF1B\u95F4\u9694\u4E3A\u7A7A\u6863\u3002\u60AC\u505C\u67E5\u770B\u8F6E\u6B21\u4E0E\u65F6\u95F4\uFF0C\u70B9\u51FB\u6838\u67E5\u6210\u5458\u8BC1\u636E\u3002\u7EC6\u5C0F\u533A\u95F4\u81F3\u5C11\u663E\u793A 2px\u3002"),
+        starts.length ? h("div", { style: { overflowX: "auto" } }, h("div", { style: { minWidth: 600 } }, [
+          h("div", { style: { marginLeft: 150, display: "flex", justifyContent: "space-between", fontSize: 11, opacity: 0.6, marginBottom: 10 } }, [start, start + span / 2, end].map((time) => h("span", { key: time }, clock(time)))),
+          ...visible.map((id) => {
+            const entry = teamState.members.find((m) => m.memberId === id);
+            const turns = entry?.summary?.teamInput?.turnIntervals ?? [];
+            const color = colors[memberIds.indexOf(id) % colors.length];
+            return h("div", { key: id, style: { display: "grid", gridTemplateColumns: "140px 1fr", alignItems: "center", gap: 10, marginBottom: 14 } }, [
+              h("button", { title: id, onClick: () => setSelected(selected === id ? "all" : id), style: { textAlign: "left", overflow: "hidden", textOverflow: "ellipsis" } }, name(id)),
+              h("div", { style: { position: "relative", height: 30, borderRadius: 5, background: "color-mix(in srgb,currentColor 6%,transparent)", backgroundImage: "linear-gradient(to right,transparent calc(100% - 1px),#8883 1px)", backgroundSize: "25% 100%" } }, turns.length ? turns.map((t) => h("button", { key: t.startSeq, title: `${name(id)} \xB7 \u7B2C ${t.turn} \u8F6E \xB7 ${clock(t.startMs)} \u2192 ${t.firstEndMs === null ? "\u672A\u7ED3\u675F" : clock(t.firstEndMs)}`, onClick: () => props.onEvidence?.({ ...teamEvidence(id), title: `${name(id)} \xB7 \u7B2C ${t.turn} \u8F6E`, refs: [eventRef(id, t.startSeq, "\u6210\u5458\u8F6E\u6B21\u5F00\u59CB"), ...t.firstEndSeq !== null ? [eventRef(id, t.firstEndSeq, "\u6210\u5458\u8F6E\u6B21\u7ED3\u675F")] : []] }), style: { position: "absolute", left: `${(t.startMs - start) / span * 100}%`, width: `${Math.max(0, ((t.firstEndMs ?? asOf ?? t.startMs) - t.startMs) / span * 100)}%`, minWidth: 2, height: 22, top: 4, padding: 0, border: 0, borderRadius: 3, background: color, opacity: t.firstEndMs === null ? 0.6 : 1 } }, "")) : h("small", { style: muted }, "\u6210\u5458\u8F6E\u6B21\u6570\u636E\u672A\u52A0\u8F7D"))
+            ]);
+          })
+        ])) : h("p", { style: muted }, teamState.phase === "loading" ? "\u6B63\u5728\u8BFB\u53D6\u6210\u5458\u6D3B\u52A8\u2026" : "\u6682\u65E0\u53EF\u7528\u6210\u5458\u8F6E\u6B21\u6570\u636E")
       ]),
-      team !== null ? h("div", { key: "activity-chart" }, [
-        h(ChartViewport, {}, h(BarChart, { bars: memberIds.filter((id) => !hiddenMembers.includes(id)).map((id) => ({ label: id, value: team.busyMs[id] ?? 0, title: `${id} \xB7 \u5FD9\u788C ${formatMs(team.busyMs[id] ?? 0)} \xB7 ${team.openFlags[id] ? "\u8FDB\u884C\u4E2D" : "\u7A7A\u95F2"}` })), height: 220, formatValue: formatMs })),
-        h("div", { key: "legend", style: { display: "flex", flexWrap: "wrap", gap: 6 } }, memberIds.map((id) => h("button", { key: id, "aria-pressed": !hiddenMembers.includes(id), onClick: () => setHiddenMembers((current) => current.includes(id) ? current.filter((member) => member !== id) : [...current, id]) }, id)))
-      ]) : null,
-      team !== null ? h("div", {
-        key: "members",
-        style: { display: "flex", flexDirection: "column", gap: "6px" }
-      }, memberIds.map((memberId) => {
-        const busy = team.busyMs[memberId] ?? 0;
-        const maxBusy = Math.max(1, ...memberIds.map((id) => team.busyMs[id] ?? 0));
-        const open = team.openFlags[memberId] ?? false;
-        const entry = teamState.members.find((item) => item.memberId === memberId);
-        const summary = entry?.summary ?? null;
-        const inputTokens = summary && typeof summary === "object" && "inputTokens" in summary ? Number(summary.inputTokens ?? 0) : null;
-        return h("div", {
-          key: memberId,
-          style: {
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-            fontSize: "12px",
-            padding: "6px 8px",
-            borderRadius: "8px",
-            border: "1px solid color-mix(in srgb, currentColor 12%, transparent)"
-          }
-        }, [
-          h("span", { key: "id", style: { fontFamily: "ui-monospace, monospace", fontSize: "11px", opacity: 0.8, maxWidth: "180px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" } }, memberId),
-          h("div", {
-            key: "bar",
-            style: {
-              flex: 1,
-              height: "10px",
-              borderRadius: "5px",
-              background: "color-mix(in srgb, currentColor 8%, transparent)",
-              overflow: "hidden"
-            },
-            title: `\u5FD9\u788C ${formatMs(busy)}`
-          }, h("div", {
-            key: "fill",
-            style: {
-              width: `${busy / maxBusy * 100}%`,
-              height: "100%",
-              background: open ? "var(--dsh-eval-yellow, #e6a700)" : "var(--dsh-eval-blue, #4285f4)",
-              opacity: 0.8,
-              borderRadius: "5px"
-            }
-          })),
-          h("span", { key: "busy", style: { minWidth: "64px", textAlign: "right", fontVariantNumeric: "tabular-nums" } }, formatMs(busy)),
-          h("span", {
-            key: "state",
-            style: { minWidth: "36px", textAlign: "center", fontSize: "11px", opacity: open ? 1 : 0.5 }
-          }, open ? "\u8FDB\u884C\u4E2D" : "\u7A7A\u95F2"),
-          inputTokens !== null ? h("span", { key: "tokens", style: { minWidth: "56px", textAlign: "right", fontVariantNumeric: "tabular-nums", opacity: 0.7 } }, formatTokens(inputTokens)) : null
+      h("section", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 12 } }, visible.map((id) => {
+        const m = details.members.find((m2) => m2.id === id);
+        const summary = teamState.members.find((e) => e.memberId === id)?.summary;
+        const busy = team?.busyMs[id];
+        const open = team?.openFlags[id];
+        const branch = team?.branchFirst.find((b) => b.childId === id);
+        return h("article", { key: id, style: { ...panel3, borderTop: `3px solid ${colors[memberIds.indexOf(id) % colors.length]}` } }, [
+          h("div", { style: { display: "flex", justifyContent: "space-between", gap: 10 } }, [h("strong", {}, name(id)), h("span", { style: { color: m?.phase === "failed" ? "#e5484d" : open ? "#dd9a21" : "#13a3ad", fontSize: 12 } }, m?.phase === "failed" ? "\u521B\u5EFA\u5931\u8D25" : open ? "\u8F6E\u6B21\u672A\u7ED3\u675F" : summary ? "\u6682\u65E0\u8FDB\u884C\u4E2D\u8F6E\u6B21" : "\u6570\u636E\u4E0D\u53EF\u8BFB")]),
+          h("p", { style: { fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap" } }, m?.description || "\u672A\u8BB0\u5F55\u5206\u5DE5\u8BF4\u660E"),
+          m?.error ? h("p", { style: { color: "#e5484d" } }, m.error) : null,
+          h("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, fontSize: 12 } }, [`\u5FD9\u788C ${busy === void 0 ? "\u2014" : formatTeamMs(busy)}`, `\u8F6E\u6B21 ${summary?.turnsStarted ?? "\u2014"}`, `\u8F93\u5165 ${summary ? formatTokens(summary.inputTokens ?? 0) : "\u2014"} Token`, `\u5DE5\u5177 ${summary?.toolCalls ?? "\u2014"} \xB7 \u9519\u8BEF ${summary?.toolErrors ?? "\u2014"}`, `\u9996\u6D3B\u52A8\u5EF6\u8FDF ${branch?.latencyMs !== void 0 ? formatTeamMs(branch.latencyMs) : "\u672A\u77E5"}`, `${m?.provider || "\u63D0\u4F9B\u5546\u672A\u8BB0\u5F55"} \xB7 ${m?.context === "fork" ? "\u7EE7\u627F\u4E0A\u4E0B\u6587" : m?.context === "fresh" ? "\u72EC\u7ACB\u4E0A\u4E0B\u6587" : "\u4E0A\u4E0B\u6587\u6A21\u5F0F\u672A\u77E5"}`].map((value, index) => h("span", { key: index }, value))),
+          h("div", { style: { marginTop: 14 } }, h(EvidenceButton, { ...props, label: "\u67E5\u770B\u6210\u5458\u8F68\u8FF9\u8BC1\u636E", chain: () => teamEvidence(id) })),
+          h("details", { style: { marginTop: 10, fontSize: 11 } }, [h("summary", {}, "\u4F1A\u8BDD\u6807\u8BC6"), id])
         ]);
-      })) : null,
-      /* Branch first activity */
-      team !== null && team.branchFirst.length > 0 ? h("div", { key: "branch" }, [
-        h("div", { key: "title", style: { fontSize: "12.5px", fontWeight: 500, marginBottom: "4px" } }, "\u5206\u652F\u9996\u6D3B\u52A8\u5EF6\u8FDF"),
-        h(
-          "ul",
-          { key: "list", style: { listStyle: "none", margin: 0, padding: 0, fontSize: "12px", display: "flex", flexDirection: "column", gap: "2px" } },
-          team.branchFirst.map((branch) => h("li", {
-            key: branch.childId,
-            style: { display: "flex", gap: "10px", opacity: branch.status !== void 0 ? 0.6 : 1 }
-          }, [
-            h("span", { key: "id", style: { fontFamily: "ui-monospace, monospace", fontSize: "11px" } }, branch.childId),
-            h("span", { key: "value" }, branch.latencyMs !== void 0 ? formatMs(branch.latencyMs) : branch.status ?? "\u2014")
-          ]))
-        )
-      ]) : null,
-      /* Honest caveats */
-      team !== null && team.wallCoverage.length > 0 ? h("div", {
-        key: "caveats",
-        style: { fontSize: "11px", opacity: 0.55 }
-      }, `\u8986\u76D6\u63D0\u793A\uFF1A${team.wallCoverage.join("\u3001")}${asOf !== null ? ` \xB7 \u89C2\u6D4B\u622A\u81F3 ${new Date(asOf).toLocaleTimeString()}` : ""}`) : null,
-      h("div", {
-        key: "note",
-        style: { fontSize: "11px", opacity: 0.5 }
-      }, "\u6210\u5458\u5FD9\u788C\u65F6\u957F\u6765\u81EA\u5404\u6210\u5458\u4F1A\u8BDD\u7684\u8F6E\u6B21\u533A\u95F4\u5408\u5E76\uFF08wire \u4E0A\u9650\u5185\uFF09\uFF0C\u662F\u6587\u6863\u5316\u7684\u8FD1\u4F3C\u503C\uFF0C\u4E0D\u4E0E\u5BBF\u4E3B\u7CBE\u786E\u8DEF\u5F84\u5BF9\u8D26\u3002")
+      })),
+      h("section", { style: panel3 }, [h("strong", {}, `\u534F\u4F5C\u4EFB\u52A1 \xB7 ${tasks.length}`), h("div", { style: { display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 12, marginTop: 12 } }, ["pending", "in_progress", "completed"].map((status) => h("div", { key: status, style: { maxHeight: 420, overflowY: "auto" } }, [h("div", { style: { fontSize: 12, opacity: 0.7, marginBottom: 8 } }, `${{ pending: "\u5F85\u5904\u7406", in_progress: "\u8FDB\u884C\u4E2D", completed: "\u5DF2\u5B8C\u6210" }[status]} \xB7 ${tasks.filter((t) => t.status === status).length}`), ...tasks.filter((t) => t.status === status).map((t) => h("article", { key: t.id, style: { ...panel3, padding: 10, marginBottom: 8 } }, [h("strong", { style: { fontSize: 13 } }, t.subject), h("p", { style: muted }, t.ownerId ? name(t.ownerId) : "\u672A\u5206\u914D"), t.blockedBy.length ? h("p", { style: { fontSize: 12, color: "#dd9a21" } }, `\u4F9D\u8D56\uFF1A${t.blockedBy.join("\u3001")}`) : null, h("details", {}, [h("summary", { style: muted }, "\u4EFB\u52A1\u8BE6\u60C5"), h("p", { style: { whiteSpace: "pre-wrap", fontSize: 12 } }, t.description), h(EvidenceButton, { ...props, chain: () => eventEvidence(t.seq, "\u4EFB\u52A1\u53D8\u66F4", t.subject) })])]))]))), tasks.length === 0 ? h("p", { style: muted }, historyStatus === "loading" ? "\u6B63\u5728\u8BFB\u53D6\u4EFB\u52A1\u8BB0\u5F55\u2026" : "\u4E3B\u4F1A\u8BDD\u672A\u8BB0\u5F55\u5171\u4EAB\u4EFB\u52A1\uFF1B\u4E0D\u6839\u636E\u6210\u5458\u5FD9\u788C\u65F6\u957F\u63A8\u65AD\u5B8C\u6210\u60C5\u51B5\u3002") : null]),
+      h("section", { style: panel3 }, [h("strong", {}, `\u6D88\u606F\u5F80\u6765 \xB7 ${messages.length}`), h("p", { style: muted }, "\u6309\u6D88\u606F ID \u5408\u5E76\u6392\u961F\u4E0E\u9001\u8FBE\u4E8B\u4EF6\uFF1B\u9001\u8FBE\u53EA\u8868\u793A\u5BF9\u65B9\u6536\u5230\uFF0C\u4E0D\u4EE3\u8868\u4EFB\u52A1\u5DF2\u5B8C\u6210\u3002"), ...messages.slice(0, messageLimit).map((m) => h("article", { key: m.id, style: { borderTop: "1px solid #8883", padding: "12px 0" } }, [
+        h("div", { style: { display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", fontSize: 12 } }, [h("strong", {}, `${m.senderName || name(m.senderId)} \u2192 ${name(m.targetId)}`), h("span", { style: muted }, `${clock(m.time)} \xB7 ${m.deliveredSeq !== null ? "\u5DF2\u9001\u8FBE" + (m.delayMs !== null ? " \xB7 " + formatTeamMs(m.delayMs) : "") : "\u672A\u89C2\u5BDF\u5230\u9001\u8FBE\u56DE\u6267"}`)]),
+        h("p", { style: { whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontSize: 13, lineHeight: 1.6 } }, m.text.slice(0, 240)),
+        h("details", {}, [h("summary", { style: muted }, "\u5B8C\u6574\u6D88\u606F\u4E0E\u8BC1\u636E"), h("pre", { style: { whiteSpace: "pre-wrap", overflowWrap: "anywhere", maxHeight: 240, overflow: "auto" } }, m.text), h(EvidenceButton, { ...props, chain: () => ({ ...eventEvidence(m.seq, "\u534F\u4F5C\u6D88\u606F", `${m.senderName || name(m.senderId)} \u2192 ${name(m.targetId)}`), refs: uniqueEvidenceRefs([eventRef(root.sessionId, m.seq, "\u6D88\u606F\u6392\u961F"), ...m.deliveredSeq !== null ? [eventRef(root.sessionId, m.deliveredSeq, "\u9001\u8FBE\u56DE\u6267")] : []]) }) })])
+      ])), messages.length > messageLimit ? h("button", { onClick: () => setMessageLimit((n) => n + 20) }, `\u518D\u663E\u793A 20 \u6761\uFF08\u5269\u4F59 ${messages.length - messageLimit}\uFF09`) : null, messages.length === 0 ? h("p", { style: muted }, historyStatus === "loading" ? "\u6B63\u5728\u8BFB\u53D6\u901A\u4FE1\u5386\u53F2\u2026" : "\u5F53\u524D\u8303\u56F4\u6CA1\u6709\u53EF\u8BFB\u6D88\u606F\u3002") : null]),
+      h("small", { style: muted }, `${historyStatus === "unavailable" ? "\u534F\u4F5C\u539F\u6587\u8BFB\u53D6\u5931\u8D25\uFF0C\u5F53\u524D\u4EC5\u5C55\u793A\u53EF\u7528\u6295\u5F71\u3002 " : ""}\u5FD9\u788C\u65F6\u957F\u6309\u6210\u5458\u8F6E\u6B21\u533A\u95F4\u5408\u5E76\u4F30\u7B97\uFF0C\u5305\u542B\u8F6E\u6B21\u4E2D\u7684\u7B49\u5F85\uFF1B\u672A\u95ED\u5408\u4E0D\u7B49\u4E8E\u5F53\u524D\u6B63\u5728\u8FD0\u884C\u3002\u6210\u5458\u6295\u5F71\u53EF\u80FD\u6709\u754C\u3002${team?.wallCoverage.length ? " \u90E8\u5206\u6210\u5458\u7F3A\u5C11\u7ED3\u675F\u8BB0\u5F55\u3002" : ""}`)
     ]);
   }
   var emptyStyle4 = {
@@ -4806,10 +5872,14 @@ ${xref}
       const [showThresholds, setShowThresholds] = useState(false);
       const [alertState, setAlertState] = useState(() => loadAlertState(sessionKey));
       const [imageError, setImageError] = useState(null);
+      const [evidence, setEvidence] = useState(null);
+      useEffect(() => setEvidence(null), [sessionKey]);
+      const evidenceProps = { onEvidence: setEvidence, evidenceSessionId: sessionKey };
       const [comparison, setComparison] = useState([]);
       useEffect(() => setComparison([]), [sessionKey]);
       const containerRef = useRef(null);
       const data = deriveDashboardData(analytics ?? null, timeline ?? null, stats ?? null, pressure ?? null);
+      const injectionHistory = useInjectionHistory(ctx.sessions, sessionKey, tab === "evolution" || tab === "tools" || tab === "tokens");
       const [teamState, setTeamState] = useState({ phase: "idle", members: [] });
       const memberKey = analytics?.teamInput && Array.isArray(analytics.teamInput.memberIds) ? analytics.teamInput.memberIds.join(",") : "";
       useEffect(() => {
@@ -4960,7 +6030,7 @@ ${xref}
           metricCard("input", "Token \u6D88\u8017", formatTokens((analytics?.inputTokens ?? 0) + (stats?.decodeTokens ?? 0)), `\u8F93\u5165 ${formatTokens(analytics?.inputTokens ?? 0)} \xB7 \u8F93\u51FA ${formatTokens(stats?.decodeTokens ?? 0)}`, trendOf(data.steps.map((step) => stepContextOf(step)))),
           metricCard("tools", "\u5DE5\u5177\u8C03\u7528", String(analytics?.toolCalls ?? 0), `\u663E\u5F0F\u9519\u8BEF ${analytics?.toolErrors ?? 0}`, trendOf((analytics?.turnTrend ?? []).map((turn) => turn.toolCalls))),
           metricCard("compactions", "\u538B\u7F29\u9891\u7387", alertInput.compactionFrequency === null ? "\u2014" : `${alertInput.compactionFrequency.toFixed(3)} \u6B21/\u5343 Token`, "\u6458\u8981\u538B\u7F29\u53E3\u5F84 \xB7 \u4FEE\u526A\u53E6\u884C\u7EDF\u8BA1", trendOf((analytics?.turnTrend ?? []).map((turn) => turn.compactionStarts))),
-          metricCard("errors", "\u5DE5\u5177\u9519\u8BEF\u7387", alertInput.toolErrorRate === null ? "\u2014" : `${(alertInput.toolErrorRate * 100).toFixed(1)}%`, `${analytics?.toolErrors ?? 0} / ${analytics?.toolCalls ?? 0} \u6B21\u8C03\u7528`, trendOf((analytics?.turnTrend ?? []).map((turn) => turn.toolCalls > 0 ? turn.toolErrors / turn.toolCalls : 0)))
+          metricCard("errors", "\u5DE5\u5177\u9519\u8BEF\u7387", alertInput.toolErrorRate === null ? "\u2014" : `${(alertInput.toolErrorRate * 100).toFixed(1)}%`, `\u5206\u6BCD\uFF1A${analytics?.metricResults.find((item) => item.metricId === "tool.failure_rate")?.denominator ?? "\u2014"} \u4E2A\u5DF2\u77E5\u7ED3\u679C`, trendOf((analytics?.turnTrend ?? []).map((turn) => turn.toolCalls > 0 ? turn.toolErrors / turn.toolCalls : 0)))
         ]),
         /* ---------- Tab bar ---------- */
         h("div", {
@@ -5015,13 +6085,17 @@ ${xref}
           void exportPng(contentRef.current, `trajectory-${tab}.png`).catch((error) => setImageError(String(error.message)));
         } }, "\u5BFC\u51FA\u5F53\u524D\u56FE\u8868 PNG"), imageError ? h("span", { key: "error", role: "status" }, imageError) : null]),
         /* ---------- Tab content ---------- */
-        h("div", { key: `content-${tab}`, ref: contentRef, className: "dsh-eval-tab-content", role: "tabpanel", style: { minHeight: "120px", scrollMarginTop: 90 } }, renderTab())
+        h("div", { key: `content-${tab}`, ref: contentRef, className: "dsh-eval-tab-content", role: "tabpanel", style: { minHeight: "120px", scrollMarginTop: 90 } }, renderTab()),
+        evidence ? h(EvidencePanel, { key: sessionKey + JSON.stringify(evidence), chain: evidence, connection: ctx.connection, sessions: ctx.sessions, currentSessionId: sessionKey, inspectCall: props.inspectCall, onClose: () => setEvidence(null) }) : null
       ]);
       function metricCard(key, label, value, sub, trend) {
         return h("button", {
           key,
           type: "button",
-          onClick: () => navigate(key === "input" ? "tokens" : key === "compactions" ? "compaction" : "tools"),
+          onClick: () => {
+            const chain = aggregateEvidence(sessionKey, label + " \xB7 " + value, analytics ?? null, timeline ?? null, key === "input" ? "tokens" : key === "compactions" ? "frequency" : key === "errors" ? "errors" : "tools");
+            setEvidence({ ...chain, conclusion: `${label} ${value} \xB7 ${sub}`, facts: [...chain.facts, ...key === "input" ? [{ label: "\u7D2F\u8BA1\u8F93\u51FA", value: String(stats?.decodeTokens ?? "\u672A\u77E5"), source: "sessionStats.decodeTokens" }] : []] });
+          },
           style: {
             border: "1px solid color-mix(in srgb, currentColor 14%, transparent)",
             borderRadius: "10px",
@@ -5055,6 +6129,7 @@ ${xref}
           case "overview":
             return h("div", { className: "dsh-eval-overview-layout" }, [
               h("div", { key: "analysis", style: { minWidth: 0 } }, h(OverviewTab, {
+                ...evidenceProps,
                 data,
                 alerts: activeAlerts,
                 thresholds,
@@ -5068,6 +6143,7 @@ ${xref}
               })),
               h("aside", { key: "diagnostics", className: "dsh-eval-overview-diagnostics", "aria-label": "\u603B\u89C8\u8BCA\u65AD" }, [
                 h("strong", { key: "heading", style: { fontSize: 14 } }, "\u8BCA\u65AD\u4E2D\u5FC3"),
+                h(AiDiagnosis, { key: `ai-${sessionKey}`, label: "AI \u5168\u94FE\u8DEF\u8BCA\u65AD", currentSessionId: sessionKey, inspectCall: props.inspectCall, onSelectRef: (ref) => setEvidence({ title: "\u8F68\u8FF9\u8BC1\u636E", conclusion: ref.role, rule: "\u539F\u59CB\u4E8B\u4EF6\u5B9A\u4F4D", level: "observed", facts: [], notes: [], refs: [ref] }), connection: ctx.connection, sessions: ctx.sessions, chain: overviewDiagnosticChain(sessionKey, data, allAlerts) }),
                 h(AlertsDrawer, {
                   key: "alerts",
                   configuration: configurationRemote(ctx.connection),
@@ -5082,6 +6158,11 @@ ${xref}
                   },
                   onDismiss: dismissAlert,
                   onResolve: resolveAlert,
+                  onEvidence: (id) => {
+                    const alert = allAlerts.find((item) => item.id === id);
+                    const measurement = id === "context-overload" ? [alertInput.utilization, thresholds.contextOverloadRatio] : id === "frequent-compaction" ? [alertInput.compactionFrequency, thresholds.compactionFrequencyPer1k] : id === "high-error-rate" ? [alertInput.toolErrorRate, thresholds.toolErrorRate] : id === "token-waste" ? [alertInput.repeatGroups, thresholds.repeatCallGroups] : [alertInput.longGapCount, thresholds.longGapSegments];
+                    setEvidence(alertEvidence(sessionKey, id, alert?.title ?? id, alert?.detail ?? "", analytics ?? null, timeline ?? null, measurement[0] ?? null, measurement[1] ?? 0));
+                  },
                   onView: (id) => {
                     if (id === "long-gaps") {
                       setDetailOpen(true);
@@ -5091,21 +6172,22 @@ ${xref}
                   onSettings: () => setShowThresholds((value) => !value)
                 }),
                 showThresholds ? h(ThresholdSettings, { key: "settings", thresholds, onChange: updateThresholds, onClose: () => setShowThresholds(false) }) : null,
-                h(DetailPanel, { key: "detail", sessionId: sessionKey, data, inspectCall: props.inspectCall, open: detailOpen, onToggle: () => setDetailOpen((value) => !value) })
+                h(DetailPanel, { key: "detail", ...evidenceProps, sessionId: sessionKey, data, inspectCall: props.inspectCall, open: detailOpen, onToggle: () => setDetailOpen((value) => !value) })
               ])
             ]);
           case "evolution":
-            return h(EvolutionTab, { data });
+            return h(EvolutionTab, { ...evidenceProps, data, injectionHistory });
           case "tokens":
-            return h(TokensTab, { data, inspectCall: props.inspectCall, onOpenCompaction: () => setTab("compaction") });
+            return h(TokensTab, { key: sessionKey, ...evidenceProps, data, history: injectionHistory, inspectCall: props.inspectCall, onOpenCompaction: () => setTab("compaction") });
           case "compaction":
-            return h(CompactionTab, { key: props.sessionId ?? analytics?.teamInput?.sessionId ?? "current", data, sessionId: props.sessionId ?? analytics?.teamInput?.sessionId ?? null });
+            return h(CompactionTab, { ...evidenceProps, key: props.sessionId ?? analytics?.teamInput?.sessionId ?? "current", data, sessionId: props.sessionId ?? analytics?.teamInput?.sessionId ?? null });
           case "tools":
-            return h(ToolsTab, { data });
+            return h(ToolsTab, { ...evidenceProps, data, history: injectionHistory });
           case "team":
-            return h(TeamTab, { data, teamState, team });
+            return h(TeamTab, { ...evidenceProps, sessions: ctx.sessions, data, teamState, team });
           case "compare":
             return h(CompareTab, {
+              ...evidenceProps,
               key: sessionKey,
               onResult: setComparison,
               useSessions: props.useSessions,
