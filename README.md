@@ -8,6 +8,61 @@ DSH 轨迹分析与 aeval 评测控制插件。
 
 本文对应仓库当前实现，`package.json` 版本为 `0.2.8`。发行包的功能取决于实际安装版本。
 
+## 面板 GIF 演示
+
+以下动图使用当前面板组件和演示数据，由关键操作截图合成循环 GIF；不包含真实会话内容。点击折叠项可查看其他面板。
+
+**上下文演化**：切换步骤 / 轮次、选中压缩事件、适配纵轴范围。
+
+![上下文演化：轮次切换、事件定位与纵轴适配](docs/demo/panels/context-evolution.gif)
+
+<details>
+<summary>总览诊断与消息 Token</summary>
+
+查看窗口占用和右侧告警，展开诊断建议，切换消息台账与注入筛选。
+
+![总览告警与消息 Token 筛选](docs/demo/panels/overview-messages.gif)
+
+</details>
+
+<details>
+<summary>压缩替换详情与聚合事件</summary>
+
+展开摘要压缩，查看替换手段、历史内容与检查点的对应关系，以及聚合后的历史修剪和同秒注入事件。
+
+![压缩替换关系、替换手段和事件聚合](docs/demo/panels/compression-injection.gif)
+
+</details>
+
+<details>
+<summary>工具分布与 Team 活动</summary>
+
+查看工具调用及错误分布，放大图表，切换成员忙碌时间和并发统计。
+
+![工具调用分布与 Team 成员活动](docs/demo/panels/tools-team.gif)
+
+</details>
+
+<details>
+<summary>会话对比与差异报告</summary>
+
+比较两次运行，查看资源消耗雷达图、原始值与差异报告。
+
+![会话对比、雷达图和差异报告](docs/demo/panels/session-comparison.gif)
+
+</details>
+
+<details>
+<summary>报告导出与分享选项</summary>
+
+切换报告格式，查看只读分享的有效期与访问权限选项。此演示未创建分享链接。
+
+![报告导出格式与只读分享配置](docs/demo/panels/export-share.gif)
+
+</details>
+
+动图的演示数据和更新方法见 [录制说明](docs/demo/panels/README.md)。
+
 ## 快速开始
 
 ### 安装发行包
