@@ -78,27 +78,30 @@ test('the icon and locales satisfy the display-metadata contract', () => {
   }
 });
 
-test('runtime peers use ranges except for feature-critical DSH contracts pinned at build time', () => {
+test('runtime peers range over the verified DSH host line', () => {
   const harness = (deps: Record<string, string>) =>
     Object.keys(deps).filter((name) => name.startsWith('@deepseek-ai/') && name !== '@deepseek-ai/dsh-ptc-runtime');
 
   // The published face range-binds the host's own Harness packages so a
-  // profile reuses one copy; the exact pins live in devDependencies, which
-  // never reach a consumer.
+  // profile reuses one copy. An own `engines.dsh` would quiet the host's
+  // install gate but not the marketplace filter, which intersects every peer,
+  // so the contract peers must cover each host release this plugin claims.
+  // The exact pins live in devDependencies, which never reach a consumer.
   assert.deepEqual(harness(manifest.dependencies), [], 'Harness packages must not be install-time dependencies');
   assert.ok(Object.keys(manifest.peerDependencies).length > 0);
-  const exactContractPeers = new Set([
+  // Verified on both releases of the line: 0.2.0-rc.2 and 0.2.1-rc.2.
+  const verifiedHostLine = '>=0.2.0-rc.2 <0.3.0-0';
+  for (const name of [
     '@deepseek-ai/dsh-compaction',
     '@deepseek-ai/dsh-experimental-agent-team',
     '@deepseek-ai/dsh-llm-retry',
     '@deepseek-ai/dsh-session-projection',
-  ]);
+  ]) {
+    assert.equal(manifest.peerDependencies[name], verifiedHostLine,
+      `${name} carries event/projection contracts and must cover every verified host release`);
+  }
   for (const [name, range] of Object.entries(manifest.peerDependencies)) {
-    if (exactContractPeers.has(name)) {
-      assert.equal(range, '0.2.0-rc.2', `${name} carries event/projection contracts verified against the pinned DSH release`);
-    } else {
-      assert.ok(/[\^~]|>=/.test(range), `${name} must carry a compatibility range`);
-    }
+    assert.ok(/[\^~]|>=/.test(range), `${name} must carry a compatibility range`);
   }
   for (const name of harness(manifest.peerDependencies)) {
     assert.ok(name in manifest.devDependencies, `${name} must keep an exact build-time pin`);

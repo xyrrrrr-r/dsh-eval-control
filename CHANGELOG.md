@@ -12,6 +12,35 @@ schema、bundle descriptor 格式、bin 协议），每次都会在下方
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-26
+
+**支持 DSH 0.2.1 宿主线：四个契约类 peer 由精确 pin 改为覆盖整条已验证宿主线。0.4.0 在 0.2.1 上会被宿主直接拒绝安装，并且不会出现在市场搜索结果中。**
+
+### Changed
+
+- **契约类 peer 由精确 pin 改为宿主线范围**：`@deepseek-ai/dsh-compaction`、
+  `@deepseek-ai/dsh-experimental-agent-team`、`@deepseek-ai/dsh-llm-retry`、
+  `@deepseek-ai/dsh-session-projection` 由 `0.2.0-rc.2` 改为
+  `>=0.2.0-rc.2 <0.3.0-0`。原先的精确 pin 会让任何非 `0.2.0-rc.2` 的宿主在安装阶段
+  直接拒绝（`dsh: installation rejected ... nothing was installed`）；并且因为市场
+  判定对 `engines.dsh` 与**全部**宿主 peer 取**合取**，插件也会被市场过滤器从搜索结果
+  中移除——给自己的 manifest 加 `engines.dsh` 只能解决宿主的加载闸门，解决不了市场
+  可见性。迁移：0.2.1 用户升级到 0.5.0 即可正常安装，无需手动版本豁免。
+
+### 备注
+
+- 构建期依赖仍钉在 `0.2.0-rc.2`。两个子进程入口（`session_reader`、`session_stub`）
+  是**自包含内联包**，构建时把持久化后端冻结进产物，因此与宿主的包版本无关；
+  该产物已在两代宿主上实测能读回各自写出的会话。
+
+### 已验证
+
+- 双宿主矩阵（`0.2.0-rc.2` 与 `0.2.1-rc.2`，各自隔离 `DSH_HOME`）：宿主接受安装、
+  bundle 载入、`--dump-config` 组入 `aeval-broker-transport` 与 `dsh-trajectory-analytics`、
+  无密钥 headless 探针下无 `entry did not activate`、`selfcheck` 通过、`dsh web` 正常启动，
+  以及 `session_reader` 回读**两代宿主各自产出**的会话（含假 id 的 `SESSION_NOT_FOUND`
+  与越界 `SOURCE_ROOT_DENIED` 对照）。
+
 ## [0.4.0] - 2026-10-19
 
 **证据链与团队协作全量落地：统一证据抽屉从结论回溯宿主原始事件，Team 活动新增协作关系图与交互时序，消息与演化页改为全历史采集；仓库文档精简为仅保留用户向文档。**

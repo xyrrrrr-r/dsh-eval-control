@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="110" height="20" role="img" aria-label="源码版本 0.4.0">
-  <title>源码版本 0.4.0</title>
+<svg xmlns="http://www.w3.org/2000/svg" width="110" height="20" role="img" aria-label="源码版本 0.5.0">
+  <title>源码版本 0.5.0</title>
   <clipPath id="r"><rect width="110" height="20" rx="3"/></clipPath>
   <g clip-path="url(#r)"><path fill="#555" d="M0 0h55v20H0z"/><path fill="#4285f4" d="M55 0h55v20H55z"/></g>
   <g fill="#fff" text-anchor="middle" font-family="Verdana,DejaVu Sans,sans-serif" font-size="11">
-    <text x="27.5" y="14">source</text><text x="82.5" y="14">v0.4.0</text>
+    <text x="27.5" y="14">source</text><text x="82.5" y="14">v0.5.0</text>
   </g>
 </svg>

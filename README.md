@@ -1,8 +1,8 @@
 # dsh-eval-control
 
-[![源码版本 0.4.0](https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/badges/version.svg)](package.json)
+[![源码版本 0.5.0](https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/badges/version.svg)](package.json)
 [![License Apache-2.0](https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/badges/license.svg)](LICENSE)
-[![验证环境 DSH 0.2.0-rc.2](https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/badges/dsh.svg)](#环境要求)
+[![验证环境 DSH 0.2.0-rc.2 与 0.2.1-rc.2](https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/badges/dsh.svg)](#环境要求)
 [![Node.js 22.19.x–22.x 或 24+](https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/badges/node.svg)](package.json)
 [![TypeScript 6.0.3](https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/badges/typescript.svg)](package.json)
 
@@ -16,7 +16,7 @@ dsh plugin --profile web add dsh-eval-control
 
 [快速开始](#快速开始) · [面板演示](#面板演示) · [功能对比](#功能对比) · [面板功能](#面板功能) · [导出与分享](#导出与分享) · [常见问题](#常见问题)
 
-本文对应仓库当前实现，`package.json` 版本为 `0.4.0`。发行包的功能取决于实际安装版本。
+本文对应仓库当前实现，`package.json` 版本为 `0.5.0`。发行包的功能取决于实际安装版本。
 
 ## 功能对比
 
@@ -75,13 +75,19 @@ dsh plugin --profile web add /absolute/path/to/dsh-eval-control
 | 项目 | 要求 |
 | --- | --- |
 | Node.js | `^22.19.0` 或 `>=24.0.0` |
-| 完整功能验证环境 | DSH `0.2.0-rc.2` 的 Web 界面 |
-| 宿主依赖 | 满足 `package.json` 中全部 `peerDependencies`；部分服务要求精确的 `0.2.0-rc.2` |
+| 完整功能验证环境 | DSH `0.2.0-rc.2` 与 `0.2.1-rc.2` 的 Web 界面 |
+| 宿主依赖 | 满足 `package.json` 中全部 `peerDependencies`；契约类 peer 覆盖 `0.2.0-rc.2` 与 `0.2.1-rc.2` 两个已验证版本 |
 | 轨迹分析 | 宿主会话及 projection 服务 |
 | 诊断配置应用 | 宿主持久化配置编辑器 `configEditor` |
 | 分享链接 | 宿主 HTTP 服务及本地 profile 存储 |
 
-版本不满足时，宿主可能跳过整个组合包。可在插件页和宿主日志中检查 `incompatible-version` 等信息。
+版本不满足时，宿主会在**安装阶段直接拒绝**（`dsh: installation rejected ... nothing was installed`），并且因为市场对 `engines` 与全部宿主 peer 取合取，插件也不会出现在市场搜索结果中——给自己加 `engines.dsh` 只能绕过宿主的加载闸门，绕不过市场过滤。若确需在未验证的宿主版本上试用，可用宿主自带的精确版本豁免：
+
+```bash
+dsh plugin --profile <profile> allow-version dsh-eval-control@<version> --dsh-version <host-version> --accept-risk
+```
+
+豁免只对"该插件版本 + 该宿主精确版本"这一对生效，不会放宽 `peerDependencies`。
 
 ## 面板演示
 
