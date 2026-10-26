@@ -31,15 +31,19 @@ schema、bundle descriptor 格式、bin 协议），每次都会在下方
 
 - 构建期依赖仍钉在 `0.2.0-rc.2`。两个子进程入口（`session_reader`、`session_stub`）
   是**自包含内联包**，构建时把持久化后端冻结进产物，因此与宿主的包版本无关；
-  该产物已在两代宿主上实测能读回各自写出的会话。
+  该产物已在三代宿主上实测能读回各自写出的会话。
 
 ### 已验证
 
-- 双宿主矩阵（`0.2.0-rc.2` 与 `0.2.1-rc.2`，各自隔离 `DSH_HOME`）：宿主接受安装、
-  bundle 载入、`--dump-config` 组入 `aeval-broker-transport` 与 `dsh-trajectory-analytics`、
-  无密钥 headless 探针下无 `entry did not activate`、`selfcheck` 通过、`dsh web` 正常启动，
-  以及 `session_reader` 回读**两代宿主各自产出**的会话（含假 id 的 `SESSION_NOT_FOUND`
-  与越界 `SOURCE_ROOT_DENIED` 对照）。
+- **三代宿主矩阵**（`0.2.0-rc.2`、`0.2.1-rc.2`、`0.2.1-rc.3`，各自隔离 `DSH_HOME`）：
+  宿主闸门 `evaluatePluginCompatibility` 判定 `satisfied`、安装被接受、`bundles` 载入、
+  `--dump-config` 组入 `aeval-broker-transport` 与 `dsh-trajectory-analytics`、
+  无密钥 headless 探针下无 `entry did not activate`、会话落盘、`selfcheck` 通过、
+  `dsh web` 正常启动，以及 `session_reader` 回读**每代宿主各自产出**的会话
+  （含假 id 的 `SESSION_NOT_FOUND` 与越界 `SOURCE_ROOT_DENIED` 对照）。
+- **跨代读取**：在 `0.2.1-rc.2` 与 `0.2.1-rc.3` 上安装的 0.5.0，均能读回
+  `0.2.0-rc.2` 宿主产出的会话。
+- 仓库自身：`build`、`typecheck`（含 `tsconfig.client.json`）、`test` **297/297** 全绿。
 
 ## [0.4.0] - 2026-10-19
 

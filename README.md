@@ -2,7 +2,7 @@
 
 [![源码版本 0.5.0](https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/badges/version.svg)](package.json)
 [![License Apache-2.0](https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/badges/license.svg)](LICENSE)
-[![验证环境 DSH 0.2.0-rc.2 与 0.2.1-rc.2](https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/badges/dsh.svg)](#环境要求)
+[![验证环境 DSH 0.2.0-rc.2 / 0.2.1-rc.2 / 0.2.1-rc.3](https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/badges/dsh.svg)](#环境要求)
 [![Node.js 22.19.x–22.x 或 24+](https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/badges/node.svg)](package.json)
 [![TypeScript 6.0.3](https://raw.githubusercontent.com/xyrrrrr-r/dsh-eval-control/main/docs/badges/typescript.svg)](package.json)
 
@@ -75,8 +75,8 @@ dsh plugin --profile web add /absolute/path/to/dsh-eval-control
 | 项目 | 要求 |
 | --- | --- |
 | Node.js | `^22.19.0` 或 `>=24.0.0` |
-| 完整功能验证环境 | DSH `0.2.0-rc.2` 与 `0.2.1-rc.2` 的 Web 界面 |
-| 宿主依赖 | 满足 `package.json` 中全部 `peerDependencies`；契约类 peer 覆盖 `0.2.0-rc.2` 与 `0.2.1-rc.2` 两个已验证版本 |
+| 完整功能验证环境 | DSH `0.2.0-rc.2`、`0.2.1-rc.2` 与 `0.2.1-rc.3` 的 Web 界面 |
+| 宿主依赖 | 满足 `package.json` 中全部 `peerDependencies`；契约类 peer 覆盖 `0.2.0-rc.2` 到 `0.2.1-rc.3` 三个已验证版本 |
 | 轨迹分析 | 宿主会话及 projection 服务 |
 | 诊断配置应用 | 宿主持久化配置编辑器 `configEditor` |
 | 分享链接 | 宿主 HTTP 服务及本地 profile 存储 |
